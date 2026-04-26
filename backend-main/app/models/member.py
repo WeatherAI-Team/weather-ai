@@ -1,0 +1,34 @@
+from datetime import datetime
+from sqlalchemy import Enum
+from . import db
+
+class Member(db.Model):
+    __tablename__ = 'members'
+
+    # 1. 기본 정보
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    login_id = db.Column(db.String(50), unique=True, nullable=True) # 소셜 로그인 시 null일 수 있음
+    password = db.Column(db.String(255), nullable=True)             # 소셜 로그인 시 null일 수 있음
+    
+    # 2. 프로필 정보
+    email = db.Column(db.String(100), unique=True, nullable=False)
+    nickname = db.Column(db.String(50), nullable=False)
+    profile_img_url = db.Column(db.Text, nullable=True)
+    
+    # 3. 권한 및 상태
+    # Enum 설정 (admin, manager, user)
+    role = db.Column(Enum('admin', 'manager', 'user', name='user_roles'), default='user')
+    active = db.Column(db.Boolean, default=True)
+    
+    # 4. 소셜 로그인 관련
+    provider = db.Column(db.String(20), default='local') # local, google, kakao 등
+    social_id = db.Column(db.String(255), unique=True, nullable=True)
+    
+    # 5. 시간 기록 (Audit)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    last_login_at = db.Column(db.DateTime, nullable=True)
+    deleted_at = db.Column(db.DateTime, nullable=True) # Soft Delete용
+
+    def __repr__(self):
+        return f'<Member {self.nickname}>'

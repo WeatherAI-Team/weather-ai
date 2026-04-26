@@ -1,0 +1,28 @@
+POST http://localhost:5000/api/member/register
+Content-Type: application/json
+
+{
+    "username": "agw_leader",
+    "password": "password123"
+}
+
+### AI 서버 상태 확인
+GET http://localhost:8000/
+
+### AI 추론 요청 테스트 (POST)
+POST http://localhost:8000/predict
+
+### 디비테스트
+POST http://localhost:5000/api/member/register
+Content-Type: application/json
+
+{
+    "login_id": "agw_test",
+    "password": "1234",
+    "email": "test@example.com",
+    "nickname": "테스트용"
+}
+
+
+### 내 정보(Member) 불러오기 테스트 (ID 1번 기준)
+GET http://localhost:5000/api/member/1

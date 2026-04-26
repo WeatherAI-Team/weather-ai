@@ -1,0 +1,40 @@
+# --- Python (Backend-main, Backend-ai) ---
+# 가상환경 (이름이 .venv인 경우 모두 제외)
+**/.venv/
+**/venv/
+ENV/
+env/
+
+# 파이썬 캐시 파일
+**/__pycache__/
+**/*.py[cod]
+**/*$py.class
+
+# --- Node.js (Frontend) ---
+**/node_modules/
+**/dist/
+**/.next/
+**/out/
+**/build/
+
+# --- Environment Variables (보안 필수!) ---
+# 모든 폴더의 .env 파일들을 절대 올리지 않음
+**/.env
+**/.env.local
+**/.env.development.local
+**/.env.test.local
+**/.env.production.local
+
+# --- IDE & OS ---
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# --- AI Models & Data ---
+# 용량이 큰 모델 파일이나 데이터셋 업로드 방지
+**/models/*.pt
+**/models/*.h5
+**/models/*.weights
+**/data/*.zip
+**/data/*.csv
