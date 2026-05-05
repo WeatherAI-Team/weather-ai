@@ -1,26 +1,76 @@
-@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Exo+2:wght@300;400;600;700&display=swap');
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --primary: #07559d;
+  --secondary: #1b9bd1;
+  --light-blue: #b5dff3;
+  --sage: #d5e3a9;
+  --dark-navy: #20436d;
+  --sky: #81c4e2;
+  --bg: #f0f8ff;
+  --surface: #ffffff;
+  --text-primary: #20436d;
+  --text-muted: #5a85a8;
+  --border: rgba(7,85,157,0.12);
+  --shadow-sm: 0 2px 8px rgba(7,85,157,0.08);
+  --shadow-md: 0 8px 32px rgba(7,85,157,0.14);
+  --shadow-lg: 0 24px 64px rgba(7,85,157,0.18);
+  --header-h: 68px;
+  --radius: 16px;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:'Exo 2',-apple-system,BlinkMacSystemFont,sans-serif;
+  background:var(--bg);
+  color:var(--text-primary);
+  overflow-x: hidden;
+  line-height:1.6;
+  overflow-x:hidden;
 }
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;cursor:pointer;border:none;background:none}
+img{display:block;max-width:100%}
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #e8f4fb; }
+::-webkit-scrollbar-thumb { background: var(--secondary); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--primary); }
+
+.container{width:100%;max-width:1200px;margin:0 auto;padding:0 24px}
+
+@keyframes fadeUp{
+  from{opacity:0;transform:translateY(32px)}
+  to{opacity:1;transform:translateY(0)}
 }
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@keyframes fadeIn{
+  from{opacity:0}
+  to{opacity:1}
+}
+@keyframes float{
+  0%,100%{transform:translateY(0)}
+  50%{transform:translateY(-12px)}
+}
+@keyframes cloudDrift{
+  0%{transform:translateX(-200px);opacity:0}
+  15%{opacity:0.85}
+  85%{opacity:0.85}
+  100%{transform:translateX(200px);opacity:0}
+}
+@keyframes rainDrop{
+  0%{transform:translateY(-40px);opacity:0}
+  10%{opacity:0.8}
+  90%{opacity:0.8}
+  100%{transform:translateY(110vh);opacity:0}
+}
+@keyframes snowFall{
+  0%{transform:translateY(-20px) rotate(0deg) translateX(0);opacity:0}
+  10%{opacity:0.9}
+  90%{opacity:0.9}
+  100%{transform:translateY(110vh) rotate(540deg) translateX(40px);opacity:0}
+}
+@keyframes shimmer{
+  0%{background-position:-200% center}
+  100%{background-position:200% center}
 }
