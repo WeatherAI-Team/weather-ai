@@ -23,6 +23,10 @@ def create_app():
     from .api.member_api import member_bp
     app.register_blueprint(member_bp, url_prefix='/api/member')
 
+    # cctv 블루프린트
+    from .api.cctv_api import cctv_bp
+    app.register_blueprint(cctv_bp, url_prefix='/api')
+
     # 테이블 자동 생성 (이게 있어야 실행 시 테이블이 만들어져!)
     with app.app_context():
         db.create_all()

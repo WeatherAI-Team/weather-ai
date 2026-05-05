@@ -1,65 +1,118 @@
-import Image from "next/image";
+'use client'
+import Link from 'next/link'
+import { useEffect, useState } from 'react'
+import WeatherOverlay from '@/components/weather/WeatherOverlay'
+import styles from './page.module.css'
 
-export default function Home() {
+const weatherLabels = ['☀️ 맑음', '☁️ 흐림', '🌧️ 비', '❄️ 눈']
+const DURATION = 2000
+
+export default function HomePage() {
+  const [phaseIdx, setPhaseIdx] = useState(0)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+    const id = setInterval(() => setPhaseIdx(p => (p + 1) % 4), DURATION)
+    return () => clearInterval(id)
+  }, [])
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <div className={styles.page}>
+      {/* ── HERO ── */}
+      <section className={styles.hero}>
+        {mounted && <WeatherOverlay />}
+
+        {/* Background image placeholder */}
+        <div className={styles.heroBg} />
+
+        <div className={styles.heroContent}>
+          {/* Weather indicator */}
+          <div className={styles.weatherBadge}>
+            <span className={styles.weatherDot} />
+            <span>{weatherLabels[phaseIdx]}</span>
+          </div>
+
+          <h1 className={styles.heroTitle}>
+            <span>악천후 속</span>
+            <em>위험물질 차량</em>
+            <span>AI 탐지 시스템</span>
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+
+          <p className={styles.heroDesc}>
+            극한의 기상 조건에서도 위험 물질 운반 차량을 실시간으로 탐지하여<br />
+            도로 위의 잠재적 사고를 사전에 예방합니다
           </p>
+
+          <div className={styles.heroCtas}>
+            <Link href="/ai" className={styles.ctaPrimary}>
+              AI 탐지 시작
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </Link>
+            <Link href="/intro" className={styles.ctaSecondary}>
+              시스템 소개
+            </Link>
+          </div>
+
+          {/* Scroll indicator dots */}
+          <div className={styles.weatherDots}>
+            {weatherLabels.map((_, i) => (
+              <span key={i} className={`${styles.dot} ${i === phaseIdx ? styles.dotActive : ''}`} />
+            ))}
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+      </section>
+
+      {/* ── QUICK NAV CARDS ── */}
+      <section className={styles.cards}>
+        <div className="container">
+          <div className={styles.cardGrid}>
+            <Link href="/intro" className={styles.card}>
+              <div className={styles.cardIcon}>
+                <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+                  <circle cx="18" cy="18" r="16" fill="var(--light-blue)" opacity="0.4"/>
+                  <circle cx="18" cy="18" r="10" stroke="var(--secondary)" strokeWidth="2"/>
+                  <circle cx="18" cy="14" r="2" fill="var(--primary)"/>
+                  <rect x="16" y="17" width="4" height="7" rx="1" fill="var(--primary)"/>
+                </svg>
+              </div>
+              <h3>소개</h3>
+              <p>프로젝트 개요, 탐지 방식, 기술 스택, 팀 소개를 확인하세요</p>
+              <span className={styles.cardArrow}>→</span>
+            </Link>
+
+            <Link href="/ai" className={`${styles.card} ${styles.cardHighlight}`}>
+              <div className={styles.cardBadge}>LIVE</div>
+              <div className={styles.cardIcon}>
+                <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+                  <circle cx="18" cy="18" r="16" fill="white" opacity="0.15"/>
+                  <rect x="8" y="12" width="20" height="14" rx="3" stroke="white" strokeWidth="2"/>
+                  <circle cx="18" cy="19" r="4" fill="white" opacity="0.8"/>
+                  <path d="M14 8l4 4 4-4" stroke="white" strokeWidth="1.8" strokeLinecap="round"/>
+                </svg>
+              </div>
+              <h3 style={{ color: '#ffffff' }}>AI 탐지</h3>
+              <p style={{ color: 'rgba(255,255,255,0.8)' }}>악천후 영상을 업로드하거나 실시간 스트림으로 위험 차량을 탐지합니다</p>
+              <span className={styles.cardArrow}>→</span>
+            </Link>
+
+            <Link href="/board" className={styles.card}>
+              <div className={styles.cardIcon}>
+                <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+                  <circle cx="18" cy="18" r="16" fill="var(--sage)" opacity="0.4"/>
+                  <rect x="10" y="10" width="16" height="18" rx="2" stroke="var(--dark-navy)" strokeWidth="2"/>
+                  <path d="M13 15h10M13 19h10M13 23h6" stroke="var(--secondary)" strokeWidth="1.6" strokeLinecap="round"/>
+                </svg>
+              </div>
+              <h3>게시판</h3>
+              <p>탐지 결과 공유, 사례 분석, 공지사항 및 커뮤니티 게시글을 확인하세요</p>
+              <span className={styles.cardArrow}>→</span>
+            </Link>
+          </div>
         </div>
-      </main>
+      </section>
     </div>
-  );
+  )
 }
