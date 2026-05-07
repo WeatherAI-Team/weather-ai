@@ -1,9 +1,10 @@
 from datetime import datetime
 from sqlalchemy import Enum
-from . import db
+from .. import db # app/__init__.py의 db 객체 상속
 
 class Member(db.Model):
     __tablename__ = 'members'
+    id = db.Column(db.Integer, primary_key=True)
 
     # 1. 기본 정보
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
