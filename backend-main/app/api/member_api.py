@@ -7,6 +7,7 @@ member_service = MemberService()
 @member_bp.route('/register', methods=['POST'])
 def register():
     data = request.json
+    print(f"DEBUG: 프론트에서 온 데이터 -> {data}")  # <--- 이 줄만 추가!
     result = member_service.register_member(data)
     
     if result["success"]:

@@ -1,2 +1,2 @@
-from .. import db
-from .member import Member
+# from .. import db
+from .member import Member, EventLog 
