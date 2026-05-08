@@ -13,6 +13,10 @@ class MemberRepository:
     def find_by_login_id(self, login_id):
         return Member.query.filter_by(login_id=login_id).first()
 
-    # 3. 고유 번호(ID)로 멤버 찾기 (조회용) - 이게 없어서 에러난 거야!
+    # 3. 고유 번호(ID)로 멤버 찾기
     def find_by_id(self, member_id):
         return Member.query.get(member_id)
+
+    # 4. 이메일로 멤버 찾기 (소셜 로그인 시 필수!)
+    def find_by_email(self, email):
+        return Member.query.filter_by(email=email).first()
