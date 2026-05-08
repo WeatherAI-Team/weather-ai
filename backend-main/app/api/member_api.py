@@ -13,6 +13,17 @@ def register():
         return jsonify(result), 201
     return jsonify(result), 400
 
+@member_bp.route('/login', methods=['POST'])
+def login():
+    data = request.json
+    result = member_service.login_member(data)
+
+    if result["success"]:
+        return jsonify(result), 200
+
+ 
+    return jsonify(result), 401
+
 # GET http://localhost:5000/api/member/1
 @member_bp.route('/<int:member_id>', methods=['GET'])
 def get_profile(member_id):

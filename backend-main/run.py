@@ -1,10 +1,15 @@
+import os
+from dotenv import load_dotenv
+
 from app import create_app
-from app.api.kakao_auth_api import kakao_auth_bp
+
+
+load_dotenv()
 
 app = create_app()
 
-app.register_blueprint(kakao_auth_bp)
-app.secret_key = "your-secret-key"
+app.secret_key = os.getenv("SECRET_KEY", "your-secret-key")
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", debug=True, port=5000)

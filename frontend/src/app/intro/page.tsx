@@ -1,5 +1,6 @@
 import styles from './page.module.css'
-import KakaoLoginButton from "@/components/auth/KakaoLoginButton";
+
+
 export default function IntroPage() {
   return (
     <div className={styles.page}>
@@ -11,7 +12,7 @@ export default function IntroPage() {
             악천후 기상 조건에서 일반 탐지 시스템이 놓치는<br/>
             위험물질 운반 차량을 AI로 실시간 탐지하여 대형 사고를 예방합니다.
           </p>
-          <KakaoLoginButton />
+        
         </div>
       </section>
 
