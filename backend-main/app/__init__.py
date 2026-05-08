@@ -24,9 +24,13 @@ def create_app():
     app.register_blueprint(member_bp)
 
     # [4] 테이블 자동 생성 및 모델 로드 (순환 참조 방지의 핵심 위치)
+    # cctv 블루프린트
+    from .api.cctv_api import cctv_bp
+    app.register_blueprint(cctv_bp, url_prefix='/api')
+
+    # 테이블 자동 생성 (이게 있어야 실행 시 테이블이 만들어져!)
     with app.app_context():
         # 파일명이 member.py라면 아래처럼 작성
         from .models.member import Member 
         db.create_all()
-
     return app

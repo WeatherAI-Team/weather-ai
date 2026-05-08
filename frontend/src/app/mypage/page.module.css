@@ -1,0 +1,24 @@
+.page {}
+.hero { padding:80px 0 60px; background:linear-gradient(160deg,#e8f6ff,var(--surface)); border-bottom:1px solid var(--border); }
+.eyebrow { font-size:0.75rem; font-weight:700; letter-spacing:0.15em; text-transform:uppercase; color:var(--secondary); margin-bottom:12px; }
+.title { font-family:'Exo 2',sans-serif; font-size:2.5rem; font-weight:700; color:var(--dark-navy); letter-spacing:-0.03em; }
+.main { padding:60px 0; }
+.grid { display:grid; grid-template-columns:300px 1fr; gap:24px; }
+.profileCard { background:var(--surface); border-radius:var(--radius); border:1.5px solid var(--border); padding:40px 32px; display:flex; flex-direction:column; align-items:center; gap:12px; text-align:center; }
+.avatar { width:80px; height:80px; border-radius:50%; background:linear-gradient(135deg,var(--secondary),var(--primary)); color:white; font-size:2rem; font-weight:700; display:flex; align-items:center; justify-content:center; box-shadow:0 8px 24px rgba(27,155,209,0.35); }
+.profileCard h2 { font-family:'Exo 2',sans-serif; font-size:1.4rem; font-weight:700; color:var(--dark-navy); }
+.email { font-size:0.88rem; color:var(--text-muted); }
+.badges { display:flex; gap:8px; }
+.roleBadge { padding:4px 12px; background:rgba(7,85,157,0.1); color:var(--primary); border-radius:999px; font-size:0.78rem; font-weight:700; }
+.gradeBadge { padding:4px 12px; background:rgba(213,227,169,0.6); color:var(--dark-navy); border-radius:999px; font-size:0.78rem; font-weight:700; }
+.joined { font-size:0.8rem; color:var(--text-muted); }
+.infoPanel { background:var(--surface); border-radius:var(--radius); border:1.5px solid var(--border); padding:36px 32px; display:flex; flex-direction:column; gap:24px; }
+.infoPanel h3 { font-family:'Exo 2',sans-serif; font-size:1rem; font-weight:700; color:var(--dark-navy); padding-bottom:12px; border-bottom:1px solid var(--border); }
+.stats { display:flex; gap:24px; }
+.stat { flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; padding:20px; background:var(--bg); border-radius:12px; }
+.statNum { font-family:'Exo 2',sans-serif; font-size:2rem; font-weight:700; color:var(--secondary); }
+.stat span:last-child { font-size:0.82rem; color:var(--text-muted); }
+.settingsList { display:flex; flex-direction:column; gap:2px; }
+.settingItem { display:flex; justify-content:space-between; align-items:center; padding:14px 16px; background:var(--bg); border-radius:10px; font-size:0.9rem; color:var(--text-primary); font-weight:500; cursor:pointer; border:none; transition:background 0.2s; text-align:left; width:100%; }
+.settingItem:hover { background:rgba(181,223,243,0.2); color:var(--primary); }
+@media(max-width:768px){ .grid{grid-template-columns:1fr} }
