@@ -1,6 +1,6 @@
 from datetime import datetime
 from sqlalchemy import Enum
-from .. import db # app/__init__.py의 db 객체 상속
+from app import db
 
 class Member(db.Model):
     __tablename__ = 'members'
@@ -33,3 +33,12 @@ class Member(db.Model):
 
     def __repr__(self):
         return f'<Member {self.nickname}>'
+
+# --- 여기서부터 새로 추가하는 코드 ---
+class EventLog(db.Model):
+    __tablename__ = 'event_logs'
+    id = db.Column(db.Integer, primary_key=True)
+    event_type = db.Column(db.String(50))  # 예: 폭우, 사고 등
+    risk_level = db.Column(db.Integer)      # 위험도 (1~10)
+    message = db.Column(db.Text)            # 알림 내용
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)

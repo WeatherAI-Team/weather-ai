@@ -1,5 +1,6 @@
-from ..models import db
-from ..models.member import Member
+ 
+from app import db
+from .. models.member import Member
 
 class MemberRepository:
     # 1. 새로운 멤버 저장
