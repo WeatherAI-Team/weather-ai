@@ -8,7 +8,7 @@ admin_bp = Blueprint('admin', __name__)
 @admin_bp.route('/users', methods=['GET'])
 def get_users():
     users = Member.query.all()
-    return jsonify([{"id": u.id, "name": u.username, "role": u.role} for u in users])
+    return jsonify([{"id": u.id, "name": u.login_id, "role": u.role} for u in users])
 
 # 2. 대시보드 통계 (위험도별 이벤트 개수)
 @admin_bp.route('/stats', methods=['GET'])
