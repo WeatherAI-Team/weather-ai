@@ -32,8 +32,10 @@ def create_app():
     app.register_blueprint(cctv_bp, url_prefix='/api')
 
     # 관리자 라우트 임포트 (내가 쓴거) 
-    from .admin_routes import admin_bp 
+    from .api.admin_routes import admin_bp
     app.register_blueprint(admin_bp, url_prefix='/api/admin')
+
+    from .import socket_events 
 
     # 테이블 자동 생성 (이게 있어야 실행 시 테이블이 만들어져!)
     from .models.member import Member, EventLog
