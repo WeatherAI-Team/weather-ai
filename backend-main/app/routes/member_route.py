@@ -32,7 +32,15 @@ def register():
     result = service.register_member(data)
     return jsonify(result)
 
-# 2. 구글 소셜 로그인 (이게 있어야 flask routes에 뜸)
+# 2. 일반 로그인
+@member_bp.route('/login', methods=['POST'])
+def login():
+    data = request.get_json()
+    service = MemberService()
+    result = service.login_member(data)
+    return jsonify(result)
+
+# 3. 구글 소셜 로그인 (이게 있어야 flask routes에 뜸)
 @member_bp.route('/google', methods=['POST'])
 def google_login():
     data = request.get_json()
@@ -43,7 +51,7 @@ def google_login():
     result = service.social_login_or_register(data)
     return jsonify(result)
 
-# 3. 내 프로필 조회
+# 4. 내 프로필 조회
 @member_bp.route('/me', methods=['GET'])
 @login_required
 def get_my_profile():
