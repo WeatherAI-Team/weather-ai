@@ -145,6 +145,71 @@
   transform: scale(1.08);
   box-shadow: 0 4px 18px rgba(27, 155, 209, 0.5);
 }
+
+.profileArea {
+  position: relative;
+}
+
+.profileBtn {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  padding: 4px 8px 4px 4px;
+  border-radius: 999px;
+}
+
+.profileBtn:hover {
+  background: rgba(11, 119, 197, 0.08);
+}
+
+.profileArrow {
+  color: #17486f;
+  font-size: 13px;
+  line-height: 1;
+  transition: transform 0.2s ease;
+}
+
+.profileArrowOpen {
+  transform: rotate(180deg);
+}
+
+.profileDropdown {
+  position: absolute;
+  top: 36px;
+  right: 0;
+  width: 120px;
+  padding: 8px;
+  background: #ffffff;
+  border: 1px solid rgba(120, 160, 190, 0.25);
+  border-radius: 14px;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.14);
+  z-index: 1000;
+}
+
+.dropdownItem {
+  width: 100%;
+  display: block;
+  padding: 9px 10px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: #234766;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.dropdownItem:hover {
+  background: #eef7ff;
+}
+
 .gradeBadge {
   position: absolute;
   bottom: -4px;
