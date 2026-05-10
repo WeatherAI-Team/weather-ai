@@ -1,13 +1,10 @@
 import os
 from dotenv import load_dotenv
-
 from app import create_app
-
 
 load_dotenv()
 
 app = create_app()
-
 app.secret_key = os.getenv("SECRET_KEY", "your-secret-key")
 
 

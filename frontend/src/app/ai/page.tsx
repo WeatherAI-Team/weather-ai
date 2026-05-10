@@ -2,18 +2,82 @@
 import { useState } from 'react'
 import styles from './page.module.css'
 
+const API_URL = process.env.NEXT_PUBLIC_AI_URL || 'http://localhost:8000'
+
 export default function AiPage() {
   const [uploading, setUploading] = useState(false)
   const [result, setResult] = useState<null | { detected: boolean; confidence: number; label: string }>(null)
+  const [streamUrl, setStreamUrl] = useState('')
 
-  const handleUpload = () => {
+  // ════════════════════════════════════════
+  // 파일 업로드 분석
+  // ════════════════════════════════════════
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
     setUploading(true)
     setResult(null)
-    // 실제 구현: FormData -> POST /api/ai/detect
-    setTimeout(() => {
+
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('user_id', '1')
+    formData.append('original_filename', file.name)
+
+    // 파일 타입 보고 엔드포인트 분기
+    const isVideo = file.type.startsWith('video/')
+    const endpoint = isVideo ? '/api/ai/analyze_and_save_video' : '/api/ai/detect'
+
+    try {
+      const res = await fetch(`${API_URL}${endpoint}`, {
+        method: 'POST',
+        body: formData,
+      })
+      const data = await res.json()
+
+      if (data.success) {
+        setResult({
+          detected: data.is_danger,
+          confidence: data.confidence,
+          label: data.weather
+        })
+      }
+    } catch (err) {
+      console.error('분석 실패:', err)
+    } finally {
       setUploading(false)
-      setResult({ detected: true, confidence: 97.3, label: '탱크로리 (위험물질 추정)' })
-    }, 2000)
+    }
+  }
+
+  // ════════════════════════════════════════
+  // CCTV 스트림 분석
+  // ════════════════════════════════════════
+  const handleStream = async () => {
+    if (!streamUrl) return
+
+    setUploading(true)
+    setResult(null)
+
+    try {
+      const res = await fetch(`${API_URL}/api/ai/cctv_stream`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: streamUrl }),
+      })
+      const data = await res.json()
+
+      if (data.success) {
+        setResult({
+          detected: data.is_danger,
+          confidence: data.confidence,
+          label: data.weather
+        })
+      }
+    } catch (err) {
+      console.error('스트림 분석 실패:', err)
+    } finally {
+      setUploading(false)
+    }
   }
 
   return (
@@ -40,8 +104,14 @@ export default function AiPage() {
               </div>
               <div className={styles.divider}><span>또는</span></div>
               <div className={styles.streamInput}>
-                <input type="text" placeholder="rtsp:// 또는 http:// 스트림 URL 입력" className={styles.input} />
-                <button className={styles.analyzeBtn}>분석 시작</button>
+                <input
+                  type="text"
+                  placeholder="rtsp:// 또는 http:// 스트림 URL 입력"
+                  className={styles.input}
+                  value={streamUrl}
+                  onChange={(e) => setStreamUrl(e.target.value)}
+                />
+                <button className={styles.analyzeBtn} onClick={handleStream}>분석 시작</button>
               </div>
             </div>
 
