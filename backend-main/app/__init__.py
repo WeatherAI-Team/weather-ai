@@ -42,7 +42,7 @@ def create_app():
     app.register_blueprint(cctv_bp, url_prefix='/api')
 
     from .api.auth.kakao_auth_api import kakao_auth_bp
-    from .api.auth.naver_auth import naver_auth_bp
+    from .api.auth.naver_auth_api import naver_auth_bp
     app.register_blueprint(kakao_auth_bp)
     app.register_blueprint(naver_auth_bp)
 

@@ -1,6 +1,7 @@
 import os
 import requests
-from flask import Blueprint, redirect, request, session, jsonify
+from flask import Blueprint, redirect, request, jsonify
+from app.services.auth_utils import create_access_token
 from dotenv import load_dotenv
 from datetime import datetime
 
@@ -56,12 +57,19 @@ def kakao_callback():
         data=data,
     )
 
+    print("[KAKAO TOKEN STATUS]", token_response.status_code)
+    print("[KAKAO TOKEN BODY]", token_response.text)
+
     token_json = token_response.json()
 
     if "access_token" not in token_json:
-        return jsonify(token_json), 400
+        return jsonify({
+            "error": "카카오 토큰 발급 실패",
+            "detail": token_json
+        }), 400
 
     access_token = token_json["access_token"]
+    print("[ACCESS TOKEN]", access_token)
 
     user_response = requests.get(
         "https://kapi.kakao.com/v2/user/me",
@@ -70,6 +78,15 @@ def kakao_callback():
             "Content-Type": "application/x-www-form-urlencoded;charset=utf-8",
         },
     )
+
+    print("[KAKAO USER STATUS]", user_response.status_code)
+    print("[KAKAO USER BODY]", user_response.text)
+
+    if user_response.status_code != 200:
+        return jsonify({
+            "error": "카카오 사용자 정보 조회 실패",
+            "detail": user_response.json()
+        }), 400
 
     kakao_user = user_response.json()
 
@@ -136,8 +153,8 @@ def kakao_callback():
 
             repo.update_last_login(member)
 
-        # 4. 세션 저장
-        session["user"] = {
+        
+        user_data = {
             "id": member.id,
             "login_id": member.login_id,
             "email": member.email,
@@ -147,10 +164,14 @@ def kakao_callback():
             "social_id": member.social_id,
         }
 
+        access_token = create_access_token({"sub": str(member.id)})
+
         return jsonify({
+            "success": True,
             "message": "카카오 로그인 성공",
-            "user": session["user"]
-        })
+            "access_token": access_token,
+            "user": user_data
+})
 
     except Exception as e:
         db.session.rollback()

@@ -1,22 +1,12 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 from ..repositories.member_repo import MemberRepository
+from .auth_utils import create_access_token
 from ..models.member import Member
-import os
-from jose import jwt
-
-SECRET_KEY = os.getenv("SECRET_KEY", "your-fallback-secret-key")
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24
 
 class MemberService:
     def __init__(self):
         self.member_repo = MemberRepository()
-
-    def _create_access_token(self, member_id: int):
-        expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-        to_encode = {"sub": str(member_id), "exp": expire}
-        return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
     # 일반 회원가입
     def register_member(self, data):
@@ -78,9 +68,12 @@ class MemberService:
             return {"success": False, "message": "아이디 또는 비밀번호가 올바르지 않습니다."}
 
         self.member_repo.update_last_login(member)
+        access_token = create_access_token({"sub": str(member.id)})
         return {
             "success": True,
             "message": "로그인 성공",
+            "access_token": access_token,
+            "token_type": "bearer",
             "data": self.to_public_dict(member)
         }
 
@@ -101,7 +94,7 @@ class MemberService:
         else:
             message = f"{member.nickname}님, 로그인되었습니다."
 
-        access_token = self._create_access_token(member.id)
+        access_token = create_access_token({"sub": str(member.id)})
         return {
             "success": True,
             "message": message,
@@ -131,4 +124,27 @@ class MemberService:
             "created_at": member.created_at.isoformat() if member.created_at else None,
             "updated_at": member.updated_at.isoformat() if member.updated_at else None,
             "last_login_at": member.last_login_at.isoformat() if member.last_login_at else None,
+        }
+    
+    def find_login_id(self, data):
+        email = data.get("email")
+
+        if not email:
+            return {
+                "success": False,
+                "message": "이메일을 입력해주세요."
+            }
+
+        member = self.member_repo.find_by_email(email)
+
+        if not member or member.deleted_at is not None:
+            return {
+                "success": False,
+                "message": "해당 이메일로 가입된 회원이 없습니다."
+            }
+
+        return {
+            "success": True,
+            "message": "아이디를 찾았습니다.",
+            "login_id": member.login_id
         }

@@ -36,11 +36,22 @@ def register():
 @member_bp.route('/login', methods=['POST'])
 def login():
     data = request.get_json()
+
+    if not data:
+        return jsonify({
+            "success": False,
+            "message": "데이터가 없습니다."
+        }), 400
+
     service = MemberService()
     result = service.login_member(data)
-    return jsonify(result)
 
-# 3. 구글 소셜 로그인 (이게 있어야 flask routes에 뜸)
+    if result["success"]:
+        return jsonify(result), 200
+    else:
+        return jsonify(result), 401
+
+# 2. 구글 소셜 로그인 (이게 있어야 flask routes에 뜸)
 @member_bp.route('/google', methods=['POST'])
 def google_login():
     data = request.get_json()
@@ -51,10 +62,31 @@ def google_login():
     result = service.social_login_or_register(data)
     return jsonify(result)
 
-# 4. 내 프로필 조회
+# 3. 내 프로필 조회
 @member_bp.route('/me', methods=['GET'])
 @login_required
 def get_my_profile():
     service = MemberService()
     result = service.get_member_info(request.user_id)
     return jsonify(result)
+
+
+@member_bp.route('/logout', methods=['POST'])
+@login_required
+def logout():
+    return jsonify({
+        "success": True,
+        "message": "로그아웃되었습니다."
+    }), 200
+
+# 4. 아이디 찾기
+@member_bp.route('/find-id', methods=['POST'])
+def find_id():
+    data = request.get_json()
+    service = MemberService()
+    result = service.find_login_id(data)
+
+    if result["success"]:
+        return jsonify(result), 200
+
+    return jsonify(result), 404

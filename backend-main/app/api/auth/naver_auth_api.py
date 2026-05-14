@@ -1,7 +1,8 @@
 import os
 import secrets
 import requests
-from flask import Blueprint, redirect, request, session, jsonify
+from flask import Blueprint, redirect, request, jsonify, session
+from app.services.auth_utils import create_access_token
 from dotenv import load_dotenv
 from urllib.parse import urlencode
 from datetime import datetime
@@ -116,34 +117,40 @@ def naver_callback():
         # 1. provider + social_id로 기존 네이버 회원 조회
         member = repo.find_by_provider_and_social_id("naver", naver_id)
 
-        # 2. 기존 회원이 없으면 신규 가입
+        # 2. 기존 회원이 없으면 이메일 중복 체크 및 처리
         if member is None:
             same_email_member = repo.find_by_email(email)
 
             if same_email_member is not None:
-                return jsonify({
-                    "error": "이미 같은 이메일로 가입된 회원이 있습니다.",
-                    "email": email,
-                    "provider": same_email_member.provider
-                }), 409
-
-            member = Member(
-                login_id=f"naver_{naver_id}"[:50],
-                password=None,
-                email=email,
-                nickname=name,
-                profile_img_url=None,
-                role="user",
-                active=True,
-                provider="naver",
-                social_id=str(naver_id),
-                created_at=datetime.now(),
-                updated_at=datetime.now(),
-                last_login_at=datetime.now(),
-                deleted_at=None,
-            )
-
-            repo.save(member)
+                # [수정 포인트] 에러를 던지는 대신, 기존 계정에 네이버 연동 정보를 업데이트합니다.
+                # (보안 정책에 따라 비밀번호 확인 없이 연동할지 결정이 필요하지만, 
+                #  소셜 로그인의 편의성을 위해 보통 자동 연동을 많이 합니다.)
+                same_email_member.provider = "naver"
+                same_email_member.social_id = str(naver_id)
+                # 필요하다면 다른 정보(업데이트 시간 등)도 갱신
+                same_email_member.updated_at = datetime.now()
+                
+                repo.save(same_email_member) # DB 업데이트
+                member = same_email_member # 이제 이 멤버로 로그인을 진행합니다.
+            
+            else:
+                # 완전히 새로운 이메일인 경우 신규 가입 진행
+                member = Member(
+                    login_id=f"naver_{naver_id}"[:50],
+                    password=None,
+                    email=email,
+                    nickname=name,
+                    profile_img_url=None,
+                    role="user",
+                    active=True,
+                    provider="naver",
+                    social_id=str(naver_id),
+                    created_at=datetime.now(),
+                    updated_at=datetime.now(),
+                    last_login_at=datetime.now(),
+                    deleted_at=None,
+                )
+                repo.save(member)
 
         # 3. 기존 회원이면 마지막 로그인 시간 업데이트
         else:
@@ -152,8 +159,7 @@ def naver_callback():
 
             repo.update_last_login(member)
 
-        # 4. 세션 저장
-        session["user"] = {
+        user_data = {
             "id": member.id,
             "login_id": member.login_id,
             "email": member.email,
@@ -163,9 +169,13 @@ def naver_callback():
             "social_id": member.social_id,
         }
 
+        access_token = create_access_token({"sub": str(member.id)})
+
         return jsonify({
+            "success": True,
             "message": "네이버 로그인 성공",
-            "user": session["user"]
+            "access_token": access_token,
+            "user": user_data
         })
 
     except Exception as e:
