@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import styles from "./page.module.css";
 import KakaoLoginButton from "@/components/auth/KakaoLoginButton";
 import NaverLoginButton from "@/components/auth/NaverLoginButton";
+import GoogleLoginButton from "@/components/auth/GoogleLoginButton";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -91,7 +92,7 @@ export default function LoginPage() {
         </form>
 
         <div className={styles.links}>
-          <a href="#">아이디 찾기</a>
+          <Link href="/find-id">아이디 찾기</Link>
           <span />
           <a href="#">비밀번호 찾기</a>
           <span />
@@ -105,10 +106,7 @@ export default function LoginPage() {
         <div className={styles.socialList}>
           <KakaoLoginButton />
           <NaverLoginButton />
-
-          <button type="button" className={styles.googleButton} disabled>
-            구글 로그인
-          </button>
+          <GoogleLoginButton />
         </div>
       </section>
     </main>
