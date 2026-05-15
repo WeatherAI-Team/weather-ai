@@ -35,17 +35,20 @@ def create_app():
     socketio.init_app(app, cors_allowed_origins="*")
 
     # Blueprint 등록
-    from .routes.member_route import member_bp
+    from .api.member_api import member_bp
     app.register_blueprint(member_bp)
 
     from .api.cctv_api import cctv_bp
     app.register_blueprint(cctv_bp, url_prefix='/api')
 
     from .api.auth.kakao_auth_api import kakao_auth_bp
-    from .api.auth.naver_auth import naver_auth_bp
+    from .api.auth.naver_auth_api import naver_auth_bp
+    from .api.auth.google_auth_api import google_auth_bp
+
     app.register_blueprint(kakao_auth_bp)
     app.register_blueprint(naver_auth_bp)
-
+    app.register_blueprint(google_auth_bp)
+    
     # 관리자 라우트 (dev에서 가져옴)
     from .api.admin_routes import admin_bp
     app.register_blueprint(admin_bp, url_prefix='/api/admin')
