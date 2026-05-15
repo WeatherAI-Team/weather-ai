@@ -4,6 +4,7 @@ from app import db
 
 class Member(db.Model):
     __tablename__ = 'members'
+    id = db.Column(db.Integer, primary_key=True)
 
     # 1. 기본 정보
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)

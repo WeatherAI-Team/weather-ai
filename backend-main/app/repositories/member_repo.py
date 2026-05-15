@@ -14,7 +14,7 @@ class MemberRepository:
     def find_by_login_id(self, login_id):
         return Member.query.filter_by(login_id=login_id).first()
 
-    # 3. 고유 번호(ID)로 멤버 찾기 (조회용) - 이게 없어서 에러난 거야!
+    # 3. 고유 번호(ID)로 멤버 찾기
     def find_by_id(self, member_id):
         return Member.query.get(member_id)
     
@@ -59,3 +59,8 @@ class MemberRepository:
             error_out=False          # 페이지가 없어도 에러 대신 빈 결과를 주게 함   
         )
     # 나중에 관리자 페이지에서 사용자 목록을 검색
+
+
+    # 4. 이메일로 멤버 찾기 (소셜 로그인 시 필수!)
+    def find_by_email(self, email):
+        return Member.query.filter_by(email=email).first()
