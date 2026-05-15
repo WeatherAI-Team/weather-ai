@@ -1,6 +1,12 @@
-from app import create_app, socketio 
+import os
+from dotenv import load_dotenv
+from app import create_app
+
+load_dotenv()
 
 app = create_app()
-if __name__ == '__main__':
-    # host='0.0.0.0' 으로 변경 (포트는 5000)
-    socketio.run(app, host='0.0.0.0', port=5000, debug=True)
+app.secret_key = os.getenv("SECRET_KEY", "your-secret-key")
+
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", debug=True, port=5000)
