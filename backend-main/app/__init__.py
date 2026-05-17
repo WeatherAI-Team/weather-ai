@@ -18,6 +18,10 @@ def create_app():
     app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "dev-jwt-secret-key")
     app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL")
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "dev-secret-key")  # 추가
+    app.config["SESSION_COOKIE_SAMESITE"] = "Lax"   # 추가
+    app.config["SESSION_COOKIE_SECURE"] = False      # 추가 (localhost라서 False)
+    app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "dev-jwt-secret-key")
 
     db.init_app(app)
     jwt.init_app(app)
