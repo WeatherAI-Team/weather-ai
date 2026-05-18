@@ -2,6 +2,7 @@
 # Blueprint는 API 주소들을 묶어주는 도구야.
 # request는 사용자가 보낸 값을 읽을 때 써.
 # jsonify는 Python 데이터를 JSON으로 바꿔줘.
+# f-021 탐지 조회 결과 api 주소 담당 
 from flask import Blueprint, request, jsonify
 
 # 탐지 결과 기능을 처리하는 Service를 가져와.
