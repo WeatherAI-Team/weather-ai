@@ -77,6 +77,37 @@ def get_admin_alerts():
         "data": result
     }), 200
 
+# f-014 관리자 알림 위치 표시 API
+@alert_bp.route("/map", methods=["GET"])
+def get_admin_alert_map_markers():
+    # 이 함수는 GET /api/admin/alerts/map 요청이 들어오면 실행돼.
+    # 쉽게 말하면 "지도에 찍을 알림 위치 목록을 주세요"라는 요청이야.
+
+    # Service에게 지도에 표시할 알림 위치 목록을 가져와 달라고 부탁해.
+    result = alert_service.get_admin_alert_map_markers()
+
+    # 결과를 JSON 형태로 프론트에게 보내줘.
+    return jsonify({
+        "success": True,
+        "message": "관리자 알림 지도 위치 조회 성공",
+        "data": result
+    }), 200
+
+# f-013 지역별 알림 현황
+@alert_bp.route("/locations", methods=["GET"])
+def get_admin_alert_location_summary():
+    # 이 함수는 GET /api/admin/alerts/locations 요청이 들어오면 실행돼.
+    # 쉽게 말하면 "지역별 알림 현황을 보여줘"라는 요청이야.
+
+    # Service에게 지역별 알림 현황을 만들어 달라고 부탁해.
+    result = alert_service.get_admin_alert_location_summary()
+
+    # 결과를 JSON 형태로 프론트에게 보내줘.
+    return jsonify({
+        "success": True,
+        "message": "지역별 알림 현황 조회 성공",
+        "data": result
+    }), 200
 
 @alert_bp.route("/<int:alert_id>", methods=["GET"])
 def get_admin_alert_detail(alert_id):

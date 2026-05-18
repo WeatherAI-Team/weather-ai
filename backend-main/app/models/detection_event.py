@@ -1,5 +1,6 @@
 # app에서 db를 가져와.
 # db는 Flask가 데이터베이스랑 대화할 수 있게 도와주는 도구야.
+# f-021 탐지 결과 조회/필터링
 from app import db
 
 
