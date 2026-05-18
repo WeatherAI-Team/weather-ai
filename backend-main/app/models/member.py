@@ -13,6 +13,7 @@ class Member(db.Model):
     
     # 2. 프로필 정보
     email = db.Column(db.String(100), unique=True, nullable=False)
+    real_name = db.Column(db.String(50), nullable=False)
     nickname = db.Column(db.String(50), nullable=False)
     profile_img_url = db.Column(db.Text, nullable=True)
     
