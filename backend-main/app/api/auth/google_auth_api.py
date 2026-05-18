@@ -93,4 +93,8 @@ def google_callback():
     profile_img_url=profile_img_url,
     )
 
-    return jsonify(result), status_code
+    if status_code in (200, 201):
+        access_token = result.get("access_token")
+        return redirect(f"{FRONTEND_URL}/auth/callback?token={access_token}&provider=google")
+    else:
+        return redirect(f"{FRONTEND_URL}/auth/callback?error=login_failed")

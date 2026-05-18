@@ -97,10 +97,7 @@ def kakao_callback():
         return jsonify({"error": "카카오 고유 ID가 없습니다."}), 400
 
     if not email:
-        return jsonify({
-            "error": "카카오 이메일이 없습니다.",
-            "message": "카카오 개발자센터에서 이메일 제공 항목을 필수로 설정했는지 확인하세요."
-        }), 400
+        email = f"kakao_{kakao_id}@kakao.local"
 
     result, status_code = social_auth_service.login_or_register(
         provider="kakao",
@@ -110,4 +107,8 @@ def kakao_callback():
         profile_img_url=profile_img_url,
     )
 
-    return jsonify(result), status_code
+    if status_code in (200, 201):
+        access_token = result.get("access_token")
+        return redirect(f"{FRONTEND_URL}/auth/callback?token={access_token}")
+    else:
+        return redirect(f"{FRONTEND_URL}/auth/callback?error=login_failed")
