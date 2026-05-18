@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify
-from .. models.member import Member, EventLog
+from ..models.member import Member, EventLog
 from sqlalchemy import func
 
 admin_bp = Blueprint('admin', __name__)
