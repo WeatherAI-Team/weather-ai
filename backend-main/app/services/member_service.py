@@ -147,4 +147,8 @@ class MemberService:
             "success": True,
             "message": "아이디를 찾았습니다.",
             "login_id": member.login_id
+        
         }
+    
+    
+        
