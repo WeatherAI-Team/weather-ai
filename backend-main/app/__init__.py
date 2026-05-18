@@ -44,11 +44,13 @@ def create_app():
     from .api.auth.kakao_auth_api import kakao_auth_bp
     from .api.auth.naver_auth_api import naver_auth_bp
     from .api.auth.google_auth_api import google_auth_bp
+    from .api.detection_api import detection_bp
 
     app.register_blueprint(kakao_auth_bp)
     app.register_blueprint(naver_auth_bp)
     app.register_blueprint(google_auth_bp)
-    
+    app.register_blueprint(detection_bp)
+
     # 관리자 라우트 (dev에서 가져옴)
     from .api.admin_api import admin_bp
     app.register_blueprint(admin_bp, url_prefix='/api/admin')
@@ -61,6 +63,10 @@ def create_app():
 
     with app.app_context():
         from .models.member import Member, EventLog
+        # 탐지 이벤트 모델을 가져와.
+        # Flask가 detection_events 테이블 구조를 알 수 있게 해.
+        from .models.detection_event import DetectionEvent
+        
         db.create_all()
 
     return app
