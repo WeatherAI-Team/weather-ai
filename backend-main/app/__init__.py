@@ -49,12 +49,14 @@ def create_app():
     from .api.auth.naver_auth_api import naver_auth_bp
     from .api.auth.google_auth_api import google_auth_bp
     from .api.detection_api import detection_bp
+    from .api.alert_api import alert_bp
 
     app.register_blueprint(kakao_auth_bp)
     app.register_blueprint(naver_auth_bp)
     app.register_blueprint(google_auth_bp)
     app.register_blueprint(detection_bp)
-
+    app.register_blueprint(alert_bp)
+    
     # 관리자 라우트 (dev에서 가져옴)
     from .api.admin_api import admin_bp
     app.register_blueprint(admin_bp, url_prefix='/api/admin')
