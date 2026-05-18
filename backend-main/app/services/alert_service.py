@@ -1,5 +1,6 @@
 # 탐지 결과 DB 조회를 담당하는 DetectionRepository를 가져와.
 # 알림은 detection_events 테이블에서 alert_required=True인 것만 가져올 거야.
+# f-024 관리자 알림 내역 / f-014 관리자 알림 위치 표시 / f-013 지역별 알림 현황 
 # f-024 관리자 알림 내역 조회
 from ..repositories.detection_repo import DetectionRepository
 
@@ -230,8 +231,9 @@ class AlertService:
 
         # 알림 개수가 많은 지역부터 보이도록 정렬해.
         result.sort(
-            key=lambda item: item["total_alert_count"],
-            reverse=True
+            key=lambda item: item["total_alert_count"], # item 하나를 받으면, 그 item 안의 total_alert_count 값을 꺼내줘
+            # ex) 강남대로 → 3 올림픽대로 → 7 서초대로 → 1 
+            reverse=True # 큰숫자부터 작은 숫자로 정렬  7 → 3 → 1 
         )
 
         # 지역별 알림 현황 목록을 돌려줘.
