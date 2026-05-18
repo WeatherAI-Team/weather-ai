@@ -31,6 +31,10 @@ class Member(db.Model):
     last_login_at = db.Column(db.DateTime, nullable=True)
     deleted_at = db.Column(db.DateTime, nullable=True) # Soft Delete용
 
+    # 비밀번호 재설정 
+    password_reset_token = db.Column(db.String(255), nullable=True)
+    password_reset_token_expires_at = db.Column(db.DateTime, nullable=True)
+    password_changed_at = db.Column(db.DateTime, nullable=True)
     def __repr__(self):
         return f'<Member {self.nickname}>'
 
@@ -42,3 +46,4 @@ class EventLog(db.Model):
     risk_level = db.Column(db.Integer)      # 위험도 (1~10)
     message = db.Column(db.Text)            # 알림 내용
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+

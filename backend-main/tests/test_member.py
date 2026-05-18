@@ -18,7 +18,7 @@ def test_register_member(client):
     })
     data = response.get_json()
     print("회원가입 응답:", data)
-    assert response.status_code == 200
+    assert response.status_code == 201
     assert data["success"] is True
 
 def test_get_my_profile(client):
@@ -72,4 +72,30 @@ def test_find_login_id(client):
     assert data["success"] is True
     assert data["login_id"] == "test"
 
+def test_update_my_profile(client):
+    login_response = client.post("/api/member/login", json={
+        "login_id": "test",
+        "password": "2345"
+    })
 
+    login_data = login_response.get_json()
+    access_token = login_data["access_token"]
+
+    response = client.put(
+        "/api/member/me",
+        headers={
+            "Authorization": f"Bearer {access_token}"
+        },
+        json={
+            "email": "test@email.com",
+            "nickname": "수정된테스트",
+            "profile_img_url": None
+        }
+    )
+
+    data = response.get_json()
+    print("회원정보 수정 응답:", data)
+
+    assert response.status_code == 200
+    assert data["success"] is True
+    assert data["data"]["nickname"] == "수정된테스트"
