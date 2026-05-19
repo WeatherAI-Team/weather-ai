@@ -78,6 +78,24 @@ def get_my_profile():
     return jsonify(result)
 
 
+@member_bp.route("/me", methods=["PUT"])
+@login_required
+def update_my_profile():
+    data = request.get_json()
+
+    if not data:
+        return jsonify({
+            "success": False,
+            "message": "수정할 정보를 입력해주세요."
+        }), 400
+
+    result = member_service.update_member_info(request.user_id, data)
+
+    if result["success"]:
+        return jsonify(result), 200
+
+    return jsonify(result), 400
+
 @member_bp.route("/logout", methods=["POST"])
 @login_required
 def logout():
@@ -104,3 +122,62 @@ def find_id():
         return jsonify(result), 200
 
     return jsonify(result), 404
+
+@member_bp.route("/forgot-password", methods=["POST"])
+def forgot_password():
+    data = request.get_json()
+
+    if not data or not data.get("email"):
+        return jsonify({
+            "success": False,
+            "message": "이메일을 입력해주세요."
+        }), 400
+
+    result = member_service.request_password_reset(data)
+
+    return jsonify(result), 200
+
+
+@member_bp.route("/reset-password", methods=["POST"])
+def reset_password():
+    # 토큰은 URL에서 추출 (?token=abc123...)
+    token = request.args.get("token")
+    
+    if not token:
+        return jsonify({
+            "success": False,
+            "message": "유효하지 않은 접근입니다."
+        }), 400
+
+    data = request.get_json()
+
+    if not data or not data.get("new_password"):
+        return jsonify({
+            "success": False,
+            "message": "새 비밀번호를 입력해주세요."
+        }), 400
+
+    result = member_service.reset_password(token, data["new_password"])
+
+    if result["success"]:
+        return jsonify(result), 200
+
+    return jsonify(result), 400
+
+@member_bp.route("/me/password", methods=["PUT"])
+@login_required
+def change_my_password():
+    data = request.get_json()
+
+    if not data:
+        return jsonify({
+            "success": False,
+            "message": "비밀번호 정보를 입력해주세요."
+        }), 400
+
+    result = member_service.change_password(request.user_id, data)
+
+    if result["success"]:
+        return jsonify(result), 200
+
+    return jsonify(result), 400

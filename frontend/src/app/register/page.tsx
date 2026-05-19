@@ -12,6 +12,7 @@ export default function RegisterPage() {
   const [loginId, setLoginId] = useState("");
   const [password, setPassword] = useState("");
   const [email, setEmail] = useState("");
+  const [realName, setRealName] = useState("");
   const [nickname, setNickname] = useState("");
   const [message, setMessage] = useState("");
 
@@ -32,6 +33,7 @@ export default function RegisterPage() {
           password,
           email,
           nickname,
+          real_name: realName,
         }),
       });
 
@@ -87,6 +89,16 @@ export default function RegisterPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="이메일을 입력하세요"
+            />
+          </label>
+
+          <label className={styles.field}>
+            <span>이름</span>
+            <input
+              type="text"
+              value={realName}
+              onChange={(e) => setRealName(e.target.value)}
+              placeholder="실명을 입력하세요"
             />
           </label>
 
