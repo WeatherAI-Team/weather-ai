@@ -4,15 +4,16 @@ from app import db
 
 class Member(db.Model):
     __tablename__ = 'members'
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
 
     # 1. 기본 정보
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    
     login_id = db.Column(db.String(50), unique=True, nullable=True) # 소셜 로그인 시 null일 수 있음
     password = db.Column(db.String(255), nullable=True)             # 소셜 로그인 시 null일 수 있음
     
     # 2. 프로필 정보
     email = db.Column(db.String(100), unique=True, nullable=False)
+    real_name = db.Column(db.String(50), nullable=False)
     nickname = db.Column(db.String(50), nullable=False)
     profile_img_url = db.Column(db.Text, nullable=True)
     
@@ -31,6 +32,10 @@ class Member(db.Model):
     last_login_at = db.Column(db.DateTime, nullable=True)
     deleted_at = db.Column(db.DateTime, nullable=True) # Soft Delete용
 
+    # 비밀번호 재설정 
+    password_reset_token = db.Column(db.String(255), nullable=True)
+    password_reset_token_expires_at = db.Column(db.DateTime, nullable=True)
+    password_changed_at = db.Column(db.DateTime, nullable=True)
     def __repr__(self):
         return f'<Member {self.nickname}>'
 
@@ -42,3 +47,4 @@ class EventLog(db.Model):
     risk_level = db.Column(db.Integer)      # 위험도 (1~10)
     message = db.Column(db.Text)            # 알림 내용
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+

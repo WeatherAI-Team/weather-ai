@@ -5,7 +5,7 @@ from app import create_app
 load_dotenv()
 
 app = create_app()
-app.secret_key = os.getenv("SECRET_KEY", "your-secret-key")
+
 
 
 if __name__ == "__main__":

@@ -12,6 +12,7 @@ export default function RegisterPage() {
   const [loginId, setLoginId] = useState("");
   const [password, setPassword] = useState("");
   const [email, setEmail] = useState("");
+  const [realName, setRealName] = useState("");
   const [nickname, setNickname] = useState("");
   const [name, setName] = useState("");
   const [message, setMessage] = useState("");
@@ -33,7 +34,7 @@ export default function RegisterPage() {
           password,
           email,
           nickname,
-          name,
+          real_name: realName,
         }),
       });
 
