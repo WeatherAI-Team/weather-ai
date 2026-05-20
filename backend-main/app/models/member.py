@@ -31,7 +31,7 @@ class Member(db.Model):
     
     # 5. 시간 기록 (Audit)
     created_at = db.Column(db.DateTime, default=utc_now)
-    updated_at = db.Column(db.DateTime, defaultt=utc_now, onupdate=utc_now)
+    updated_at = db.Column(db.DateTime, default=utc_now, onupdate=utc_now)
     last_login_at = db.Column(db.DateTime, nullable=True)
     deleted_at = db.Column(db.DateTime, nullable=True) # Soft Delete용
 
