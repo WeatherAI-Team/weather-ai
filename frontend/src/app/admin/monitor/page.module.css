@@ -1,0 +1,209 @@
+.layout { display:flex; min-height:100vh; background:#f0f8ff; }
+
+/* 사이드바 */
+.sidebar { width:220px; flex-shrink:0; background:var(--dark-navy); display:flex; flex-direction:column; padding:24px 0; position:fixed; top:0; left:0; height:100vh; z-index:50; overflow-y:auto; }
+.sideLogoWrap { padding:0 20px 24px; border-bottom:1px solid rgba(255,255,255,0.1); margin-bottom:16px; }
+.sideNav { display:flex; flex-direction:column; gap:2px; padding:0 10px; }
+.sideItem { display:flex; align-items:center; gap:10px; padding:11px 14px; border-radius:10px; font-size:0.88rem; font-weight:500; color:rgba(255,255,255,0.95); text-decoration:none; transition:all 0.2s; background:none; border:none; cursor:pointer; font-family:inherit; width:100%; text-align:left; }
+.sideItem:hover { background:rgba(255,255,255,0.08); color:rgba(255,255,255,0.5); }
+.sideActive { background:rgba(27,155,209,0.25); color:white; font-weight:700; }
+.sideIcon { font-size:1rem; }
+.sideDropBtn { justify-content:flex-start; }
+.arrow { margin-left:auto; font-size:0.7rem; transition:transform 0.2s; color:rgba(255,255,255,0.4); }
+.arrowOpen { transform:rotate(180deg); }
+.subMenu { display:flex; flex-direction:column; gap:1px; padding:4px 0 4px 16px; }
+.subItem { display:block; padding:9px 14px; border-radius:8px; font-size:0.83rem; color:rgba(255,255,255,0.9); text-decoration:none; transition:all 0.2s; }
+.subItem:hover { background:rgba(255,255,255,0.06); color:rgba(255,255,255,0.5); }
+
+/* 메인 */
+.main { margin-left:220px; flex:1; padding:32px; padding-top:10px; display:flex; flex-direction:column; gap:20px; }
+.topBar { display:flex; align-items:center; }
+.pageTitle { font-family:'Exo 2',sans-serif; font-size:1.5rem; font-weight:700; color:var(--dark-navy); letter-spacing:-0.02em; }
+.pageSub { font-size:1rem; font-weight:500; color:var(--text-muted); margin-left:8px; }
+
+/* 콘텐츠 */
+.contentRow {
+  display: grid;
+  grid-template-columns: 1.2fr 480px;
+  gap: 20px;
+  align-items: stretch;
+}
+
+/* 지도 패널 */
+.mapPanel {
+  background: white;
+  border-radius: 16px;
+  border: 1.5px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  height: 100%;
+}.mapHeader { padding:14px 20px; display:flex; align-items:center; gap:10px; border-bottom:1px solid var(--border); flex-wrap:wrap; }
+.mapTitle { font-family:'Exo 2',sans-serif; font-size:0.95rem; font-weight:700; color:var(--dark-navy); }
+.liveBadge { font-size:0.6rem; background:#e43b3b; color:white; padding:2px 8px; border-radius:999px; font-weight:700; letter-spacing:0.08em; animation:livePulse 2s ease-in-out infinite; }
+@keyframes livePulse { 0%,100%{box-shadow:0 0 0 0 rgba(228,59,59,0.4)} 50%{box-shadow:0 0 0 5px rgba(228,59,59,0)} }
+.mapHint { font-size:0.75rem; color:var(--text-muted); margin-left:auto; }
+.mapLegend { padding:10px 20px; display:flex; gap:16px; border-bottom:1px solid var(--border); flex-wrap:wrap; }
+.legendItem { display:flex; align-items:center; gap:6px; font-size:0.78rem; color:var(--text-muted); font-weight:500; }
+.legendBox { width:12px; height:12px; border-radius:3px; flex-shrink:0; }
+.mapArea { flex:1; padding:20px; display:flex; align-items:center; justify-content:center; min-height:400px; }
+.loadingText { color:var(--text-muted); font-size:0.88rem; }
+
+/* 우측 LLM 패널 */
+.rightPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  height: 100%;
+}
+.infoSection {
+  background: white;
+  border-radius: 14px;
+  border: 1.5px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  padding: 20px;
+}
+.infoSectionLarge {
+  background: white;
+  border-radius: 14px;
+  border: 1.5px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  padding: 20px;
+  flex: 1;
+  overflow-y: auto;
+  min-height: 200px;
+}
+.infoTitle { font-family:'Exo 2',sans-serif; font-size:0.95rem; font-weight:700; color:var(--primary); margin-bottom:16px; padding-bottom:10px; border-bottom:2px solid var(--light-blue); }
+
+.llmMeta { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+.llmBadge { padding:4px 12px; border-radius:999px; font-size:0.78rem; font-weight:700; }
+.badgeDanger { background:#ffe0e0; color:#c0392b; }
+.badgeWarn { background:#fff3cd; color:#856404; }
+.llmTime { font-size:0.8rem; color:var(--text-muted); }
+
+.llmInfo { background:#f8fbff; border-radius:10px; border:1px solid var(--border); padding:14px; margin-bottom:14px; display:flex; flex-direction:column; gap:8px; }
+.llmInfoRow { display:flex; align-items:flex-start; gap:10px; }
+.llmInfoLabel { font-size:0.78rem; font-weight:700; color:var(--text-muted); width:36px; flex-shrink:0; padding-top:1px; }
+.llmInfoValue { font-size:0.85rem; color:var(--dark-navy); font-weight:500; }
+
+.llmReport { background:#f0f8ff; border-radius:10px; border:1px solid var(--border); padding:16px; margin-bottom:14px; display:flex; flex-direction:column; gap:10px; }
+.llmReport p { font-size:0.85rem; color:var(--dark-navy); line-height:1.75; }
+
+.llmActions { display:flex; gap:8px; }
+.actionBtn { flex:1; padding:10px; background:linear-gradient(135deg,var(--primary),var(--secondary)); color:white; border-radius:10px; font-size:0.82rem; font-weight:700; cursor:pointer; border:none; font-family:inherit; transition:opacity 0.2s; }
+.actionBtn:hover { opacity:0.9; }
+.actionBtnSecondary { flex:1; padding:10px; background:white; color:var(--primary); border-radius:10px; font-size:0.82rem; font-weight:700; cursor:pointer; border:1.5px solid var(--border); font-family:inherit; transition:all 0.2s; }
+.actionBtnSecondary:hover { border-color:var(--secondary); background:#f0f8ff; }
+
+.emptyPanel { display:flex; flex-direction:column; align-items:center; gap:12px; padding:40px 16px; text-align:center; }
+.emptyIcon { font-size:2.5rem; }
+.emptyTitle { font-family:'Exo 2',sans-serif; font-size:1rem; font-weight:700; color:var(--dark-navy); }
+.emptyDesc { font-size:0.83rem; color:var(--text-muted); line-height:1.7; }
+
+.locationBox {
+  background: #f8fbff;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  padding: 14px 16px;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+}
+.locationText { font-size:0.9rem; font-weight:600; color:var(--dark-navy); }
+.locationEmpty { font-size:0.85rem; color:var(--text-muted); }
+
+.llmBox {
+  background: #f8fbff;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  padding: 16px;
+  min-height: 80px;
+}
+
+.detailBox {
+  background: #f8fbff;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.detailRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+.detailRow:last-of-type { border-bottom: none; }
+.detailLabel { font-size:0.8rem; color:var(--text-muted); font-weight:600; }
+.detailValue { font-size:0.85rem; font-weight:700; color:var(--dark-navy); }
+.textDanger { color:#e43b3b !important; }
+.textWarn { color:#f39c12 !important; }
+
+/* 팝업 */
+.popupOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(7, 85, 157, 0.25);
+  backdrop-filter: blur(4px);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.2s ease;
+}
+@keyframes fadeIn { from{opacity:0} to{opacity:1} }
+
+.popup {
+  background: white;
+  border-radius: 20px;
+  padding: 28px;
+  width: 100%;
+  max-width: 460px;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 24px 64px rgba(7, 85, 157, 0.2);
+  border: 1.5px solid var(--border);
+  animation: popIn 0.25s ease;
+}
+@keyframes popIn { from{opacity:0;transform:scale(0.95) translateY(10px)} to{opacity:1;transform:scale(1) translateY(0)} }
+
+.popupHeader { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+.popupTitle { font-family:'Exo 2',sans-serif; font-size:1.2rem; font-weight:700; color:var(--dark-navy); }
+.popupClose { width:32px; height:32px; border-radius:50%; background:#f0f8ff; border:1.5px solid var(--border); cursor:pointer; font-size:0.88rem; color:var(--text-muted); display:flex; align-items:center; justify-content:center; transition:all 0.2s; }
+.popupClose:hover { background:var(--primary); color:white; border-color:var(--primary); }
+.popupDesc { font-size:0.82rem; color:var(--text-muted); margin-bottom:16px; }
+
+.popupList { display:flex; flex-direction:column; gap:8px; }
+.popupItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  background: #f8fbff;
+  border-radius: 12px;
+  border: 1.5px solid var(--border);
+  cursor: pointer;
+  transition: all 0.2s;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+}
+.popupItem:hover { background: #e8f4fb; border-color: var(--secondary); transform: translateX(4px); }
+
+.popupItemLeft { display:flex; align-items:center; gap:12px; }
+.popupDot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+.dotDanger { background:#e43b3b; box-shadow:0 0 0 3px rgba(228,59,59,0.2); }
+.dotWarn { background:#f39c12; box-shadow:0 0 0 3px rgba(243,156,18,0.2); }
+.popupItemArea { font-size:0.9rem; font-weight:600; color:var(--dark-navy); margin-bottom:3px; }
+.popupItemMeta { font-size:0.75rem; color:var(--text-muted); }
+.popupCount { font-family:'Exo 2',sans-serif; font-size:1rem; font-weight:700; flex-shrink:0; }
+.countDanger { color:#e43b3b; }
+.countWarn { color:#f39c12; }
+.popupEmpty { font-size:0.88rem; color:var(--text-muted); text-align:center; padding:24px 0; }
+
+@media(max-width:1100px) { .contentRow{grid-template-columns:1fr} }
+@media(max-width:768px) { .sidebar{display:none} .main{margin-left:0;padding:16px} }

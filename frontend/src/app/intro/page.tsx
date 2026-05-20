@@ -37,7 +37,7 @@ export default function IntroPage() {
         </div>
       </section>
 
-      <section className={styles.techStack}>
+      {/* <section className={styles.techStack}>
         <div className="container">
           <p className={styles.eyebrow}>기술 스택</p>
           <h2 className={styles.sectionTitle}>사용 기술</h2>
@@ -55,7 +55,7 @@ export default function IntroPage() {
             ))}
           </div>
         </div>
-      </section>
+      </section> */}
     </div>
   )
 }
