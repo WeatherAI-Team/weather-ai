@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import styles from './page.module.css'
@@ -14,31 +14,60 @@ const boardMenus = [
   { label: '정보게시판', href: '/board/info', icon: '📋' },
 ]
 
-// 더미 사용자 데이터 (실제 구현 시 API로 교체)
-const dummyUsers = [
-  { id: 1, login_id: 'hong123', name: '홍길동', nickname: '홍길동', email: 'hong@example.com', role: 'admin', joined: '2025-09-01', active: true, provider: '일반' },
-  { id: 2, login_id: 'kim456', name: '김철수', nickname: '철수', email: 'kim@example.com', role: 'user', joined: '2025-10-12', active: true, provider: '카카오' },
-  { id: 3, login_id: 'lee789', name: '이영희', nickname: '영희', email: 'lee@example.com', role: 'user', joined: '2025-11-05', active: false, provider: '구글' },
-  { id: 4, login_id: 'park001', name: '박민준', nickname: '민준', email: 'park@example.com', role: 'user', joined: '2026-01-20', active: true, provider: '네이버' },
-  { id: 5, login_id: 'choi002', name: '최수연', nickname: '수연이', email: 'choi@example.com', role: 'user', joined: '2026-02-14', active: true, provider: '일반' },
-  { id: 6, login_id: 'jung003', name: '정다은', nickname: '다은', email: 'jung@example.com', role: 'user', joined: '2026-03-08', active: false, provider: '카카오' },
-]
+const API_URL = process.env.NEXT_PUBLIC_API_URL
 
-type User = typeof dummyUsers[0]
+type User = {
+  id: number
+  login_id: string
+  nickname: string
+  email: string
+  role: string
+  active: boolean
+  provider: string | null
+  created_at: string | null
+  profile_img_url: string | null
+}
 
 export default function UsersPage() {
   const pathname = usePathname()
   const [boardOpen, setBoardOpen] = useState(false)
-  const [users, setUsers] = useState(dummyUsers)
+  const [users, setUsers] = useState<User[]>([])
   const [search, setSearch] = useState('')
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
+  // 사용자 목록 불러오기
+  const fetchUsers = async (keyword?: string) => {
+    try {
+      setLoading(true)
+      setError(null)
+      const query = new URLSearchParams({ per_page: '100' })
+      if (keyword) query.append('keyword', keyword)
+      const res = await fetch(`${API_URL}/api/admin/members?${query}`)
+      const json = await res.json()
+      if (json.success) {
+        setUsers(json.data.members)
+      } else {
+        setError('사용자 목록을 불러오지 못했습니다.')
+      }
+    } catch {
+      setError('서버 연결에 실패했습니다.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchUsers()
+  }, [])
+
+  // 검색은 프론트 필터링 (API 검색으로 바꾸려면 fetchUsers(search) 호출)
   const filtered = users.filter(u =>
-    u.name.includes(search) ||
-    u.login_id.includes(search) ||
-    u.email.includes(search) ||
-    u.nickname.includes(search)
+    u.nickname.includes(search) ||
+    (u.login_id ?? '').includes(search) ||
+    u.email.includes(search)
   )
 
   const handleEdit = (user: User) => {
@@ -46,14 +75,28 @@ export default function UsersPage() {
     setModalOpen(true)
   }
 
+  // 활성 상태 토글 (API 연동 필요 시 PATCH 요청 추가)
   const handleToggleActive = (id: number) => {
     setUsers(prev => prev.map(u => u.id === id ? { ...u, active: !u.active } : u))
   }
 
+  // 저장 (API 연동 필요 시 PATCH /api/admin/members/:id 요청 추가)
   const handleSave = () => {
     if (!selectedUser) return
     setUsers(prev => prev.map(u => u.id === selectedUser.id ? selectedUser : u))
     setModalOpen(false)
+  }
+
+  // 날짜 포맷 (ISO → YYYY-MM-DD)
+  const formatDate = (iso: string | null) => {
+    if (!iso) return '-'
+    return iso.slice(0, 10)
+  }
+
+  // provider null 처리
+  const formatProvider = (provider: string | null) => {
+    if (!provider) return '일반'
+    return provider
   }
 
   return (
@@ -112,53 +155,58 @@ export default function UsersPage() {
           />
         </div>
 
+        {/* 로딩 / 에러 */}
+        {loading && <p style={{ padding: '1rem' }}>불러오는 중...</p>}
+        {error && <p style={{ padding: '1rem', color: '#e43b3b' }}>{error}</p>}
+
         {/* 테이블 */}
-        <div className={styles.tableWrap}>
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                {['ID', '로그인ID', '이름', '닉네임', '메일주소', '권한', '가입일', '활성여부', '가입정보', '관리'].map(h => (
-                  <th key={h} className={styles.th}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.length > 0 ? filtered.map(u => (
-                <tr key={u.id} className={styles.tr}>
-                  <td className={styles.td}>{u.id}</td>
-                  <td className={styles.td}><span className={styles.loginId}>{u.login_id}</span></td>
-                  <td className={styles.td}>{u.name}</td>
-                  <td className={styles.td}>{u.nickname}</td>
-                  <td className={styles.td}><span className={styles.email}>{u.email}</span></td>
-                  <td className={styles.td}>
-                    <span className={`${styles.roleBadge} ${u.role === 'admin' ? styles.roleAdmin : styles.roleUser}`}>
-                      {u.role === 'admin' ? '관리자' : '일반'}
-                    </span>
-                  </td>
-                  <td className={styles.td}>{u.joined}</td>
-                  <td className={styles.td}>
-                    <button
-                      className={`${styles.activeBadge} ${u.active ? styles.activeOn : styles.activeOff}`}
-                      onClick={() => handleToggleActive(u.id)}
-                    >
-                      {u.active ? '활성' : '비활성'}
-                    </button>
-                  </td>
-                  <td className={styles.td}>
-                    <span className={styles.provider}>{u.provider}</span>
-                  </td>
-                  <td className={styles.td}>
-                    <button className={styles.editBtn} onClick={() => handleEdit(u)}>수정</button>
-                  </td>
-                </tr>
-              )) : (
+        {!loading && !error && (
+          <div className={styles.tableWrap}>
+            <table className={styles.table}>
+              <thead>
                 <tr>
-                  <td colSpan={10} className={styles.noData}>검색 결과가 없습니다</td>
+                  {['ID', '로그인ID', '닉네임', '메일주소', '권한', '가입일', '활성여부', '가입정보', '관리'].map(h => (
+                    <th key={h} className={styles.th}>{h}</th>
+                  ))}
                 </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {filtered.length > 0 ? filtered.map(u => (
+                  <tr key={u.id} className={styles.tr}>
+                    <td className={styles.td}>{u.id}</td>
+                    <td className={styles.td}><span className={styles.loginId}>{u.login_id ?? '-'}</span></td>
+                    <td className={styles.td}>{u.nickname}</td>
+                    <td className={styles.td}><span className={styles.email}>{u.email}</span></td>
+                    <td className={styles.td}>
+                      <span className={`${styles.roleBadge} ${u.role === 'admin' ? styles.roleAdmin : styles.roleUser}`}>
+                        {u.role === 'admin' ? '관리자' : '일반'}
+                      </span>
+                    </td>
+                    <td className={styles.td}>{formatDate(u.created_at)}</td>
+                    <td className={styles.td}>
+                      <button
+                        className={`${styles.activeBadge} ${u.active ? styles.activeOn : styles.activeOff}`}
+                        onClick={() => handleToggleActive(u.id)}
+                      >
+                        {u.active ? '활성' : '비활성'}
+                      </button>
+                    </td>
+                    <td className={styles.td}>
+                      <span className={styles.provider}>{formatProvider(u.provider)}</span>
+                    </td>
+                    <td className={styles.td}>
+                      <button className={styles.editBtn} onClick={() => handleEdit(u)}>수정</button>
+                    </td>
+                  </tr>
+                )) : (
+                  <tr>
+                    <td colSpan={9} className={styles.noData}>검색 결과가 없습니다</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
       </main>
 
       {/* 수정 모달 */}
@@ -171,7 +219,6 @@ export default function UsersPage() {
             </div>
             <div className={styles.modalBody}>
               {[
-                { label: '이름', key: 'name' },
                 { label: '닉네임', key: 'nickname' },
                 { label: '이메일', key: 'email' },
               ].map(f => (
@@ -179,7 +226,7 @@ export default function UsersPage() {
                   <label className={styles.modalLabel}>{f.label}</label>
                   <input
                     className={styles.modalInput}
-                    value={selectedUser[f.key as keyof User] as string}
+                    value={selectedUser[f.key as keyof User] as string ?? ''}
                     onChange={e => setSelectedUser({ ...selectedUser, [f.key]: e.target.value })}
                   />
                 </div>
