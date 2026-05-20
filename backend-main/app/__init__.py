@@ -22,6 +22,7 @@ def create_app():
     app.config["SESSION_COOKIE_SAMESITE"] = "Lax"   # 추가
     app.config["SESSION_COOKIE_SECURE"] = False      # 추가 (localhost라서 False)
     app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "dev-jwt-secret-key")
+    app.config["ITS_API_KEY"] = os.getenv("ITS_API_KEY")
 
     db.init_app(app)
 
