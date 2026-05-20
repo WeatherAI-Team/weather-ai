@@ -181,3 +181,13 @@ def change_my_password():
         return jsonify(result), 200
 
     return jsonify(result), 400
+
+@member_bp.route("/me/withdraw", methods=["PATCH"])
+@login_required
+def withdraw_my_account():
+    result = member_service.withdraw_member(request.user_id)
+
+    if result["success"]:
+        return jsonify(result), 200
+
+    return jsonify(result), 400

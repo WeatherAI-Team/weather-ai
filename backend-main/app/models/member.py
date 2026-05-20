@@ -1,6 +1,9 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import Enum
 from app import db
+
+def utc_now():
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 class Member(db.Model):
     __tablename__ = 'members'
@@ -13,7 +16,7 @@ class Member(db.Model):
     
     # 2. 프로필 정보
     email = db.Column(db.String(100), unique=True, nullable=False)
-    real_name = db.Column(db.String(50), nullable=False)
+    real_name = db.Column(db.String(50), nullable=True)
     nickname = db.Column(db.String(50), nullable=False)
     profile_img_url = db.Column(db.Text, nullable=True)
     
@@ -27,8 +30,8 @@ class Member(db.Model):
     social_id = db.Column(db.String(255), unique=True, nullable=True)
     
     # 5. 시간 기록 (Audit)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utc_now)
+    updated_at = db.Column(db.DateTime, defaultt=utc_now, onupdate=utc_now)
     last_login_at = db.Column(db.DateTime, nullable=True)
     deleted_at = db.Column(db.DateTime, nullable=True) # Soft Delete용
 
@@ -46,5 +49,5 @@ class EventLog(db.Model):
     event_type = db.Column(db.String(50))  # 예: 폭우, 사고 등
     risk_level = db.Column(db.Integer)      # 위험도 (1~10)
     message = db.Column(db.Text)            # 알림 내용
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=utc_now)
 

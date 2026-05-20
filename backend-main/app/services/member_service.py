@@ -117,6 +117,9 @@ class MemberService:
         member = self.member_repo.find_by_id(member_id)
         if not member or member.deleted_at is not None:
             return {"success": False, "message": "존재하지 않는 회원입니다."}
+        if member.active is False:
+            return {"success": False, "message": "비활성화된 계정입니다."}
+
         return {"success": True, "data": self.to_public_dict(member)}
 
     def to_public_dict(self, member):
@@ -147,7 +150,7 @@ class MemberService:
 
         member = self.member_repo.find_by_email(email)
 
-        if not member or member.deleted_at is not None:
+        if not member or member.deleted_at is not None or member.active is False:
             return {
                 "success": False,
                 "message": "해당 이메일로 가입된 회원이 없습니다."
@@ -177,7 +180,7 @@ class MemberService:
             "message": "해당 이메일로 가입된 계정이 있다면 비밀번호 재설정 링크를 전송했습니다."
         }
 
-        if not member or member.deleted_at is not None:
+        if not member or member.deleted_at is not None or member.active is False:
             return generic_response
 
         # 소셜 로그인 회원은 비밀번호 재설정 대상에서 제외
@@ -356,3 +359,25 @@ class MemberService:
             "success": True,
             "message": "비밀번호가 변경되었습니다."
         }
+
+    # 회원 탈퇴 - active만 false 처리
+    def withdraw_member(self, member_id):
+        member = self.member_repo.find_by_id(member_id)
+
+        if not member:
+            return{
+                "success": False,
+                "message": "존재하지 않는 회원입니다."
+
+            }
+        if member.active is False:
+            return{
+                "success": False,
+                "message": "이미 탈퇴 처리된 회원입니다."
+            }
+        self.member_repo.deactivate_member(member)
+
+        return{
+                "success": True,
+                "message": "회원 탈퇴가 완료되었습니다."
+            }
