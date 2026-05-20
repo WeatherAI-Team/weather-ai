@@ -92,6 +92,53 @@ export default function AiPage() {
 
       <section className={styles.main}>
         <div className="container">
+          {/* CCTV 섹션 */}
+          <div className={styles.cctvRow}>
+            {/* CCTV 스트림 화면 */}
+            <div className={styles.panel}>
+              <h2>CCTV 실시간 화면</h2>
+              <div className={styles.cctvBox}>
+                {streamUrl ? (
+                  <img
+                    src={`${API_URL}/api/ai/cctv_feed?url=${encodeURIComponent(streamUrl)}`}
+                    alt="CCTV 스트림"
+                    className={styles.cctvStream}
+                  />
+                ) : (
+                  <div className={styles.cctvEmpty}>
+                    <span>📷</span>
+                    <p>아래에서 스트림 URL을 입력하면<br/>CCTV 화면이 표시됩니다</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* CCTV 내역 */}
+            <div className={styles.panel}>
+              <h2>CCTV 목록</h2>
+              <div className={styles.cctvHistory}>
+                {[
+                  { time: '14:22', url: 'rtsp://cam01.example.com', status: '위험', weather: '폭우', conf: 98.1 },
+                  { time: '11:05', url: 'rtsp://cam02.example.com', status: '위험', weather: '폭설', conf: 95.4 },
+                  { time: '09:40', url: 'rtsp://cam03.example.com', status: '경고', weather: '안개', conf: 91.7 },
+                  { time: '08:15', url: 'rtsp://cam04.example.com', status: '위험', weather: '폭우', conf: 88.2 },
+                  { time: '07:30', url: 'rtsp://cam05.example.com', status: '경고', weather: '강풍', conf: 84.5 },
+                ].map((h, i) => (
+                  <div key={i} className={styles.cctvHistoryItem}>
+                    <span className={`${styles.cctvDot} ${h.status === '위험' ? styles.dotDanger : styles.dotWarn}`} />
+                    <div className={styles.cctvHistoryInfo}>
+                      <p className={styles.cctvHistoryUrl}>{h.url}</p>
+                      <p className={styles.cctvHistoryMeta}>🌧️ {h.weather} · 신뢰도 {h.conf}%</p>
+                    </div>
+                    <div className={styles.cctvHistoryRight}>
+                      <span className={`${styles.badge} ${h.status === '위험' ? styles.badgeDanger : styles.badgeWarn}`}>{h.status}</span>
+                      <span className={styles.cctvHistoryTime}>{h.time}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
           <div className={styles.grid}>
             {/* Upload panel */}
             <div className={styles.panel}>
