@@ -1,4 +1,5 @@
 import pytest
+from uuid import uuid4
 from app import create_app
 
 @pytest.fixture
@@ -12,16 +13,157 @@ def test_register_member(client):
     # 회원가입 API 테스트
     response = client.post('/api/member/register', json={
         "login_id": "pytest_user",
-        "name": "파이테스트",
-        "password": "password123"
+        "password": "password123",
+        "email": "pytest_user@test.com",
+        "nickname": "파이테스트"
     })
-    
+    data = response.get_json()
+    print("회원가입 응답:", data)
     assert response.status_code == 201
-    assert response.json['success'] is True
+    assert data["success"] is True
 
-def test_get_member_profile(client):
-    # 회원 조회 API 테스트 (ID 1번이 있다고 가정)
-    response = client.get('/api/member/1')
-    
-    # 200(성공) 또는 404(없음) 중 하나가 와야 함
-    assert response.status_code in [200, 404]
+def test_get_my_profile(client):
+    login_response = client.post("/api/member/login", json={
+        "login_id": "test",
+        "password": "2345"
+    })
+
+    login_data = login_response.get_json()
+    access_token = login_data["access_token"]
+
+    response = client.get(
+        "/api/member/me",
+        headers={
+            "Authorization": f"Bearer {access_token}"
+        }
+    )
+
+    data = response.get_json()
+    print("내 프로필 조회 응답:", data)
+
+    assert response.status_code == 200
+    assert data["success"] is True
+
+def test_login_member(client):
+    # 이미 DB에 만들어 둔 테스트 회원 기준
+    response = client.post("/api/member/login", json={
+        "login_id": "test",
+        "password": "2345"
+    })
+
+    data = response.get_json()
+    print("로그인 응답:", data)
+
+    assert response.status_code == 200
+    assert data["success"] is True
+    assert "access_token" in data
+    assert "data" in data
+
+
+def test_find_login_id(client):
+    # 이미 DB에 존재하는 이메일 기준
+    response = client.post("/api/member/find-id", json={
+        "email": "test@email.com"
+    })
+
+    data = response.get_json()
+    print("아이디 찾기 응답:", data)
+
+    assert response.status_code == 200
+    assert data["success"] is True
+    assert data["login_id"] == "test"
+
+def test_update_my_profile(client):
+    login_response = client.post("/api/member/login", json={
+        "login_id": "test",
+        "password": "2345"
+    })
+
+    login_data = login_response.get_json()
+    access_token = login_data["access_token"]
+
+    response = client.put(
+        "/api/member/me",
+        headers={
+            "Authorization": f"Bearer {access_token}"
+        },
+        json={
+            "email": "test@email.com",
+            "nickname": "수정된테스트",
+            "profile_img_url": None
+        }
+    )
+
+    data = response.get_json()
+    print("회원정보 수정 응답:", data)
+
+    assert response.status_code == 200
+    assert data["success"] is True
+    assert data["data"]["nickname"] == "수정된테스트"
+
+def test_withdraw_my_account(client):
+    suffix = uuid4().hex[:8]
+    login_id = f"withdraw_{suffix}"
+    password = "password123"
+    email = f"{login_id}@test.com"
+
+    register_response = client.post("/api/member/register", json={
+        "login_id": login_id,
+        "password": password,
+        "email": email,
+        "nickname": "탈퇴테스트",
+        "real_name": "탈퇴테스트"
+    })
+    register_data = register_response.get_json()
+    print("탈퇴 테스트 회원가입 응답:", register_data)
+
+    assert register_response.status_code == 201
+    assert register_data["success"] is True
+
+    login_response = client.post("/api/member/login", json={
+        "login_id": login_id,
+        "password": password
+    })
+    login_data = login_response.get_json()
+    print("탈퇴 테스트 로그인 응답:", login_data)
+
+    assert login_response.status_code == 200
+    assert login_data["success"] is True
+    access_token = login_data["access_token"]
+
+    response = client.patch(
+        "/api/member/me/withdraw",
+        headers={
+            "Authorization": f"Bearer {access_token}"
+        }
+    )
+    data = response.get_json()
+    print("회원탈퇴 응답:", data)
+
+    assert response.status_code == 200
+    assert data["success"] is True
+    assert data["message"] == "회원 탈퇴가 완료되었습니다."
+
+    second_response = client.patch(
+        "/api/member/me/withdraw",
+        headers={
+            "Authorization": f"Bearer {access_token}"
+        }
+    )
+    second_data = second_response.get_json()
+    print("회원탈퇴 재요청 응답:", second_data)
+
+    assert second_response.status_code == 400
+    assert second_data["success"] is False
+    assert second_data["message"] == "이미 탈퇴 처리된 회원입니다."
+
+    relogin_response = client.post("/api/member/login", json={
+        "login_id": login_id,
+        "password": password
+    })
+    relogin_data = relogin_response.get_json()
+    print("탈퇴 후 로그인 응답:", relogin_data)
+
+    assert relogin_response.status_code == 401
+    assert relogin_data["success"] is False
+    assert relogin_data["message"] == "비활성화된 계정입니다."

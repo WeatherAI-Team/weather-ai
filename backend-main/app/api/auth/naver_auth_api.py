@@ -1,14 +1,12 @@
 import os
 import secrets
 import requests
-from flask import Blueprint, redirect, request, session, jsonify
+from flask import Blueprint, redirect, request, jsonify, session
 from dotenv import load_dotenv
 from urllib.parse import urlencode
-from datetime import datetime
 
-from app.models import db
-from app.models.member import Member
-from app.repositories.member_repo import MemberRepository
+
+from app.services.social_auth_service import SocialAuthService
 
 load_dotenv()
 
@@ -19,6 +17,7 @@ NAVER_CLIENT_SECRET = os.getenv("NAVER_CLIENT_SECRET")
 NAVER_REDIRECT_URI = os.getenv("NAVER_REDIRECT_URI")
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
 
+social_auth_service = SocialAuthService()
 
 @naver_auth_bp.route("/login")
 def naver_login():
@@ -110,69 +109,12 @@ def naver_callback():
     if not email:
         return jsonify({"error": "이메일이 없습니다."}), 400
 
-    repo = MemberRepository()
+    result, status_code = social_auth_service.login_or_register(
+        provider="naver",
+        social_id=str(naver_id),
+        email=email,
+        nickname=name,
+        profile_img_url=None,
+    )
 
-    try:
-        # 1. provider + social_id로 기존 네이버 회원 조회
-        member = repo.find_by_provider_and_social_id("naver", naver_id)
-
-        # 2. 기존 회원이 없으면 신규 가입
-        if member is None:
-            same_email_member = repo.find_by_email(email)
-
-            if same_email_member is not None:
-                return jsonify({
-                    "error": "이미 같은 이메일로 가입된 회원이 있습니다.",
-                    "email": email,
-                    "provider": same_email_member.provider
-                }), 409
-
-            member = Member(
-                login_id=f"naver_{naver_id}"[:50],
-                password=None,
-                email=email,
-                nickname=name,
-                profile_img_url=None,
-                role="user",
-                active=True,
-                provider="naver",
-                social_id=str(naver_id),
-                created_at=datetime.now(),
-                updated_at=datetime.now(),
-                last_login_at=datetime.now(),
-                deleted_at=None,
-            )
-
-            repo.save(member)
-
-        # 3. 기존 회원이면 마지막 로그인 시간 업데이트
-        else:
-            if member.active is False:
-                return jsonify({"error": "비활성화된 계정입니다."}), 403
-
-            repo.update_last_login(member)
-
-        # 4. 세션 저장
-        session["user"] = {
-            "id": member.id,
-            "login_id": member.login_id,
-            "email": member.email,
-            "nickname": member.nickname,
-            "role": str(member.role),
-            "provider": member.provider,
-            "social_id": member.social_id,
-        }
-
-        return jsonify({
-            "message": "네이버 로그인 성공",
-            "user": session["user"]
-        })
-
-    except Exception as e:
-        db.session.rollback()
-        print("[NAVER LOGIN DB ERROR]", e)
-
-        return jsonify({
-            "error": "네이버 로그인 DB 처리 실패",
-            "detail": str(e)
-        }), 500
+    return jsonify(result), status_code
