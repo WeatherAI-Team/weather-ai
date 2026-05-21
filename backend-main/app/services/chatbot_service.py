@@ -17,17 +17,23 @@ class ChatbotService:
         # message는 사용자가 보낸 질문이야.
         # 예: "강남대로 위험해?"
 
-        # 질문이 비어 있으면 안내 메시지를 돌려줘.
+        # message가 None이면 빈 문자열로 바꿔.
+        # 예: 프론트에서 message를 안 보낸 경우를 대비하는 거야.
+        if message is None:
+            message = ""
+
+        # 질문 앞뒤에 있는 쓸데없는 공백을 먼저 없애.
+        # 예: "  강남 위험해?  " → "강남 위험해?"
+        message = message.strip()
+
+        # 공백을 지운 뒤에도 질문이 비어 있으면 안내 메시지를 돌려줘.
+        # 예: "     " → "" 이 되니까 여기서 걸러져.
         if not message:
             return {
                 "intent": "empty_message",
                 "answer": "질문 내용을 입력해 주세요.",
                 "data": None
             }
-
-        # 질문 앞뒤에 있는 쓸데없는 공백을 없애.
-        # 예: "  강남 위험해?  " → "강남 위험해?"
-        message = message.strip()
 
         # 질문의 의도를 간단하게 파악해.
         # 예: 위험 상태 질문인지, 사용법 질문인지 구분해.
@@ -45,52 +51,62 @@ class ChatbotService:
         if intent == "cctv_help":
             return self._handle_cctv_help()
 
+        # 사용자가 알림 기준이나 알림 방법을 물어본 경우야.
+        if intent == "notification_help":
+            return self._handle_notification_help()
+
         # 위 조건에 해당하지 않으면 기본 답변을 해.
         return {
             "intent": "unknown",
-            "answer": "죄송합니다. 질문을 정확히 이해하지 못했습니다. 지역 위험 상태, CCTV 확인 방법, 서비스 사용법에 대해 질문해 주세요.",
+            "answer": "죄송합니다. 질문을 정확히 이해하지 못했습니다. 지역 위험 상태, CCTV 확인 방법, 서비스 사용법, 알림 기준에 대해 질문해 주세요.",
             "data": None
         }
 
     def _detect_intent(self, message):
-        # 이 함수는 사용자의 질문이 어떤 종류인지 간단히 판단해.
-        # 아직 LLM을 붙이지 않았기 때문에 단어 포함 여부로 판단해.
+        # 비교를 쉽게 하기 위해 소문자로 바꿔.
+        # 영어 CCTV/cctv 구분을 줄이기 위한 처리야.
+        lower_message = message.lower()
 
-        # 위험 상태를 묻는 단어들이 들어 있으면 risk_status로 판단해.
-        risk_keywords = ["위험", "위험해", "상태", "괜찮", "사고", "알림", "탐지"]
+        # CCTV 관련 질문을 먼저 확인해.
+        cctv_keywords = ["cctv", "카메라", "영상"]
+        if any(keyword in lower_message for keyword in cctv_keywords):
+            return "cctv_help"
 
-        # 서비스 사용법 관련 단어들이 들어 있으면 service_help로 판단해.
-        help_keywords = ["사용법", "어떻게", "이용", "서비스", "기능", "도움"]
+        # 알림 안내 질문을 확인해.
+        notification_keywords = ["알림 언제", "알림 기준", "알림 오", "알림 받", "알림은",  "알림 있어", "알림 확인", "알림 보는", "알림 조회"]
+        if any(keyword in message for keyword in notification_keywords):
+            return "notification_help"
 
-        # CCTV 관련 단어들이 들어 있으면 cctv_help로 판단해.
-        cctv_keywords = ["cctv", "CCTV", "카메라", "영상"]
-
-        # 위험 관련 단어가 질문에 하나라도 들어 있으면 위험 상태 질문으로 봐.
+        # 위험 상태 질문을 확인해.
+        risk_keywords = ["위험", "위험해", "상태", "괜찮", "사고", "탐지"]
         if any(keyword in message for keyword in risk_keywords):
             return "risk_status"
 
-        # CCTV 관련 단어가 질문에 하나라도 들어 있으면 CCTV 안내 질문으로 봐.
-        if any(keyword in message for keyword in cctv_keywords):
-            return "cctv_help"
-
-        # 사용법 관련 단어가 질문에 하나라도 들어 있으면 서비스 안내 질문으로 봐.
+        # 서비스 사용법 질문을 확인해.
+        help_keywords = ["사용법", "어떻게", "이용", "서비스", "기능", "도움"]
         if any(keyword in message for keyword in help_keywords):
             return "service_help"
 
-        # 아무 조건에도 맞지 않으면 알 수 없는 질문으로 봐.
         return "unknown"
+    
+    def _handle_notification_help(self):
+    # 이 함수는 알림 기준이나 알림 방식에 대한 질문에 답하는 곳이야.
+
+        return {
+            "intent": "notification_help",
+            "answer": "위험도 기준 이상으로 판단된 이벤트가 발생하면 관리자에게 알림이 전달됩니다. 알림은 위험도 점수와 LLM 검증 결과를 기준으로 선별됩니다.",
+            "data": None
+        }
 
     def _extract_location_name(self, message):
-        # 이 함수는 질문에서 지역명이나 도로명을 뽑아내는 함수야. → 질문에서 지역/도로명만 뽑기
-        # 예: "강남대로 위험해?" -> "강남대로"
+    # 질문에서 지역명이나 도로명을 뽑아내는 함수야.
+    # 예: "강남대로 위험해?" -> "강남대로"
 
-        # 사용자가 실수로 글자 사이에 띄어쓰기를 넣을 수 있어.
-        # 예: "강 남대로" -> "강남대로"
-        # 그래서 먼저 모든 공백을 없앤 문장을 만들어.
-        compact_message = message.replace(" ", "")
+        # 앞뒤 공백을 없애.
+        location_name = message.strip()
 
-        # 질문에서 빼고 싶은 말들이야.
-        # 이런 단어들은 위치 이름이 아니라 질문 표현이기 때문에 제거해.
+        # 질문에서 제거할 문장 표현들이야.
+        # 위치 이름이 아니라 질문 표현이기 때문에 빼줘.
         remove_words = [
             "위험해",
             "위험한가요",
@@ -113,28 +129,30 @@ class ChatbotService:
             "오늘",
             "근처",
             "쪽",
-            "는",
-            "은",
-            "이",
-            "가",
             "?"
         ]
 
-        # 공백을 제거한 문장을 위치 이름 후보로 사용해.
-        location_name = compact_message
-
-        # 필요 없는 단어들을 하나씩 제거해.
+        # 필요 없는 표현을 제거해.
         for word in remove_words:
             location_name = location_name.replace(word, "")
 
-        # 앞뒤 빈칸을 제거해.
+        # 앞뒤 공백을 제거해.
+        location_name = location_name.strip()
+
+        # 끝에 붙은 조사만 제거해.
+        # 예: "강남대로는" -> "강남대로"
+        # 단어 중간의 "가", "이"는 건드리지 않아.
+        for particle in ["은", "는", "이", "가"]:
+            if location_name.endswith(particle):
+                location_name = location_name[:-1]
+
+        # 다시 앞뒤 공백을 제거해.
         location_name = location_name.strip()
 
         # 아무것도 남지 않으면 None을 돌려줘.
         if not location_name:
             return None
 
-        # 뽑아낸 위치 이름을 돌려줘.
         return location_name
 
     def _make_risk_answer(self, location_name, matched_count, latest_event):
@@ -143,7 +161,7 @@ class ChatbotService:
 
         # 최근 이벤트의 위험도 등급을 가져와.
         # 값이 없으면 unknown으로 처리해.
-        risk_level = latest_event.get("risk_level") or "unknown"
+        risk_level = (latest_event.get("risk_level") or "unknown").lower()
 
         # 최근 이벤트의 위험도 점수를 가져와.
         risk_score = latest_event.get("risk_score")
@@ -213,48 +231,48 @@ class ChatbotService:
         # 조회된 이벤트를 하나씩 꺼내서 필요한 정보만 담아.
         for detection in detections.items:
             events.append({
-            # 탐지 이벤트 고유 번호야.
-            "id": detection.id,
+                # 탐지 이벤트 고유 번호야.
+                "id": detection.id,
 
-            # 이벤트 위치 이름이야.
-            "location_name": detection.location_name,
+                # 이벤트 위치 이름이야.
+                "location_name": detection.location_name,
 
-            # 위험도 등급이야.
-            "risk_level": detection.risk_level,
+                # 위험도 등급이야.
+                "risk_level": detection.risk_level,
 
-            # 위험도 점수야.
-            "risk_score": detection.risk_score,
+                # 위험도 점수야.
+                "risk_score": detection.risk_score,
 
-            # 알림 제목이야.
-            "title": detection.llm_title or detection.event_title,
+                # 알림 제목이야.
+                "title": detection.llm_title or detection.event_title,
 
-            # 알림 요약이야.
-            "summary": detection.llm_summary,
+                # 알림 요약이야.
+                "summary": detection.llm_summary,
 
-            # 날씨 유형이야.
-            "weather_type": detection.weather_type,
+                # 날씨 유형이야.
+                "weather_type": detection.weather_type,
 
-            # 주요 차량 유형이야.
-            "main_vehicle_type": detection.main_vehicle_type,
+                # 주요 차량 유형이야.
+                "main_vehicle_type": detection.main_vehicle_type,
 
-            # 위도야.
-            # 프론트에서 지도 위치를 표시할 때 사용할 수 있어.
-            "latitude": float(detection.latitude) if detection.latitude is not None else None,
+                # 위도야.
+                # 프론트에서 지도 위치를 표시할 때 사용할 수 있어.
+                "latitude": float(detection.latitude) if detection.latitude is not None else None,
 
-            # 경도야.
-            # 프론트에서 지도 위치를 표시할 때 사용할 수 있어.
-            "longitude": float(detection.longitude) if detection.longitude is not None else None,
+                # 경도야.
+                # 프론트에서 지도 위치를 표시할 때 사용할 수 있어.
+                "longitude": float(detection.longitude) if detection.longitude is not None else None,
 
-            # 관리자 알림 상세 조회 API 주소야.
-            # 프론트에서 "상세 보기" 버튼을 만들 때 사용할 수 있어.
-            "alert_detail_api": f"/api/admin/alerts/{detection.id}",
+                # 관리자 알림 상세 조회 API 주소야.
+                # 프론트에서 "상세 보기" 버튼을 만들 때 사용할 수 있어.
+                "alert_detail_api": f"/api/admin/alerts/{detection.id}",
 
-            # 지도 알림 위치 조회 API 주소야.
-            # 프론트에서 "지도에서 보기" 버튼을 만들 때 사용할 수 있어.
-            "map_api": "/api/admin/alerts/map",
+                # 지도 알림 위치 조회 API 주소야.
+                # 프론트에서 "지도에서 보기" 버튼을 만들 때 사용할 수 있어.
+                "map_api": "/api/admin/alerts/map",
 
-            # 탐지 발생 시간이야.
-            "detected_at": detection.detected_at.isoformat() if detection.detected_at else None
+                # 탐지 발생 시간이야.
+                "detected_at": detection.detected_at.isoformat() if detection.detected_at else None
         })
 
         # 가장 최근 이벤트 하나를 기준으로 답변을 만들어.
