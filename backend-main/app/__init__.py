@@ -3,6 +3,8 @@ from flask_jwt_extended import JWTManager
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from flask_socketio import SocketIO
+from .api.weather_alert_api import weather_alert_bp
+
 import os
 from dotenv import load_dotenv
 from .extensions import mail
@@ -13,8 +15,10 @@ db = SQLAlchemy()
 socketio = SocketIO()
 
 def create_app():
+    
     app = Flask(__name__)
-
+    app.json.ensure_ascii = False
+    app.config["JSON_AS_ASCII"] = False
     app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "dev-jwt-secret-key")
     app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL")
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -30,6 +34,7 @@ def create_app():
     app.config["MAIL_USERNAME"] = os.getenv("MAIL_USERNAME")
     app.config["MAIL_PASSWORD"] = os.getenv("MAIL_PASSWORD")
     app.config["MAIL_DEFAULT_SENDER"] = os.getenv("MAIL_DEFAULT_SENDER")
+    
 
     # 메일 확장 초기화
     mail.init_app(app)
@@ -76,7 +81,8 @@ def create_app():
     app.register_blueprint(map_bp)   
     app.register_blueprint(dashboard_bp)
     app.register_blueprint(chatbot_bp)
-    
+    app.register_blueprint(weather_alert_bp)
+
     # 관리자 라우트 (dev에서 가져옴)
     from .api.admin_api import admin_bp
     app.register_blueprint(admin_bp, url_prefix='/api/admin')
