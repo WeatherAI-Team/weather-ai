@@ -46,7 +46,10 @@ def create_app():
     # CORS: 프론트 주소만 허용
     CORS(
         app,
-        resources={r"/api/*": {"origins": "http://localhost:3000"}},
+        resources={r"/api/*": {"origins": [
+            "http://localhost:3000",
+            "http://172.25.181.79:3000"
+        ]}},
         supports_credentials=True,
         methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
         allow_headers=["Content-Type", "Authorization"],

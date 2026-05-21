@@ -16,7 +16,7 @@ class AIModelService:
 
     def __init__(self):
         print("[AI] 모델 로딩 중...")
-        self.model = keras.models.load_model('weather_danger_multitask_finetuned.keras')
+        self.model = keras.models.load_model('weather_danger_finetuned_model.keras')
         print("[AI] 모델 로딩 완료!")
 
     # ════════════════════════════════════════
