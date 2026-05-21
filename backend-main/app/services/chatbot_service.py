@@ -90,7 +90,7 @@ class ChatbotService:
         return "unknown"
     
     def _handle_notification_help(self):
-    # 이 함수는 알림 기준이나 알림 방식에 대한 질문에 답하는 곳이야.
+        # 이 함수는 알림 기준이나 알림 방식에 대한 질문에 답하는 곳이야.
 
         return {
             "intent": "notification_help",
@@ -99,8 +99,8 @@ class ChatbotService:
         }
 
     def _extract_location_name(self, message):
-    # 질문에서 지역명이나 도로명을 뽑아내는 함수야.
-    # 예: "강남대로 위험해?" -> "강남대로"
+        # 질문에서 지역명이나 도로명을 뽑아내는 함수야.
+        # 예: "강남대로 위험해?" -> "강남대로"
 
         # 앞뒤 공백을 없애.
         location_name = message.strip()
