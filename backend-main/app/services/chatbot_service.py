@@ -273,7 +273,7 @@ class ChatbotService:
 
                 # 탐지 발생 시간이야.
                 "detected_at": detection.detected_at.isoformat() if detection.detected_at else None
-        })
+            })
 
         # 가장 최근 이벤트 하나를 기준으로 답변을 만들어.
         latest_event = events[0]
