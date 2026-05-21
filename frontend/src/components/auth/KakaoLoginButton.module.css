@@ -1,0 +1,21 @@
+.kakaoBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 13px;
+  background: #FEE500;
+  color: #3C1E1E;
+  border-radius: 12px;
+  font-size: 0.92rem;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s;
+}
+.kakaoBtn:hover {
+  background: #f0d800;
+  box-shadow: 0 4px 12px rgba(254, 229, 0, 0.5);
+}

@@ -87,3 +87,62 @@ class MemberRepository:
         db.session.commit()
         return member
 
+    
+    # 7. 비밀번호 재설정 업데이트
+    def update_password_reset_token(self, member, token, expires_at):
+        member.password_reset_token = token
+        member.password_reset_token_expires_at = expires_at
+        member.updated_at = datetime.now()
+
+        db.session.commit()
+        return member
+
+    def find_by_password_reset_token(self, token):
+        return Member.query.filter_by(
+            password_reset_token=token
+        ).first()
+
+    def update_password_after_reset(self, member, hashed_password):
+        now = datetime.now()
+
+        member.password = hashed_password
+
+        # 재설정 토큰 사용 완료 → 제거
+        member.password_reset_token = None
+        member.password_reset_token_expires_at = None
+
+        # 비밀번호 변경 시각 기록
+        member.password_changed_at = now
+
+        # 회원 정보 수정 시각도 갱신
+        member.updated_at = datetime.utcnow()
+
+        db.session.commit()
+        return member
+    
+    # 8. 회원정보 수정
+    def update_member_info(self, member, email, real_name, nickname, profile_img_url):
+        member.email = email
+        member.nickname = nickname
+        member.real_name = real_name
+        member.profile_img_url = profile_img_url
+        member.updated_at = datetime.now()
+
+        db.session.commit()
+        return member
+    
+    # 9. 로그인한 회원 비밀번호 변경
+    def update_password(self, member, hashed_password):
+        member.password = hashed_password
+        member.updated_at = datetime.now()
+
+        db.session.commit()
+        return member
+    
+     # 10. 회원 탈퇴 처리 - 실제 삭제 없이 비활성화
+    def deactivate_member(self, member):
+        member.active=False
+        member.updated_at = datetime.now()
+
+        db.session.commit()
+        return member

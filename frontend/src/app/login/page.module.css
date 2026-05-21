@@ -25,11 +25,10 @@
 }
 
 .eyebrow {
-  margin: 0 0 8px;
-  color: #0b83d0;
-  font-size: 13px;
-  font-weight: 900;
-  letter-spacing: 0.08em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8px;
 }
 
 .header h1 {

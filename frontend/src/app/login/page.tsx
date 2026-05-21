@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 
 import styles from "./page.module.css";
@@ -45,7 +46,7 @@ export default function LoginPage() {
       localStorage.setItem("user", JSON.stringify(data.data));
       localStorage.setItem("loginUser", JSON.stringify(data.data));
 
-      window.location.href = "/";
+      router.push("/");
     } catch (error) {
       console.error(error);
       setMessage("서버 연결에 실패했습니다.");
@@ -56,9 +57,11 @@ export default function LoginPage() {
     <main className={styles.page}>
       <section className={styles.loginCard}>
         <div className={styles.header}>
-          <p className={styles.eyebrow}>WeatherAI</p>
+          <div className={styles.eyebrow}>
+            <Image src="/logo.png" alt="WeatherGuard AI 로고" width={120} height={40} />
+          </div>
           <h1>로그인</h1>
-          <p>계정으로 로그인하고 AI 탐지 서비스를 이용하세요.</p>
+          <p>로그인하고 다양한 서비스를 이용하세요.</p>
         </div>
 
         <form className={styles.form} onSubmit={handleLogin}>
@@ -90,7 +93,7 @@ export default function LoginPage() {
             로그인
           </button>
         </form>
-
+        
         <div className={styles.links}>
           <Link href="/find-id">아이디 찾기</Link>
           <span />

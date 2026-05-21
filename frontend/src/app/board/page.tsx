@@ -20,7 +20,7 @@ const categoryColors: Record<string, string> = {
 export default function BoardPage() {
   return (
     <div style={{ width: '100%', overflowX: 'hidden' }}>
-      <section style={{ width: '100%', padding: '80px 0 60px', background: 'linear-gradient(160deg, #e8f6ff, #ffffff)', borderBottom: '1px solid rgba(7,85,157,0.12)' }}>
+      <section style={{ width: '100%', padding: '30px 0 40px', background: 'linear-gradient(160deg, #e8f6ff, #ffffff)', borderBottom: '1px solid rgba(7,85,157,0.12)' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 24px' }}>
           <p style={{ fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#1b9bd1', marginBottom: '12px' }}>게시판</p>
           <h1 style={{ fontFamily: 'Exo 2, sans-serif', fontSize: '2.5rem', fontWeight: 700, color: '#20436d', marginBottom: '16px' }}>커뮤니티 & 공지</h1>
@@ -28,7 +28,7 @@ export default function BoardPage() {
         </div>
       </section>
 
-      <section style={{ padding: '60px 0' }}>
+      <section style={{ padding: '30px 0' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 24px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', marginBottom: '24px', flexWrap: 'wrap' as const }}>
             <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' as const }}>

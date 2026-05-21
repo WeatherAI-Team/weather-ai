@@ -1,24 +1,229 @@
+/* ── Page Layout ── */
 .page {}
-.hero { padding:80px 0 60px; background:linear-gradient(160deg,#e8f6ff,var(--surface)); border-bottom:1px solid var(--border); }
-.eyebrow { font-size:0.75rem; font-weight:700; letter-spacing:0.15em; text-transform:uppercase; color:var(--secondary); margin-bottom:12px; }
-.title { font-family:'Exo 2',sans-serif; font-size:2.5rem; font-weight:700; color:var(--dark-navy); letter-spacing:-0.03em; }
-.main { padding:60px 0; }
-.grid { display:grid; grid-template-columns:300px 1fr; gap:24px; }
-.profileCard { background:var(--surface); border-radius:var(--radius); border:1.5px solid var(--border); padding:40px 32px; display:flex; flex-direction:column; align-items:center; gap:12px; text-align:center; }
-.avatar { width:80px; height:80px; border-radius:50%; background:linear-gradient(135deg,var(--secondary),var(--primary)); color:white; font-size:2rem; font-weight:700; display:flex; align-items:center; justify-content:center; box-shadow:0 8px 24px rgba(27,155,209,0.35); }
-.profileCard h2 { font-family:'Exo 2',sans-serif; font-size:1.4rem; font-weight:700; color:var(--dark-navy); }
-.email { font-size:0.88rem; color:var(--text-muted); }
-.badges { display:flex; gap:8px; }
-.roleBadge { padding:4px 12px; background:rgba(7,85,157,0.1); color:var(--primary); border-radius:999px; font-size:0.78rem; font-weight:700; }
-.gradeBadge { padding:4px 12px; background:rgba(213,227,169,0.6); color:var(--dark-navy); border-radius:999px; font-size:0.78rem; font-weight:700; }
-.joined { font-size:0.8rem; color:var(--text-muted); }
-.infoPanel { background:var(--surface); border-radius:var(--radius); border:1.5px solid var(--border); padding:36px 32px; display:flex; flex-direction:column; gap:24px; }
-.infoPanel h3 { font-family:'Exo 2',sans-serif; font-size:1rem; font-weight:700; color:var(--dark-navy); padding-bottom:12px; border-bottom:1px solid var(--border); }
-.stats { display:flex; gap:24px; }
-.stat { flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; padding:20px; background:var(--bg); border-radius:12px; }
-.statNum { font-family:'Exo 2',sans-serif; font-size:2rem; font-weight:700; color:var(--secondary); }
-.stat span:last-child { font-size:0.82rem; color:var(--text-muted); }
-.settingsList { display:flex; flex-direction:column; gap:2px; }
-.settingItem { display:flex; justify-content:space-between; align-items:center; padding:14px 16px; background:var(--bg); border-radius:10px; font-size:0.9rem; color:var(--text-primary); font-weight:500; cursor:pointer; border:none; transition:background 0.2s; text-align:left; width:100%; }
-.settingItem:hover { background:rgba(181,223,243,0.2); color:var(--primary); }
-@media(max-width:768px){ .grid{grid-template-columns:1fr} }
+.hero { padding: 30px 0 40px; background: linear-gradient(160deg, #e8f6ff, var(--surface)); border-bottom: 1px solid var(--border); }
+.eyebrow { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; color: var(--secondary); margin-bottom: 12px; }
+.title { font-family: 'Exo 2', sans-serif; font-size: 2.5rem; font-weight: 700; color: var(--dark-navy); letter-spacing: -0.03em; }
+.main { padding: 30px 0; }
+.grid { display: grid; grid-template-columns: 300px 1fr; gap: 24px; }
+
+/* ── Profile Card ── */
+.profileCard {
+  background: var(--surface);
+  border-radius: var(--radius);
+  border: 1.5px solid var(--border);
+  padding: 36px 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
+}
+.avatar {
+  width: 80px; height: 80px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--secondary), var(--primary));
+  color: white; font-size: 2rem; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 8px 24px rgba(27, 155, 209, 0.35);
+}
+.profileName { font-family: 'Exo 2', sans-serif; font-size: 1.4rem; font-weight: 700; color: var(--dark-navy); }
+.profileEmail { font-size: 0.85rem; color: var(--text-muted); }
+.badges { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.roleBadge {
+  padding: 4px 12px;
+  background: rgba(7, 85, 157, 0.1);
+  color: var(--primary);
+  border-radius: 999px;
+  font-size: 0.75rem; font-weight: 700;
+}
+.gradeBadge {
+  padding: 4px 12px;
+  border: 1.5px solid;
+  border-radius: 999px;
+  font-size: 0.75rem; font-weight: 700;
+}
+
+/* 가입 메타 정보 */
+.profileMeta { display: flex; flex-direction: column; gap: 6px; width: 100%; margin-top: 6px; }
+.metaItem {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 14px;
+  background: var(--bg);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+.metaLabel { font-size: 0.72rem; font-weight: 700; color: var(--text-muted); letter-spacing: 0.04em; text-transform: uppercase; }
+.metaValue { font-size: 0.85rem; font-weight: 600; color: var(--dark-navy); }
+
+/* ── Info Panel ── */
+.infoPanel {
+  background: var(--surface);
+  border-radius: var(--radius);
+  border: 1.5px solid var(--border);
+  padding: 36px 32px;
+  display: flex; flex-direction: column; gap: 28px;
+}
+.section { display: flex; flex-direction: column; gap: 14px; }
+.sectionTitle {
+  font-family: 'Exo 2', sans-serif;
+  font-size: 1rem; font-weight: 700; color: var(--dark-navy);
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* 통계 */
+.stats { display: flex; gap: 16px; }
+.stat {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 20px; background: var(--bg); border-radius: 12px;
+  text-decoration: none; transition: background 0.2s, box-shadow 0.2s; cursor: pointer;
+}
+.stat:hover { background: rgba(181, 223, 243, 0.3); box-shadow: 0 4px 14px rgba(27,155,209,0.12); }
+.statNum { font-family: 'Exo 2', sans-serif; font-size: 2rem; font-weight: 700; color: var(--secondary); }
+.statLabel { font-size: 0.82rem; color: var(--text-muted); }
+
+/* 설정 리스트 */
+.settingsList { display: flex; flex-direction: column; gap: 4px; }
+.settingItem {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 14px 16px;
+  background: var(--bg); border-radius: 10px;
+  font-size: 0.9rem; color: var(--text-primary);
+  cursor: pointer; border: none; text-align: left; width: 100%;
+  transition: background 0.2s, color 0.2s;
+}
+.settingItem:hover { background: rgba(181, 223, 243, 0.25); }
+.settingLeft { display: flex; align-items: center; gap: 12px; }
+.settingIcon { font-size: 1rem; }
+.settingName { font-size: 0.9rem; font-weight: 600; color: var(--text-primary); }
+.settingItem:hover .settingName { color: var(--primary); }
+.settingArrow { font-size: 1.3rem; color: var(--text-muted); line-height: 1; }
+
+/* ── Modal ── */
+.overlay {
+  position: fixed; inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(3px);
+}
+.modal {
+  background: var(--surface);
+  border-radius: 16px;
+  width: 100%; max-width: 460px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  animation: modalIn 0.18s ease;
+}
+@keyframes modalIn {
+  from { opacity: 0; transform: translateY(12px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.modalHeader {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 22px 28px 18px;
+  border-bottom: 1px solid var(--border);
+}
+.modalHeader h2 { font-family: 'Exo 2', sans-serif; font-size: 1.1rem; font-weight: 700; color: var(--dark-navy); }
+.modalClose {
+  background: none; border: none;
+  font-size: 1rem; color: var(--text-muted);
+  cursor: pointer; padding: 4px 8px; border-radius: 6px;
+  transition: background 0.15s;
+}
+.modalClose:hover { background: var(--bg); color: var(--text-primary); }
+.modalBody { padding: 22px 28px; display: flex; flex-direction: column; gap: 16px; }
+.modalActions { display: flex; gap: 10px; padding: 16px 28px 24px; }
+
+/* 모달 현재 값 표시 */
+.currentInfo {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px;
+  background: var(--bg);
+  border-radius: 10px;
+  border: 1px solid var(--border);
+}
+.currentLabel { font-size: 0.78rem; font-weight: 700; color: var(--text-muted); letter-spacing: 0.04em; }
+.currentValue { font-size: 0.95rem; font-weight: 700; color: var(--dark-navy); }
+
+/* 입력 필드 */
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field label { font-size: 0.8rem; font-weight: 700; color: var(--text-muted); }
+.input {
+  padding: 10px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.9rem; color: var(--text-primary);
+  background: var(--bg);
+  outline: none;
+  transition: border-color 0.2s;
+}
+.input:focus { border-color: var(--secondary); }
+.inputError { border-color: #e74c3c !important; }
+.errorMsg { font-size: 0.78rem; color: #e74c3c; margin-top: 2px; }
+
+/* 버튼 */
+.cancelBtn {
+  flex: 1; padding: 11px;
+  border: 1.5px solid var(--border);
+  background: transparent; border-radius: 10px;
+  font-size: 0.88rem; font-weight: 600; color: var(--text-muted);
+  cursor: pointer; transition: all 0.2s;
+}
+.cancelBtn:hover { border-color: var(--text-primary); color: var(--text-primary); }
+.saveBtn {
+  flex: 1; padding: 11px;
+  background: var(--primary); color: white;
+  border: none; border-radius: 10px;
+  font-size: 0.88rem; font-weight: 600;
+  cursor: pointer; transition: background 0.2s;
+}
+.saveBtn:hover { background: var(--secondary); }
+
+/* 알림 설정 */
+.notiRow {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+.notiRow:last-child { border-bottom: none; }
+.notiLeft { display: flex; align-items: center; gap: 12px; }
+.notiIcon { font-size: 1.2rem; }
+.notiLabel { font-size: 0.9rem; font-weight: 600; color: var(--text-primary); }
+.notiDesc { font-size: 0.78rem; color: var(--text-muted); margin-top: 1px; }
+.toggle {
+  padding: 6px 14px; border-radius: 999px; border: none;
+  font-size: 0.75rem; font-weight: 700;
+  cursor: pointer; transition: all 0.2s;
+}
+.toggleOn { background: var(--secondary); color: white; }
+.toggleOff { background: var(--border); color: var(--text-muted); }
+
+/* 권한 확인 */
+.gradeCard {
+  border: 2px solid; border-radius: 12px;
+  padding: 16px 20px; margin-bottom: 4px;
+  background: var(--bg);
+}
+.gradeTop { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.gradeBig { font-family: 'Exo 2', sans-serif; font-size: 1.5rem; font-weight: 800; }
+.roleTag {
+  padding: 3px 10px;
+  background: rgba(7, 85, 157, 0.1); color: var(--primary);
+  border-radius: 999px; font-size: 0.73rem; font-weight: 700;
+}
+.gradeDesc { font-size: 0.82rem; color: var(--text-muted); }
+.permList { display: flex; flex-direction: column; gap: 6px; }
+.permItem {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 14px;
+  background: var(--bg); border-radius: 8px;
+  font-size: 0.88rem; color: var(--text-primary);
+  border: 1px solid var(--border);
+}
+.permCheck { color: #27ae60; font-weight: 700; font-size: 0.9rem; }
+.permNote { font-size: 0.78rem; color: var(--text-muted); text-align: center; margin-top: 4px; }
+
+@media (max-width: 768px) {
+  .grid { grid-template-columns: 1fr; }
+  .modal { max-width: calc(100vw - 32px); }
+}

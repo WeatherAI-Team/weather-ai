@@ -1,0 +1,21 @@
+.naverBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 13px;
+  background: #03C75A;
+  color: white;
+  border-radius: 12px;
+  font-size: 0.92rem;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s;
+}
+.naverBtn:hover {
+  background: #02b350;
+  box-shadow: 0 4px 12px rgba(3, 199, 90, 0.4);
+}

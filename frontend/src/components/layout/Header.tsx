@@ -14,140 +14,113 @@ type User = {
   grade?: string;
 } | null;
 
-// 실제 구현 시 auth context/hook으로 교체
-//  const useAuth = () => ({
-// user: { name: '홍길동', role: 'admin', grade: 'GOLD' },
-// isAdmin: true, )
-
-// 실제 구현 시 auth context/hook으로 교체
-// const useAuth = (): { user: User; isAdmin: boolean } => {
-//   const user: User = null;
-
-//   return {
-//     user,
-//     isAdmin: user?.role === "admin",
-//   };
-// };
-
 export default function Header() {
   const pathname = usePathname();
   const [user, setUser] = useState<User>(null);
   const isAdmin = user?.role === "admin";
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-
   const [profileOpen, setProfileOpen] = useState(false);
 
   useEffect(() => {
     const savedUser = localStorage.getItem("user");
+    if (savedUser) setUser(JSON.parse(savedUser));
 
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
     const onScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener("scroll", onScroll);
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  const handleLogout = () => {
+    localStorage.removeItem("user");
+    localStorage.removeItem("loginUser");
+    localStorage.removeItem("access_token");
+    setUser(null);
+    setProfileOpen(false);
+    window.location.href = "/";
+  };
+
   const navLinks = [
     { href: "/intro", label: "소개" },
-    { href: "/ai", label: "AI 탐지" },
+    { href: "/ai", label: "CCTV 관제" },
     { href: "/board", label: "게시판" },
+    ...(user ? [{ href: "/mypage", label: "마이페이지" }] : []),
+    ...(user ? [{ href: "#", label: "로그아웃", onClick: handleLogout }] : []),
     ...(isAdmin ? [{ href: "/admin", label: "관리자" }] : []),
   ];
 
   return (
     <header className={`${styles.header} ${scrolled ? styles.scrolled : ""}`}>
       <div className={styles.inner}>
-        {/* Logo */}
+
+        {/* 로고 */}
         <Link href="/" className={styles.logo}>
           <span className={styles.logoIcon}>
             <img src="/logo.png" width="90" height="50" alt="로고" />
           </span>
-          {/* <span className={styles.logoText}>Weather<em>AI</em></span> */}
         </Link>
 
         {/* Desktop Nav */}
         <nav className={styles.nav}>
-          {navLinks.map(({ href, label }) => (
-            <Link
-              key={href}
-              href={href}
-              className={`${styles.navLink} ${pathname?.startsWith(href) ? styles.active : ""} ${href === "/admin" ? styles.adminLink : ""}`}
-            >
-              {label}
-              {href === "/admin" && (
-                <span className={styles.adminBadge}>ADMIN</span>
-              )}
+          <Link href="/intro" className={`${styles.navLink} ${pathname?.startsWith("/intro") ? styles.active : ""}`}>소개</Link>
+          <Link href="/ai" className={`${styles.navLink} ${pathname?.startsWith("/ai") ? styles.active : ""}`}>CCTV 관제</Link>
+          <Link href="/board" className={`${styles.navLink} ${pathname?.startsWith("/board") ? styles.active : ""}`}>게시판</Link>
+
+          {/* 로그인 후 마이페이지, 로그아웃 네비에 바로 표시 */}
+          {user && (
+            <>
+              <Link href="/mypage" className={`${styles.navLink} ${pathname?.startsWith("/mypage") ? styles.active : ""}`}>마이페이지</Link>
+              <button className={styles.navLink} onClick={handleLogout}>로그아웃</button>
+            </>
+          )}
+
+          {/* 관리자만 보이는 메뉴 (뱃지 없이) */}
+          {isAdmin && (
+            <Link href="/admin" className={`${styles.navLink} ${styles.adminLink} ${pathname?.startsWith("/admin") ? styles.active : ""}`}>
+              관제센터
             </Link>
-          ))}
+          )}
         </nav>
 
-        {/* Profile / Login */}
+        {/* 오른쪽 영역 */}
         <div className={styles.right}>
-          <div className={styles.profileArea}>
-            <button
-              type="button"
-              className={styles.profileBtn}
-              title="프로필 메뉴"
-              onClick={() => setProfileOpen(!profileOpen)}
-            >
-              <span className={styles.avatar}>
-                {user?.nickname?.[0] ?? "U"}
-              </span>
 
-              <span
-                className={`${styles.profileArrow} ${profileOpen ? styles.profileArrowOpen : ""}`}
+          {user ? (
+            /* ── 로그인 상태 ── */
+            <div className={styles.profileArea}>
+              <button
+                type="button"
+                className={styles.profileBtn}
+                onClick={() => setProfileOpen(!profileOpen)}
+                title="프로필 메뉴"
               >
-                ▾
-              </span>
+                {/* 동그란 로고 아이콘 */}
+                <span className={styles.avatar}>
+                  <img src="/logo_w.png" alt="프로필" width={28} height={28} style={{ borderRadius: '50%', objectFit: 'cover' }} />
+                </span>
+                <span className={`${styles.profileArrow} ${profileOpen ? styles.profileArrowOpen : ""}`}>▾</span>
+                {user.grade && <span className={styles.gradeBadge}>{user.grade}</span>}
+              </button>
 
-              <span className={styles.gradeBadge}>{user?.grade}</span>
-            </button>
+              {/* 드롭다운 */}
+              {profileOpen && (
+                <div className={styles.profileDropdown}>
+                  <div className={styles.dropdownUser}>
+                    <span className={styles.dropdownNickname}>{user.nickname}</span>
+                    <span className={styles.dropdownEmail}>{user.email}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : ( 
+            
+            /* ── 비로그인 상태 ── */
+            <Link href="/login" className={styles.loginBtn}>
+              로그인
+            </Link>
+          )}
 
-            {profileOpen && (
-              <div className={styles.profileDropdown}>
-                {user ? (
-                  <>
-                    <Link
-                      href="/mypage"
-                      className={styles.dropdownItem}
-                      onClick={() => setProfileOpen(false)}
-                    >
-                      마이페이지
-                    </Link>
-
-                    <button
-                      type="button"
-                      className={styles.dropdownItem}
-                      onClick={() => {
-                        localStorage.removeItem("user");
-                        localStorage.removeItem("loginUser");
-                        localStorage.removeItem("access_token");
-
-                        setUser(null);
-                        setProfileOpen(false);
-
-                        window.location.href = "/";
-                      }}
-                    >
-                      로그아웃
-                    </button>
-                  </>
-                ) : (
-                  <Link
-                    href="/login"
-                    className={styles.dropdownItem}
-                    onClick={() => setProfileOpen(false)}
-                  >
-                    로그인
-                  </Link>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Mobile hamburger */}
+          {/* 모바일 햄버거 */}
           <button
             className={styles.hamburger}
             onClick={() => setMenuOpen(!menuOpen)}
@@ -160,26 +133,27 @@ export default function Header() {
         </div>
       </div>
 
-      {/* Mobile menu */}
+      {/* 모바일 메뉴 */}
       {menuOpen && (
         <div className={styles.mobileMenu}>
-          {navLinks.map(({ href, label }) => (
-            <Link
-              key={href}
-              href={href}
-              className={styles.mobileLink}
-              onClick={() => setMenuOpen(false)}
-            >
+          {[
+            { href: "/intro", label: "소개" },
+            { href: "/ai", label: "CCTV 관제" },
+            { href: "/board", label: "게시판" },
+            ...(isAdmin ? [{ href: "/admin", label: "관리자" }] : []),
+          ].map(({ href, label }) => (
+            <Link key={href} href={href} className={styles.mobileLink} onClick={() => setMenuOpen(false)}>
               {label}
             </Link>
           ))}
-          <Link
-            href="/mypage"
-            className={styles.mobileLink}
-            onClick={() => setMenuOpen(false)}
-          >
-            마이페이지
-          </Link>
+          {user ? (
+            <>
+              <Link href="/mypage" className={styles.mobileLink} onClick={() => setMenuOpen(false)}>마이페이지</Link>
+              <button className={styles.mobileLink} onClick={handleLogout}>로그아웃</button>
+            </>
+          ) : (
+            <Link href="/login" className={styles.mobileLink} onClick={() => setMenuOpen(false)}>로그인</Link>
+          )}
         </div>
       )}
     </header>

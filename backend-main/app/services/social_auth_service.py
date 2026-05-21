@@ -25,37 +25,63 @@ class SocialAuthService:
                 social_id
             )
 
-            # 2. 기존 회원이 없으면 신규 가입
+            # 2. 기존 소셜 회원이 없으면 신규 가입 or 이메일 연결
             if member is None:
                 same_email_member = self.member_repo.find_by_email(email)
 
                 if same_email_member is not None:
-                    return {
-                        "success": False,
-                        "error": "이미 같은 이메일로 가입된 회원이 있습니다.",
-                        "email": email,
-                        "provider": same_email_member.provider
-                    }, 409
+                    # 탈퇴 / 비활성화 체크
+                    if same_email_member.deleted_at is not None:
+                        return {
+                            "success": False,
+                            "error": "탈퇴한 계정입니다."
+                        }, 403
 
-                member = Member(
-                    login_id=f"{provider}_{social_id}"[:50],
-                    password=None,
-                    email=email,
-                    nickname=nickname,
-                    profile_img_url=profile_img_url,
-                    role="user",
-                    active=True,
-                    provider=provider,
-                    social_id=str(social_id),
-                    created_at=datetime.now(),
-                    updated_at=datetime.now(),
-                    last_login_at=datetime.now(),
-                    deleted_at=None,
-                )
 
-                self.member_repo.save(member)
+                    if same_email_member.active is False:
+                        return {
+                            "success": False,
+                            "error": "비활성화된 계정입니다."
+                        }, 403
+            
+                    # 로컬 계정이면 소셜 정보 연결 후 로그인
+                    if same_email_member.provider == "local" or same_email_member.provider is None:
+                        same_email_member.provider = provider
+                        same_email_member.social_id = str(social_id)
+                        same_email_member.updated_at = datetime.now()
+                        same_email_member.last_login_at = datetime.now()
+                        db.session.commit()
+                        member = same_email_member
 
-            # 3. 기존 회원이면 상태 확인 + 로그인 시간 갱신
+                    # 다른 소셜로 이미 가입된 경우 → 충돌
+                    else:
+                        return {
+                            "success": False,
+                            "error": f"이미 {same_email_member.provider}로 가입된 이메일입니다.",
+                            "email": email,
+                            "provider": same_email_member.provider
+                        }, 409
+
+                else:
+                    # 완전 신규 가입
+                    member = Member(
+                        login_id=f"{provider}_{social_id}"[:50],
+                        password=None,
+                        email=email,
+                        nickname=nickname,
+                        profile_img_url=profile_img_url,
+                        role="user",
+                        active=True,
+                        provider=provider,
+                        social_id=str(social_id),
+                        created_at=datetime.now(),
+                        updated_at=datetime.now(),
+                        last_login_at=datetime.now(),
+                        deleted_at=None,
+                    )
+                    self.member_repo.save(member)
+
+            # 3. 기존 소셜 회원이면 상태 확인 + 로그인 시간 갱신
             else:
                 if member.deleted_at is not None:
                     return {
@@ -68,9 +94,11 @@ class SocialAuthService:
                         "success": False,
                         "error": "비활성화된 계정입니다."
                     }, 403
-
-                self.member_repo.update_last_login(member)
-
+                
+                member.last_login_at = datetime.now()
+                member.updated_at = datetime.now()
+                db.session.commit()
+  
             # 4. 프론트에 내려줄 사용자 정보
             user_data = {
                 "id": member.id,

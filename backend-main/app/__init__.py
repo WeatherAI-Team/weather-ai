@@ -1,14 +1,14 @@
 from flask import Flask
-
+from flask_jwt_extended import JWTManager
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from flask_socketio import SocketIO
 import os
 from dotenv import load_dotenv
-
+from .extensions import mail
 load_dotenv()
 
-
+jwt = JWTManager()
 db = SQLAlchemy()
 socketio = SocketIO()
 
@@ -24,7 +24,23 @@ def create_app():
     app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "dev-jwt-secret-key")
     app.config["ITS_API_KEY"] = os.getenv("ITS_API_KEY")
 
+
+    # 메일 설정
+    app.config["MAIL_SERVER"] = os.getenv("MAIL_SERVER")
+    app.config["MAIL_PORT"] = int(os.getenv("MAIL_PORT", 587))
+    app.config["MAIL_USE_TLS"] = os.getenv("MAIL_USE_TLS", "True") == "True"
+    app.config["MAIL_USE_SSL"] = os.getenv("MAIL_USE_SSL", "False") == "True"
+    app.config["MAIL_USERNAME"] = os.getenv("MAIL_USERNAME")
+    app.config["MAIL_PASSWORD"] = os.getenv("MAIL_PASSWORD")
+    app.config["MAIL_DEFAULT_SENDER"] = os.getenv("MAIL_DEFAULT_SENDER")
+
+    # 메일 확장 초기화
+    mail.init_app(app)
+
+    # 데이터베이스 확장 초기화
     db.init_app(app)
+
+    jwt.init_app(app)
 
 
     # CORS: 프론트 주소만 허용

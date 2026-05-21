@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import Header from '@/components/layout/Header'
+import Footer from '@/components/layout/Footer'
 
 export const metadata: Metadata = {
   title: 'Weather AI — 악천후 위험물질 차량 탐지 시스템',
@@ -15,6 +16,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <main style={{ paddingTop: 'var(--header-h)', width: '100%', overflowX: 'hidden' }}>
           {children}
         </main>
+        <Footer />
       </body>
     </html>
   )

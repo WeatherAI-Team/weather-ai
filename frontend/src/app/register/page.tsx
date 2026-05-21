@@ -12,7 +12,9 @@ export default function RegisterPage() {
   const [loginId, setLoginId] = useState("");
   const [password, setPassword] = useState("");
   const [email, setEmail] = useState("");
+  const [realName, setRealName] = useState("");
   const [nickname, setNickname] = useState("");
+  const [name, setName] = useState("");
   const [message, setMessage] = useState("");
 
   const API_BASE_URL =
@@ -32,6 +34,7 @@ export default function RegisterPage() {
           password,
           email,
           nickname,
+          real_name: realName,
         }),
       });
 
@@ -54,7 +57,11 @@ export default function RegisterPage() {
     <main className={styles.page}>
       <section className={styles.registerCard}>
         <div className={styles.header}>
-          <p className={styles.eyebrow}>WeatherAI</p>
+          <img 
+            src="/logo.png" 
+            alt="WeatherAI 로고" 
+            className={styles.logo}
+          />
           <h1>회원가입</h1>
           <p>계정을 생성하고 AI 탐지 서비스를 시작하세요.</p>
         </div>
@@ -87,6 +94,16 @@ export default function RegisterPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="이메일을 입력하세요"
+            />
+          </label>
+
+          <label className={styles.field}>
+            <span>성명</span>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="이름을 입력하세요"
             />
           </label>
 
