@@ -1,0 +1,245 @@
+.floatingButton {
+  position: fixed;
+  right: 28px;
+  bottom: 28px;
+  z-index: 999;
+  height: 58px;
+  padding: 0 22px;
+  border: none;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #07559d, #1b9bd1);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  font-size: 15px;
+  box-shadow: 0 16px 36px rgba(7, 85, 157, 0.28);
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.floatingButton:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 20px 44px rgba(7, 85, 157, 0.36);
+}
+
+.buttonIcon {
+  font-size: 22px;
+}
+
+.buttonText {
+  letter-spacing: -0.3px;
+}
+
+.chatBox {
+  position: fixed;
+  right: 28px;
+  bottom: 28px;
+  z-index: 999;
+  width: 390px;
+  height: 620px;
+  background: #ffffff;
+  border: 1px solid rgba(181, 223, 243, 0.85);
+  border-radius: 26px;
+  box-shadow: 0 24px 70px rgba(32, 67, 109, 0.25);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  height: 86px;
+  padding: 20px 22px;
+  background: linear-gradient(135deg, #07559d 0%, #1b9bd1 100%);
+  color: #ffffff;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.headerLabel {
+  margin: 0 0 4px;
+  font-size: 12px;
+  opacity: 0.85;
+  font-weight: 600;
+}
+
+.headerTitle {
+  margin: 0;
+  font-size: 21px;
+  font-weight: 800;
+  letter-spacing: -0.6px;
+}
+
+.closeBtn {
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.notice {
+  margin: 16px 18px 8px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: #f1f9fd;
+  color: #20436d;
+  font-size: 13px;
+  line-height: 1.45;
+  border: 1px solid rgba(181, 223, 243, 0.75);
+}
+
+.notice span {
+  display: inline-block;
+  margin-right: 8px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #d5e3a9;
+  color: #20436d;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.messages {
+  flex: 1;
+  padding: 12px 18px;
+  overflow-y: auto;
+  background:
+    radial-gradient(circle at top left, rgba(181, 223, 243, 0.25), transparent 28%),
+    #ffffff;
+}
+
+.messageRow {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.botRow {
+  justify-content: flex-start;
+}
+
+.userRow {
+  justify-content: flex-end;
+}
+
+.botAvatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: #20436d;
+  color: #ffffff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.messageBubble {
+  max-width: 260px;
+  padding: 12px 14px;
+  border-radius: 17px;
+  font-size: 14px;
+  line-height: 1.48;
+  letter-spacing: -0.25px;
+}
+
+.botBubble {
+  background: #f4f9fc;
+  color: #20436d;
+  border-top-left-radius: 6px;
+  border: 1px solid rgba(181, 223, 243, 0.8);
+}
+
+.userBubble {
+  background: #07559d;
+  color: #ffffff;
+  border-top-right-radius: 6px;
+}
+
+.quickArea {
+  padding: 12px 16px;
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  border-top: 1px solid rgba(181, 223, 243, 0.55);
+  background: #fbfdff;
+}
+
+.quickButton {
+  flex-shrink: 0;
+  border: 1px solid #b5dff3;
+  background: #ffffff;
+  color: #07559d;
+  border-radius: 999px;
+  padding: 9px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.quickButton:hover {
+  background: #eaf7fc;
+  color: #20436d;
+}
+
+.inputArea {
+  padding: 14px 16px 16px;
+  display: flex;
+  gap: 8px;
+  border-top: 1px solid rgba(181, 223, 243, 0.7);
+  background: #ffffff;
+}
+
+.input {
+  flex: 1;
+  height: 44px;
+  padding: 0 14px;
+  border-radius: 14px;
+  border: 1px solid #b5dff3;
+  outline: none;
+  color: #20436d;
+  font-size: 14px;
+}
+
+.input:focus {
+  border-color: #1b9bd1;
+  box-shadow: 0 0 0 3px rgba(27, 155, 209, 0.12);
+}
+
+.sendButton {
+  width: 66px;
+  height: 44px;
+  border: none;
+  border-radius: 14px;
+  background: #07559d;
+  color: #ffffff;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.sendButton:hover {
+  background: #20436d;
+}
+
+@media (max-width: 520px) {
+  .chatBox {
+    right: 14px;
+    bottom: 14px;
+    width: calc(100vw - 28px);
+    height: 600px;
+  }
+
+  .floatingButton {
+    right: 18px;
+    bottom: 18px;
+  }
+}

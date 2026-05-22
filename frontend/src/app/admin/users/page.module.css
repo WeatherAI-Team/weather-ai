@@ -38,7 +38,10 @@
 .tr:last-child { border-bottom:none; }
 .tr:hover { background:#f8fbff; }
 .td { padding:14px 16px; font-size:0.85rem; color:var(--text-primary); white-space:nowrap; }
-.loginId { font-family:monospace; font-size:0.82rem; color:var(--primary); font-weight:600; }
+.table th:nth-child(2), .table td:nth-child(2) { padding-right: 2px; }
+.table th:nth-child(3), .table td:nth-child(3) { padding-left: 2px; padding-right: 28px; }
+.table th:nth-child(4), .table td:nth-child(4) { padding-left: 28px; }
+.loginId { font-family:monospace; font-size:0.82rem; color:var(--primary); font-weight:600; display:inline-block; max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; vertical-align:middle; }
 .email { font-size:0.8rem; color:var(--text-muted); }
 
 /* 뱃지 */
@@ -73,4 +76,24 @@
 .modalSave { flex:1; padding:11px; background:linear-gradient(135deg,var(--primary),var(--secondary)); color:white; border-radius:10px; font-size:0.88rem; font-weight:700; cursor:pointer; border:none; font-family:inherit; transition:opacity 0.2s; }
 .modalSave:hover { opacity:0.9; }
 
-@media(max-width:768px) { .sidebar{display:none} .main{margin-left:0;padding:16px} .statsRow{grid-template-columns:1fr 1fr} }
+.trClickable { cursor:pointer; }
+
+/* 상세 팝업 */
+.overlay { position:fixed; inset:0; background:rgba(0,0,0,0.4); display:flex; align-items:center; justify-content:center; z-index:200; backdrop-filter:blur(3px); animation:fadeIn 0.15s ease; }
+@keyframes fadeIn { from{opacity:0} to{opacity:1} }
+.detailModal { background:white; border-radius:16px; width:100%; max-width:480px; max-height:85vh; display:flex; flex-direction:column; box-shadow:0 20px 60px rgba(0,0,0,0.18); overflow:hidden; animation:popIn 0.18s ease; }
+@keyframes popIn { from{opacity:0;transform:scale(0.97) translateY(10px)} to{opacity:1;transform:scale(1) translateY(0)} }
+.detailHeader { display:flex; align-items:center; justify-content:space-between; padding:20px 24px 18px; border-bottom:1px solid var(--border); }
+.detailTitle { font-family:'Exo 2',sans-serif; font-size:1.05rem; font-weight:700; color:var(--dark-navy); }
+.detailClose { background:none; border:none; font-size:1rem; color:var(--text-muted); cursor:pointer; padding:4px 8px; border-radius:6px; transition:background 0.15s; }
+.detailClose:hover { background:#f0f8ff; }
+.detailBody { padding:24px; display:flex; flex-direction:column; gap:12px; overflow-y:auto; flex:1; }
+.detailAvatar { width:56px; height:56px; min-width:56px; min-height:56px; border-radius:50%; background:linear-gradient(135deg,var(--secondary),var(--primary)); color:white; font-size:1.4rem; font-weight:700; display:flex; align-items:center; justify-content:center; align-self:center; flex-shrink:0; margin:0 auto 8px; box-shadow:0 4px 14px rgba(27,155,209,0.3); }
+.detailRow { display:flex; align-items:center; justify-content:space-between; padding:10px 14px; background:#f8fbff; border-radius:8px; border:1px solid var(--border); }
+.detailLabel { font-size:0.75rem; font-weight:700; color:var(--text-muted); letter-spacing:0.04em; text-transform:uppercase; }
+.detailValue { font-size:0.88rem; font-weight:600; color:var(--dark-navy); word-break:break-all; text-align:right; max-width:260px; }
+.detailFooter { padding:16px 24px 20px; border-top:1px solid var(--border); display:flex; justify-content:flex-end; }
+.detailCloseBtn { padding:9px 24px; background:var(--primary); color:white; border:none; border-radius:10px; font-size:0.88rem; font-weight:600; cursor:pointer; transition:background 0.2s; }
+.detailCloseBtn:hover { background:var(--secondary); }
+
+@media(max-width:768px) { .sidebar{display:none} .main{margin-left:0;padding:16px} .statsRow{grid-template-columns:1fr 1fr} .detailModal{max-width:calc(100vw - 32px)} }

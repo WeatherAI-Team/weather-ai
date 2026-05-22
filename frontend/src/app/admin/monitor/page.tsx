@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import styles from './page.module.css'
-import KoreaMap, { RegionData } from '@/components/map/KoreaMap'
+import KakaoMap, { type RegionData } from '@/components/map/KakaoMap'
 
 const sideMenus = [
   { label: '대시보드', href: '/admin', icon: '📊' },
@@ -192,7 +192,7 @@ export default function MonitorPage() {
               {loading ? (
                 <p className={styles.loadingText}>지도 데이터를 불러오는 중입니다...</p>
               ) : (
-                <KoreaMap selected={selected} hovered={hovered} regionData={regionData}
+                <KakaoMap selected={selected} hovered={hovered} regionData={regionData}
                   onSelect={handleRegionSelect} onHover={setHovered} />
               )}
             </div>

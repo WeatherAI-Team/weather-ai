@@ -46,3 +46,5 @@ All source files are UTF-8. When writing strings that contain Korean:
 - Use u"..." or ensure the file has # -*- coding: utf-8 -*- at the top if Python 2 syntax is ever mixed in.
 - Never use cp949 or euc-kr encodings.
 - The app sets PYTHONIOENCODING=utf-8 at startup; do not override it.
+
+6. Under no circumstances should you access the .env file. If any changes to the .env file are required, clearly ask me so that I can modify it myself.

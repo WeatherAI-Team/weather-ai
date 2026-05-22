@@ -19,6 +19,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL
 type User = {
   id: number
   login_id: string
+  name: string
   nickname: string
   email: string
   role: string
@@ -33,10 +34,9 @@ export default function UsersPage() {
   const [boardOpen, setBoardOpen] = useState(false)
   const [users, setUsers] = useState<User[]>([])
   const [search, setSearch] = useState('')
-  const [selectedUser, setSelectedUser] = useState<User | null>(null)
-  const [modalOpen, setModalOpen] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [detailUser, setDetailUser] = useState<User | null>(null)
 
   // 사용자 목록 불러오기
   const fetchUsers = async (keyword?: string) => {
@@ -70,21 +70,9 @@ export default function UsersPage() {
     u.email.includes(search)
   )
 
-  const handleEdit = (user: User) => {
-    setSelectedUser({ ...user })
-    setModalOpen(true)
-  }
-
   // 활성 상태 토글 (API 연동 필요 시 PATCH 요청 추가)
   const handleToggleActive = (id: number) => {
     setUsers(prev => prev.map(u => u.id === id ? { ...u, active: !u.active } : u))
-  }
-
-  // 저장 (API 연동 필요 시 PATCH /api/admin/members/:id 요청 추가)
-  const handleSave = () => {
-    if (!selectedUser) return
-    setUsers(prev => prev.map(u => u.id === selectedUser.id ? selectedUser : u))
-    setModalOpen(false)
   }
 
   // 날짜 포맷 (ISO → YYYY-MM-DD)
@@ -165,16 +153,17 @@ export default function UsersPage() {
             <table className={styles.table}>
               <thead>
                 <tr>
-                  {['ID', '로그인ID', '닉네임', '메일주소', '권한', '가입일', '활성여부', '가입정보', '관리'].map(h => (
+                  {['ID', '로그인ID', '이름', '닉네임', '메일주소', '권한', '가입일', '활성여부', '가입정보'].map(h => (
                     <th key={h} className={styles.th}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {filtered.length > 0 ? filtered.map(u => (
-                  <tr key={u.id} className={styles.tr}>
+                  <tr key={u.id} className={`${styles.tr} ${styles.trClickable}`} onClick={() => setDetailUser(u)}>
                     <td className={styles.td}>{u.id}</td>
                     <td className={styles.td}><span className={styles.loginId}>{u.login_id ?? '-'}</span></td>
+                    <td className={styles.td}>{u.name ?? '-'}</td>
                     <td className={styles.td}>{u.nickname}</td>
                     <td className={styles.td}><span className={styles.email}>{u.email}</span></td>
                     <td className={styles.td}>
@@ -186,16 +175,13 @@ export default function UsersPage() {
                     <td className={styles.td}>
                       <button
                         className={`${styles.activeBadge} ${u.active ? styles.activeOn : styles.activeOff}`}
-                        onClick={() => handleToggleActive(u.id)}
+                        onClick={e => { e.stopPropagation(); handleToggleActive(u.id) }}
                       >
                         {u.active ? '활성' : '비활성'}
                       </button>
                     </td>
                     <td className={styles.td}>
                       <span className={styles.provider}>{formatProvider(u.provider)}</span>
-                    </td>
-                    <td className={styles.td}>
-                      <button className={styles.editBtn} onClick={() => handleEdit(u)}>수정</button>
                     </td>
                   </tr>
                 )) : (
@@ -209,54 +195,37 @@ export default function UsersPage() {
         )}
       </main>
 
-      {/* 수정 모달 */}
-      {modalOpen && selectedUser && (
-        <div className={styles.modalOverlay} onClick={() => setModalOpen(false)}>
-          <div className={styles.modal} onClick={e => e.stopPropagation()}>
-            <div className={styles.modalHeader}>
-              <h2 className={styles.modalTitle}>사용자 정보 수정</h2>
-              <button className={styles.modalClose} onClick={() => setModalOpen(false)}>✕</button>
+      {/* 상세 정보 팝업 */}
+      {detailUser && (
+        <div className={styles.overlay} onClick={() => setDetailUser(null)}>
+          <div className={styles.detailModal} onClick={e => e.stopPropagation()}>
+            <div className={styles.detailHeader}>
+              <h2 className={styles.detailTitle}>사용자 상세 정보</h2>
+              <button className={styles.detailClose} onClick={() => setDetailUser(null)}>✕</button>
             </div>
-            <div className={styles.modalBody}>
+            <div className={styles.detailBody}>
+              <div className={styles.detailAvatar}>
+                {(detailUser.name ?? detailUser.nickname ?? '?')[0]}
+              </div>
               {[
-                { label: '닉네임', key: 'nickname' },
-                { label: '이메일', key: 'email' },
-              ].map(f => (
-                <div key={f.key} className={styles.modalField}>
-                  <label className={styles.modalLabel}>{f.label}</label>
-                  <input
-                    className={styles.modalInput}
-                    value={selectedUser[f.key as keyof User] as string ?? ''}
-                    onChange={e => setSelectedUser({ ...selectedUser, [f.key]: e.target.value })}
-                  />
+                { label: 'ID',      value: String(detailUser.id) },
+                { label: '로그인 ID', value: detailUser.login_id ?? '-' },
+                { label: '이름',     value: detailUser.name ?? '-' },
+                { label: '닉네임',   value: detailUser.nickname },
+                { label: '이메일',   value: detailUser.email },
+                { label: '권한',     value: detailUser.role === 'admin' ? '관리자' : '일반' },
+                { label: '상태',     value: detailUser.active ? '활성' : '비활성' },
+                { label: '가입경로', value: formatProvider(detailUser.provider) },
+                { label: '가입일',   value: formatDate(detailUser.created_at) },
+              ].map(row => (
+                <div key={row.label} className={styles.detailRow}>
+                  <span className={styles.detailLabel}>{row.label}</span>
+                  <span className={styles.detailValue}>{row.value}</span>
                 </div>
               ))}
-              <div className={styles.modalField}>
-                <label className={styles.modalLabel}>권한</label>
-                <select
-                  className={styles.modalInput}
-                  value={selectedUser.role}
-                  onChange={e => setSelectedUser({ ...selectedUser, role: e.target.value })}
-                >
-                  <option value="user">일반</option>
-                  <option value="admin">관리자</option>
-                </select>
-              </div>
-              <div className={styles.modalField}>
-                <label className={styles.modalLabel}>활성 여부</label>
-                <select
-                  className={styles.modalInput}
-                  value={selectedUser.active ? 'true' : 'false'}
-                  onChange={e => setSelectedUser({ ...selectedUser, active: e.target.value === 'true' })}
-                >
-                  <option value="true">활성</option>
-                  <option value="false">비활성</option>
-                </select>
-              </div>
             </div>
-            <div className={styles.modalActions}>
-              <button className={styles.modalCancel} onClick={() => setModalOpen(false)}>취소</button>
-              <button className={styles.modalSave} onClick={handleSave}>저장</button>
+            <div className={styles.detailFooter}>
+              <button className={styles.detailCloseBtn} onClick={() => setDetailUser(null)}>닫기</button>
             </div>
           </div>
         </div>
