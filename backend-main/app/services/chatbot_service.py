@@ -267,7 +267,7 @@ class ChatbotService:
         ]
 
         # 질문 안에 알림 관련 단어가 있으면 notification_help로 판단해.
-        if any(keyword in message for keyword in notification_keywords):
+        if any(keyword in lower_message for keyword in notification_keywords):
             return "notification_help"
 
         # 위험 상태 질문을 확인해.
@@ -282,7 +282,7 @@ class ChatbotService:
         ]
 
         # 질문 안에 위험 상태 관련 단어가 있으면 risk_status로 판단해.
-        if any(keyword in message for keyword in risk_keywords):
+        if any(keyword in lower_message for keyword in risk_keywords):
             return "risk_status"
 
         # 서비스 사용법 질문을 확인해.
@@ -296,7 +296,7 @@ class ChatbotService:
         ]
 
         # 질문 안에 사용법 관련 단어가 있으면 service_help로 판단해.
-        if any(keyword in message for keyword in help_keywords):
+        if any(keyword in lower_message for keyword in help_keywords):
             return "service_help"
 
         # 아무 조건에도 맞지 않으면 알 수 없는 질문으로 판단해.
