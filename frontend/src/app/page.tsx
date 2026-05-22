@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import WeatherOverlay from '@/components/weather/WeatherOverlay'
 import styles from './page.module.css'
+import ChatBot from '@/components/chatbot/ChatBot'
 
 const weatherLabels = ['☀️ 맑음', '☁️ 흐림', '🌧️ 비', '❄️ 눈']
 const DURATION = 3000
@@ -113,6 +114,8 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      <ChatBot />
     </div>
   )
 }

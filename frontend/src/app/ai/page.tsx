@@ -1,31 +1,33 @@
 'use client'
 import { useState, useRef, useEffect, useCallback } from 'react'
+import Hls from 'hls.js'
 import styles from './page.module.css'
 
-const API_URL = process.env.NEXT_PUBLIC_AI_URL || 'http://localhost:8000'
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'
+const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'
 
 type TabType = 'cctv' | 'upload'
 
 type Detection = {
-  bbox: [number, number, number, number] // [x1, y1, x2, y2] normalized 0~1
+  bbox: [number, number, number, number]
   label: string
   confidence: number
 }
 
 type Result = {
-  detected: boolean
+  detected: boolean 
   confidence: number
   label: string
   detections: Detection[]
 }
 
-const cctvList = [
-  { name: '경부고속도로 상행 23km', url: 'rtsp://its-cam01.kroad.or.kr', status: '위험', weather: '폭우',  conf: 98.1, time: '14:22' },
-  { name: '서울외곽순환 북부 구간',  url: 'rtsp://its-cam02.kroad.or.kr', status: '위험', weather: '폭설',  conf: 95.4, time: '11:05' },
-  { name: '중부고속도로 하행 41km',  url: 'rtsp://its-cam03.kroad.or.kr', status: '경고', weather: '안개',  conf: 91.7, time: '09:40' },
-  { name: '영동고속도로 횡성 부근',  url: 'rtsp://its-cam04.kroad.or.kr', status: '위험', weather: '폭우',  conf: 88.2, time: '08:15' },
-  { name: '남해고속도로 서부 구간',  url: 'rtsp://its-cam05.kroad.or.kr', status: '경고', weather: '강풍',  conf: 84.5, time: '07:30' },
-]
+type CctvItem = {
+  cctvname: string
+  cctvurl: string
+  cctvformat: string
+  coordx: number
+  coordy: number
+}
 
 const recentDetections = [
   { time: '2026-04-28 14:22', loc: '경부고속도로 상행 23km', weather: '폭우', type: '탱크로리',      conf: 98.1, status: '위험' },
@@ -57,7 +59,6 @@ function BoundingBoxOverlay({ src, detections }: { src: string; detections: Dete
       const h = (y2 - y1) * canvas.height
       const color = det.confidence >= 0.85 ? '#e74c3c' : '#f39c12'
 
-      // 박스
       ctx.strokeStyle = color
       ctx.lineWidth = 2.5
       ctx.shadowColor = color
@@ -65,7 +66,6 @@ function BoundingBoxOverlay({ src, detections }: { src: string; detections: Dete
       ctx.strokeRect(x, y, w, h)
       ctx.shadowBlur = 0
 
-      // 라벨 배경
       const text = `${det.label}  ${(det.confidence * 100).toFixed(1)}%`
       ctx.font = 'bold 12px sans-serif'
       const tw = ctx.measureText(text).width
@@ -73,7 +73,6 @@ function BoundingBoxOverlay({ src, detections }: { src: string; detections: Dete
       ctx.fillStyle = color
       ctx.fillRect(x - 1, labelY, tw + 12, 22)
 
-      // 라벨 텍스트
       ctx.fillStyle = '#fff'
       ctx.fillText(text, x + 5, labelY + 15)
     })
@@ -89,15 +88,58 @@ function BoundingBoxOverlay({ src, detections }: { src: string; detections: Dete
   )
 }
 
+// ── HLS 플레이어 컴포넌트 ──
+function HlsPlayer({ src, className }: { src: string; className?: string }) {
+  const videoRef = useRef<HTMLVideoElement>(null)
+
+  useEffect(() => {
+    const video = videoRef.current
+    if (!video || !src) return
+
+    let hls: Hls | null = null
+
+    if (Hls.isSupported()) {
+      hls = new Hls()
+      hls.loadSource(src)
+      hls.attachMedia(video)
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        video.play().catch(() => {})
+      })
+    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      video.src = src
+      video.play().catch(() => {})
+    }
+
+    return () => { hls?.destroy() }
+  }, [src])
+
+  return <video ref={videoRef} className={className} autoPlay muted playsInline controls />
+}
+
 // ── 메인 페이지 ──
 export default function AiPage() {
   const [tab, setTab] = useState<TabType>('cctv')
   const [selectedCctv, setSelectedCctv] = useState<number | null>(null)
+  const [cctvList, setCctvList] = useState<CctvItem[]>([])
+  const [cctvLoading, setCctvLoading] = useState(false)
 
   const [uploading, setUploading] = useState(false)
   const [result, setResult] = useState<Result | null>(null)
   const [uploadedUrl, setUploadedUrl] = useState<string | null>(null)
   const [isImage, setIsImage] = useState(false)
+
+  useEffect(() => {
+    if (tab !== 'cctv') return
+    setCctvLoading(true)
+    fetch(`${BACKEND_URL}/api/cctv`)
+      .then(res => res.json())
+      .then(data => {
+        const items: CctvItem[] = data?.response?.data ?? []
+        setCctvList(items)
+      })
+      .catch(err => console.error('CCTV 목록 불러오기 실패:', err))
+      .finally(() => setCctvLoading(false))
+  }, [tab])
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -117,7 +159,7 @@ export default function AiPage() {
     const endpoint = fileIsImage ? '/api/ai/detect' : '/api/ai/analyze_and_save_video'
 
     try {
-      const res = await fetch(`${API_URL}${endpoint}`, { method: 'POST', body: formData })
+      const res = await fetch(`${BACKEND_URL}${endpoint}`, { method: 'POST', body: formData })
       const data = await res.json()
       if (data.success) {
         setResult({
@@ -155,7 +197,6 @@ export default function AiPage() {
       <section className={styles.main}>
         <div className="container">
 
-          {/* 탭 */}
           <div className={styles.tabBar}>
             <button className={`${styles.tabBtn} ${tab === 'cctv' ? styles.tabActive : ''}`} onClick={() => setTab('cctv')}>
               📡 CCTV 실시간
@@ -165,16 +206,15 @@ export default function AiPage() {
             </button>
           </div>
 
-          {/* CCTV 실시간 탭 */}
           {tab === 'cctv' && (
             <div className={styles.tabGrid}>
               <div className={styles.panel}>
-                <h2>{selected ? selected.name : 'CCTV 실시간 화면'}</h2>
+                <h2>{selected ? selected.cctvname : 'CCTV 실시간 화면'}</h2>
                 <div className={styles.cctvBox}>
                   {selected ? (
-                    <img
-                      src={`${API_URL}/api/ai/cctv_feed?url=${encodeURIComponent(selected.url)}`}
-                      alt={selected.name}
+                    <HlsPlayer
+                      key={selected.cctvurl}
+                      src={`${BACKEND_URL}/api/cctv/stream?url=${encodeURIComponent(selected.cctvurl)}`}
                       className={styles.cctvStream}
                     />
                   ) : (
@@ -184,32 +224,23 @@ export default function AiPage() {
                     </div>
                   )}
                 </div>
-                {selected && (
-                  <div className={styles.cctvInfo}>
-                    <span className={`${styles.badge} ${selected.status === '위험' ? styles.badgeDanger : styles.badgeWarn}`}>{selected.status}</span>
-                    <span className={styles.cctvInfoText}>🌧️ {selected.weather} · 신뢰도 {selected.conf}%</span>
-                    <span className={styles.cctvInfoTime}>{selected.time} 기준</span>
-                  </div>
-                )}
               </div>
 
               <div className={styles.panel}>
                 <h2>연동 CCTV 목록</h2>
                 <div className={styles.cctvHistory}>
+                  {cctvLoading && <p>불러오는 중...</p>}
+                  {!cctvLoading && cctvList.length === 0 && <p>CCTV 목록이 없습니다.</p>}
                   {cctvList.map((cam, i) => (
                     <div
                       key={i}
                       className={`${styles.cctvHistoryItem} ${selectedCctv === i ? styles.cctvItemSelected : ''}`}
                       onClick={() => setSelectedCctv(i)}
                     >
-                      <span className={`${styles.cctvDot} ${cam.status === '위험' ? styles.dotDanger : styles.dotWarn}`} />
+                      <span className={`${styles.cctvDot} ${styles.dotWarn}`} />
                       <div className={styles.cctvHistoryInfo}>
-                        <p className={styles.cctvHistoryUrl}>{cam.name}</p>
-                        <p className={styles.cctvHistoryMeta}>🌧️ {cam.weather} · 신뢰도 {cam.conf}%</p>
-                      </div>
-                      <div className={styles.cctvHistoryRight}>
-                        <span className={`${styles.badge} ${cam.status === '위험' ? styles.badgeDanger : styles.badgeWarn}`}>{cam.status}</span>
-                        <span className={styles.cctvHistoryTime}>{cam.time}</span>
+                        <p className={styles.cctvHistoryUrl}>{cam.cctvname}</p>
+                        <p className={styles.cctvHistoryMeta}>{cam.cctvformat} · {cam.coordx}, {cam.coordy}</p>
                       </div>
                     </div>
                   ))}
@@ -218,10 +249,8 @@ export default function AiPage() {
             </div>
           )}
 
-          {/* 영상 업로드 탭 */}
           {tab === 'upload' && (
             <div className={styles.tabGrid}>
-              {/* 왼쪽: 업로드 / 미리보기 */}
               <div className={styles.panel}>
                 <h2>
                   {uploadedUrl
@@ -254,7 +283,6 @@ export default function AiPage() {
                 )}
               </div>
 
-              {/* 오른쪽: 분석 결과 */}
               <div className={styles.panel}>
                 <h2>분석 결과</h2>
                 {uploading && (
@@ -311,7 +339,6 @@ export default function AiPage() {
             </div>
           )}
 
-          {/* 최근 탐지 이력 */}
           <div className={styles.recent}>
             <h2>최근 탐지 이력</h2>
             <table className={styles.table}>
@@ -321,7 +348,7 @@ export default function AiPage() {
               <tbody>
                 {recentDetections.map((r, i) => (
                   <tr key={i}>
-                    <td>{r.time}</td><td>{r.loc}</td><td>{r.weather}</td><td>{r.type}</td>
+                    <td>{r.time}</td><td>{r.loc}</td><td>{r.weather}</td><td>{r.time}</td>
                     <td>{r.conf}%</td>
                     <td><span className={`${styles.badge} ${r.status === '위험' ? styles.badgeDanger : styles.badgeWarn}`}>{r.status}</span></td>
                   </tr>

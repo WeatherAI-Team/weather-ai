@@ -1,4 +1,7 @@
+'use client'
+
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import styles from './Footer.module.css'
 
 const teamMembers = {
@@ -18,6 +21,13 @@ const teamMembers = {
 }
 
 export default function Footer() {
+  const pathname = usePathname()
+
+  // 관리자 페이지에서는 푸터 숨김
+  if (pathname.startsWith('/admin')) {
+    return null
+  }
+
   return (
     <footer className={styles.footer}>
       <div className={styles.inner}>
