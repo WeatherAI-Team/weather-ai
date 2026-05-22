@@ -33,6 +33,11 @@ export default function FindIdPage() {
         return;
       }
 
+      if (data.account_type === "social") {
+        setLoginId("");
+        setMessage(data.message);
+        return;
+      }
       setLoginId(data.login_id);
       setMessage(data.message);
     } catch (error) {

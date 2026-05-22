@@ -156,8 +156,26 @@ class MemberService:
                 "message": "해당 이메일로 가입된 회원이 없습니다."
             }
 
+        # 소셜 로그인 계정은 내부 login_id를 보여주지 않음
+        if member.provider not in (None, "local"):
+            provider_name_map = {
+                "kakao": "카카오",
+                "naver": "네이버",
+                "google": "구글",
+            }
+
+            provider_name = provider_name_map.get(member.provider, member.provider)
+
+            return {
+                "success": True,
+                "account_type": "social",
+                "provider": member.provider,
+                "message": f"해당 이메일은 {provider_name} 소셜 로그인으로 가입된 계정입니다. {provider_name} 로그인으로 접속해주세요."
+            }
+
         return {
             "success": True,
+            "account_type": "local",
             "message": "아이디를 찾았습니다.",
             "login_id": member.login_id
         }

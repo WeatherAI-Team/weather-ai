@@ -2,6 +2,7 @@ import os
 import requests
 from flask import Blueprint, redirect, request, jsonify
 from dotenv import load_dotenv
+from urllib.parse import urlencode
 
 from app.services.social_auth_service import SocialAuthService
 
@@ -97,7 +98,12 @@ def kakao_callback():
         return jsonify({"error": "카카오 고유 ID가 없습니다."}), 400
 
     if not email:
-        email = f"kakao_{kakao_id}@kakao.local"
+        query = urlencode({
+            "error": "kakao_email_missing",
+            "message": "카카오 이메일 제공 동의가 필요합니다."
+        })
+
+        return redirect(f"{FRONTEND_URL}/auth/callback?{query}")
 
     result, status_code = social_auth_service.login_or_register(
         provider="kakao",
