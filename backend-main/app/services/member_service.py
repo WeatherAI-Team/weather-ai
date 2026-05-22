@@ -171,6 +171,7 @@ class MemberService:
                 "account_type": "social",
                 "provider": member.provider,
                 "message": f"해당 이메일은 {provider_name} 소셜 로그인으로 가입된 계정입니다. {provider_name} 로그인으로 접속해주세요."
+
             }
 
         return {
