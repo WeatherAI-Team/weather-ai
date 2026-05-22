@@ -17,6 +17,9 @@ DANGEROUS_WRN = {
 }
 
 def get_weather_alerts():
+    if not KMA_API_KEY:
+        raise RuntimeError("WEATHER_API_KEY가 설정되지 않았습니다.")
+
     params = {
         "reg": "0",
         "wrn": "A",
@@ -55,3 +58,13 @@ def is_dangerous() -> tuple:
     raw = get_weather_alerts()
     alerts = parse_alerts(raw)
     return len(alerts) > 0, alerts
+
+def build_weather_summary(alert: dict) -> str:
+    """
+    Gemma에 원문 전체를 보내지 않고,
+    필요한 정보만 짧게 요약해서 토큰 사용량을 줄인다.
+    """
+    return (
+        f"{alert['wrn_name']} {alert['level']} 발령 "
+        f"(구역: {alert['reg_id']}, 발표시각: {alert['tm_fc']})"
+    )

@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, current_app
 
 from app.services.weather_alert_service import check_and_generate_alerts
 
@@ -16,7 +16,7 @@ weather_alert_bp = Blueprint(
 @weather_alert_bp.route("", methods=["GET"])
 def get_weather_alert():
     try:
-        alerts = check_and_generate_alerts()
+        alerts = check_and_generate_alerts() or []
 
         return jsonify({
             "success": True,
@@ -24,10 +24,10 @@ def get_weather_alert():
             "alerts": alerts,
         }), 200
 
-    except Exception as e:
+    except Exception:
+        current_app.logger.exception("기상 알림 생성 중 오류 발생")
+
         return jsonify({
             "success": False,
-            "message": str(e),
-            "dangerous": False,
-            "alerts": [],
+            "message": "기상 알림 처리 중 오류가 발생했습니다.",
         }), 500

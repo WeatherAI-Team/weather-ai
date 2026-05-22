@@ -11,7 +11,7 @@ client = OpenAI(
 )
 
 
-def _call_gemma(messages, max_tokens=1000, temperature=0.2) -> str:
+def _call_gemma(messages, max_tokens=500, temperature=0.2) -> str:
     completion = client.chat.completions.create(
         model="google/gemma-4-31B-it:together",
         messages=messages,
@@ -73,7 +73,7 @@ def generate_alert_message(weather_data: str) -> str:
         }
     ]
 
-    return _call_gemma(messages, max_tokens=700, temperature=0.2)
+    return _call_gemma(messages, max_tokens=300, temperature=0.2)
 
 
 def judge_weather_gate(weather_data: str) -> dict:
@@ -101,7 +101,7 @@ def judge_weather_gate(weather_data: str) -> dict:
         },
     ]
 
-    result_text = _call_gemma(messages, max_tokens=1000, temperature=0.1)
+    result_text = _call_gemma(messages, max_tokens=700, temperature=0.1)
     return _safe_json_loads(result_text)
 
 
