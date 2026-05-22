@@ -21,6 +21,9 @@ def create_app():
     app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "dev-secret-key")  # 추가
     app.config["SESSION_COOKIE_SAMESITE"] = "Lax"   # 추가
     app.config["SESSION_COOKIE_SECURE"] = False      # 추가 (localhost라서 False)
+    app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "dev-jwt-secret-key")
+    app.config["ITS_API_KEY"] = os.getenv("ITS_API_KEY")
+
 
     # 메일 설정
     app.config["MAIL_SERVER"] = os.getenv("MAIL_SERVER")
@@ -43,7 +46,10 @@ def create_app():
     # CORS: 프론트 주소만 허용
     CORS(
         app,
-        resources={r"/api/*": {"origins": "http://localhost:3000"}},
+        resources={r"/api/*": {"origins": [
+            "http://localhost:3000",
+            "http://172.25.181.79:3000"
+        ]}},
         supports_credentials=True,
         methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
         allow_headers=["Content-Type", "Authorization"],
