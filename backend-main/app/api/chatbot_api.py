@@ -2,8 +2,9 @@
 # Blueprint는 API 주소를 묶어주는 도구야.
 # request는 사용자가 보낸 값을 읽을 때 써.
 # jsonify는 Python 데이터를 JSON으로 바꿔줘.
+# current_app은 서버에서 에러 로그를 남길 때 써.
 # f-026 AI chatbot
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 
 # 챗봇 기능을 처리하는 ChatbotService를 가져와.
 from ..services.chatbot_service import ChatbotService
@@ -25,22 +26,57 @@ def send_message():
 
     # 사용자가 보낸 JSON 데이터를 가져와.
     # 예: {"message": "강남대로 위험해?"}
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
 
-    # JSON 데이터가 없으면 빈 딕셔너리로 바꿔줘.
-    if data is None:
-        data = {}
-
-    # JSON 안에서 message 값을 꺼내.
-    # message가 없으면 빈 문자열로 처리해.
+    # message 값을 꺼내.
     message = data.get("message", "")
 
-    # Service에게 챗봇 답변을 만들어 달라고 부탁해.
-    result = chatbot_service.create_response(message)
+    # message가 문자열이 아니면 잘못된 요청으로 처리해.
+    # 예: {"message": 123} 같은 요청 방지
+    if not isinstance(message, str):
+        return jsonify({
+            "success": False,
+            "message": "message는 문자열이어야 합니다.",
+            "data": None
+        }), 400
+    
+    # 앞뒤 공백을 제거해.
+    message = message.strip()
 
-    # 결과를 JSON 형태로 프론트에게 보내줘.
-    return jsonify({
-        "success": True,
-        "message": "챗봇 응답 생성 성공",
-        "data": result
-    }), 200
+    # 빈 메시지면 굳이 service까지 보내지 않고 바로 안내해.
+    if not message:
+        return jsonify({
+            "success": False,
+            "message": "질문 내용을 입력해 주세요.",
+            "data": None
+        }), 400
+
+    # 질문이 너무 길면 처리하지 않고 안내해.
+    if len(message) > 300:
+        return jsonify({
+            "success": False,
+            "message": "질문은 300자 이내로 입력해 주세요.",
+            "data": None
+        }), 400
+    
+    try:
+        # Service에게 챗봇 답변을 만들어 달라고 부탁해.
+        result = chatbot_service.create_response(message)
+
+        # 정상 응답
+        return jsonify({
+            "success": True,
+            "message": "챗봇 응답 생성 성공",
+            "data": result
+        }), 200
+
+    except Exception :
+        # 서버에서 어떤 에러가 났는지 터미널 로그에 남겨.
+        # 프론트에는 자세한 에러 내용을 숨기고, 서버 개발자만 확인할 수 있게 하는 거야.
+        current_app.logger.exception("챗봇 응답 생성 중 오류 발생")
+
+        return jsonify({
+            "success": False,
+            "message": "챗봇 응답 생성 중 오류가 발생했습니다.",
+            "data": None
+        }), 500
