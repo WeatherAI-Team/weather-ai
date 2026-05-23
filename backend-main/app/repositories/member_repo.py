@@ -63,23 +63,15 @@ class MemberRepository:
         )
         # 나중에 관리자 페이지에서 사용자 목록을 검색
         
-    # 5. 소셜 로그인 회원 찾기
-    # 구글, 카카오 같은 소셜 로그인 사용자를 찾을 때 사용해.
-    def find_by_provider_and_social_id(self, provider, social_id):
-        return Member.query.filter(
-            Member.provider == provider,
-            Member.social_id == str(social_id),
-            Member.deleted_at.is_(None)
-        ).first()
 
-    # 6. 이메일로 회원 찾기
+    # 5. 이메일로 회원 찾기
     def find_by_email(self, email):
         return Member.query.filter(
             Member.email == email,
             Member.deleted_at.is_(None)
         ).first()
 
-    # 7. 마지막 로그인 시간 업데이트
+    # 6. 마지막 로그인 시간 업데이트
     # 사용자가 로그인했을 때 마지막 로그인 시간을 현재 시간으로 바꿔줘
     def update_last_login(self, member):
         member.last_login_at = datetime.now()
