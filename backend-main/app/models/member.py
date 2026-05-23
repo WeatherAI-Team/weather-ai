@@ -24,6 +24,7 @@ class Member(db.Model):
     # Enum 설정 (admin, manager, user)
     role = db.Column(Enum('admin', 'manager', 'user', name='user_roles'), default='user')
     active = db.Column(db.Boolean, default=True)
+
     
     # 5. 시간 기록 (Audit)
     created_at = db.Column(db.DateTime, default=utc_now)

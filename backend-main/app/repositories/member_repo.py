@@ -131,6 +131,7 @@ class MemberRepository:
         db.session.commit()
         return member
     
+    
      # 10. 회원 탈퇴 처리 - 실제 삭제 없이 비활성화
     def deactivate_member(self, member):
         member.active=False
