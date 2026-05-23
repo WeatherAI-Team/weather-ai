@@ -3,7 +3,6 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
 
 import styles from "./page.module.css";
 import KakaoLoginButton from "@/components/auth/KakaoLoginButton";
@@ -11,8 +10,6 @@ import NaverLoginButton from "@/components/auth/NaverLoginButton";
 import GoogleLoginButton from "@/components/auth/GoogleLoginButton";
 
 export default function LoginPage() {
-  const router = useRouter();
-
   const [loginId, setLoginId] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
@@ -46,7 +43,7 @@ export default function LoginPage() {
       localStorage.setItem("user", JSON.stringify(data.data));
       localStorage.setItem("loginUser", JSON.stringify(data.data));
 
-      router.push("/");
+      window.location.href = "/";
     } catch (error) {
       console.error(error);
       setMessage("서버 연결에 실패했습니다.");
@@ -58,7 +55,7 @@ export default function LoginPage() {
       <section className={styles.loginCard}>
         <div className={styles.header}>
           <div className={styles.eyebrow}>
-            <Image src="/logo.png" alt="WeatherGuard AI 로고" width={120} height={40} />
+            <Image src="/logo.png" alt="WeatherGuard AI 로고" width={120} height={63} />
           </div>
           <h1>로그인</h1>
           <p>로그인하고 다양한 서비스를 이용하세요.</p>
@@ -97,7 +94,7 @@ export default function LoginPage() {
         <div className={styles.links}>
           <Link href="/find-id">아이디 찾기</Link>
           <span />
-          <a href="#">비밀번호 찾기</a>
+          <Link href="/find-pw">비밀번호 찾기</Link>
           <span />
           <Link href="/register">회원가입</Link>
         </div>

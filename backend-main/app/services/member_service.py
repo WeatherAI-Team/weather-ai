@@ -135,6 +135,7 @@ class MemberService:
                 "account_type": "local",
                 "message": "아이디를 찾았습니다.",
                 "login_id": member.login_id
+
             }
 
         # 소셜 전용 회원이면 member_social_accounts에서 provider 조회

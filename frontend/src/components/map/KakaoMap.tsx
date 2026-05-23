@@ -87,6 +87,13 @@ export default function KakaoMap({ selected, regionData, onSelect, onHover }: Ka
       mapInstanceRef.current = map
       setMapReady(true)
       console.log('[KakaoMap] 지도 생성 완료')
+
+      // 컨테이너 크기 변화 감지 → 자동 relayout
+      const observer = new ResizeObserver(() => {
+        map.relayout()
+      })
+      observer.observe(mapRef.current!)
+
     }
 
     console.log('[KakaoMap] 초기화 시작, window.kakao:', window.kakao)

@@ -1,0 +1,234 @@
+.wrapper {
+  width: 100%;
+  min-height: 100vh;
+  background: linear-gradient(160deg, #e8f6ff, #ffffff);
+  padding: 40px 24px 80px;
+}
+
+.container {
+  max-width: 860px;
+  margin: 0 auto;
+  background: white;
+  border-radius: 20px;
+  border: 1.5px solid rgba(7,85,157,0.12);
+  padding: 40px 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+/* 헤더 */
+.header { border-bottom: 1.5px solid rgba(7,85,157,0.10); padding-bottom: 20px; }
+.breadcrumb { font-size: 0.78rem; color: #8aadcc; margin-bottom: 8px; }
+.heading {
+  font-family: 'Exo 2', sans-serif;
+  font-size: 1.6rem; font-weight: 700;
+  color: #20436d; letter-spacing: -0.02em;
+}
+
+/* 개별 필드 */
+.field { display: flex; flex-direction: column; gap: 8px; }
+.label {
+  font-size: 0.82rem; font-weight: 700;
+  color: #07559d; letter-spacing: 0.02em;
+}
+
+/* 카테고리 */
+.select {
+  padding: 10px 14px;
+  border: 1.5px solid rgba(7,85,157,0.18);
+  border-radius: 10px;
+  font-size: 0.9rem; font-weight: 600;
+  color: #20436d; background: white;
+  outline: none; cursor: pointer;
+  width: fit-content; min-width: 120px;
+}
+.select:focus { border-color: #1b9bd1; }
+.noticeHint { font-size: 0.78rem; color: #e43b3b; margin-top: 2px; }
+
+/* 카테고리 + 고정게시글 한 줄 배치 */
+.categoryRow {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+/* 고정게시글 체크박스 */
+.pinnedLabel {
+  display: flex; align-items: center; gap: 10px;
+  cursor: pointer;
+  padding: 12px 16px;
+  border: 1.5px solid #b2cc7a;
+  border-radius: 10px;
+  background: #d5e3a9;
+  font-size: 0.88rem; font-weight: 700; color: #3d5a0a;
+  width: fit-content;
+  transition: background 0.2s;
+}
+.pinnedLabel:hover { background: #c8d99a; }
+.pinnedCheck { width: 16px; height: 16px; accent-color: #4a7012; cursor: pointer; }
+.pinnedHint { font-size: 0.75rem; color: #c0392b; font-weight: 500; }
+
+/* 제목 */
+.titleInput {
+  padding: 12px 16px;
+  border: 1.5px solid rgba(7,85,157,0.18);
+  border-radius: 12px;
+  font-size: 1rem; color: #20436d;
+  background: white; outline: none;
+  transition: border-color 0.2s;
+}
+.titleInput:focus { border-color: #1b9bd1; }
+.titleInput::placeholder { color: #b0cce0; }
+.charCount { font-size: 0.75rem; color: #8aadcc; text-align: right; margin-top: -4px; }
+
+/* 에디터 래퍼 */
+.editorWrap {
+  border: 1.5px solid rgba(7,85,157,0.18);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.editorWrap:focus-within { border-color: #1b9bd1; }
+
+/* 툴바 */
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px;
+  background: #f5f9ff;
+  border-bottom: 1px solid rgba(7,85,157,0.10);
+  flex-wrap: wrap;
+}
+.toolSelect {
+  padding: 4px 8px;
+  border: 1px solid rgba(7,85,157,0.18);
+  border-radius: 6px;
+  font-size: 0.78rem; color: #20436d;
+  background: white; outline: none; cursor: pointer;
+}
+.toolBtn {
+  padding: 4px 9px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  font-size: 0.82rem; color: #20436d;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.15s;
+  min-width: 28px;
+  text-align: center;
+}
+.toolBtn:hover { background: rgba(7,85,157,0.08); border-color: rgba(7,85,157,0.15); }
+.divider { width: 1px; height: 20px; background: rgba(7,85,157,0.15); margin: 0 4px; }
+
+/* 글자색/배경색 */
+.colorLabel {
+  display: flex; align-items: center;
+  padding: 4px 8px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  font-size: 0.82rem; font-weight: 700;
+  color: #20436d;
+  cursor: pointer;
+  transition: all 0.15s;
+  position: relative;
+}
+.colorLabel:hover { background: rgba(7,85,157,0.08); border-color: rgba(7,85,157,0.15); }
+.colorInput {
+  position: absolute; width: 0; height: 0; opacity: 0; pointer-events: none;
+}
+.colorLabel:hover .colorInput { pointer-events: auto; width: 100%; height: 100%; top: 0; left: 0; opacity: 0; cursor: pointer; }
+
+/* 에디터 본문 */
+.editor {
+  min-height: 320px;
+  padding: 16px 20px;
+  font-size: 0.95rem; color: #20436d;
+  line-height: 1.75;
+  outline: none;
+  overflow-y: auto;
+}
+.editor:empty::before {
+  content: attr(data-placeholder);
+  color: #b0cce0;
+  pointer-events: none;
+}
+
+/* 이미지 첨부 */
+.fileLabel {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  width: fit-content;
+}
+.fileLabelText {
+  padding: 9px 20px;
+  border: 1.5px dashed rgba(7,85,157,0.25);
+  border-radius: 10px;
+  font-size: 0.85rem; font-weight: 600;
+  color: #07559d;
+  background: #f5f9ff;
+  transition: all 0.2s;
+}
+.fileLabel:hover .fileLabelText { background: #e8f2ff; border-color: #1b9bd1; }
+.fileInput { display: none; }
+.fileHint { font-size: 0.75rem; color: #8aadcc; margin-top: -2px; }
+
+/* 이미지 미리보기 */
+.previewGrid {
+  display: flex; gap: 12px; flex-wrap: wrap; margin-top: 8px;
+}
+.previewItem {
+  position: relative; width: 110px;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+}
+.previewImg {
+  width: 110px; height: 90px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1.5px solid rgba(7,85,157,0.15);
+}
+.removeBtn {
+  position: absolute; top: -6px; right: -6px;
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: #e43b3b; color: white;
+  border: none; font-size: 0.65rem;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
+.previewName {
+  font-size: 0.68rem; color: #8aadcc;
+  width: 110px; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap; text-align: center;
+}
+
+/* 하단 버튼 */
+.actions {
+  display: flex; justify-content: flex-end; gap: 10px;
+  padding-top: 8px; border-top: 1.5px solid rgba(7,85,157,0.10);
+}
+.cancelBtn {
+  padding: 11px 28px;
+  border: 1.5px solid rgba(7,85,157,0.18);
+  border-radius: 10px;
+  font-size: 0.9rem; font-weight: 600;
+  color: #5a85a8; background: white;
+  cursor: pointer; transition: all 0.2s;
+}
+.cancelBtn:hover { background: #f0f8ff; }
+.submitBtn {
+  padding: 11px 32px;
+  background: linear-gradient(135deg, #07559d, #1b9bd1);
+  color: white;
+  border: none; border-radius: 10px;
+  font-size: 0.9rem; font-weight: 700;
+  cursor: pointer; transition: opacity 0.2s;
+}
+.submitBtn:hover { opacity: 0.88; }
+
+@media (max-width: 640px) {
+  .container { padding: 24px 20px; }
+  .toolbar { gap: 2px; }
+  .toolBtn { padding: 4px 6px; font-size: 0.75rem; }
+}

@@ -1,66 +1,246 @@
+'use client'
+import { useState, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import styles from './page.module.css'
 
-const posts = [
-  { id: 1, category: '공지', title: '시스템 정기 점검 안내 (5월 1일)', author: '관리자', date: '2026-04-25', views: 312, isPinned: true },
-  { id: 2, category: '사례', title: '[사례] 경부고속도로 폭우 상황 탱크로리 탐지 성공 보고', author: '홍길동', date: '2026-04-24', views: 589 },
-  { id: 3, category: '분석', title: '눈보라 조건에서 YOLOv8 모델 성능 분석 리포트', author: '김분석', date: '2026-04-22', views: 441 },
-  { id: 4, category: '사례', title: '[사례] 중부내륙고속도로 안개 구간 LPG 차량 감지', author: '이탐지', date: '2026-04-20', views: 378 },
-  { id: 5, category: '질문', title: 'FastAPI와 Flask 간 통신 지연 문제 해결 방법 공유', author: '박개발', date: '2026-04-18', views: 215 },
-  { id: 6, category: '분석', title: '야간 폭우 환경에서의 탐지율 향상 실험', author: '최연구', date: '2026-04-16', views: 302 },
-]
-
-const categoryColors: Record<string, string> = {
-  '공지': 'categoryNotice',
-  '사례': 'categoryCase',
-  '분석': 'categoryAnalysis',
-  '질문': 'categoryQuestion',
+type Post = {
+  id: number
+  category: string
+  title: string
+  author_nickname: string
+  created_at: string
+  views: number
+  comment_count?: number
+  attachment_count?: number
 }
 
+const SEARCH_TYPES = [
+  { value: 'title', label: '제목' },
+  { value: 'content', label: '내용' },
+  { value: 'all', label: '제목+내용' },
+]
+
+const MOCK_NOTICES: Post[] = [
+  { id: 1, category: '공지', title: '시스템 정기 점검 안내 (5월 1일)', author_nickname: '관리자', created_at: '2026-04-25', views: 312, comment_count: 3 },
+]
+
+const MOCK_INFO: Post[] = [
+  { id: 2, category: '정보', title: '경부고속도로 폭우 상황 탱크로리 탐지 성공 보고', author_nickname: '홍길동', created_at: '2026-04-24', views: 589, comment_count: 12, attachment_count: 3 },
+  { id: 3, category: '정보', title: '눈보라 조건에서 YOLOv8 모델 성능 분석 리포트', author_nickname: '김분석', created_at: '2026-04-22', views: 441, comment_count: 5, attachment_count: 1 },
+  { id: 4, category: '정보', title: '중부내륙고속도로 안개 구간 LPG 차량 감지', author_nickname: '이탐지', created_at: '2026-04-20', views: 378, comment_count: 0 },
+  { id: 5, category: '정보', title: 'FastAPI와 Flask 간 통신 지연 문제 해결 방법 공유', author_nickname: '박개발', created_at: '2026-04-18', views: 215, comment_count: 7 },
+  { id: 6, category: '정보', title: '야간 폭우 환경에서의 탐지율 향상 실험', author_nickname: '최연구', created_at: '2026-04-16', views: 302, comment_count: 2 },
+]
+
+const MOCK_SUGGEST: Post[] = [
+  { id: 7, category: '건의', title: '탐지 알림 소리 크기 조절 기능 추가 요청', author_nickname: '김건의', created_at: '2026-04-23', views: 87, comment_count: 4 },
+  { id: 8, category: '건의', title: '야간 모드 UI 지원 건의', author_nickname: '이사용자', created_at: '2026-04-19', views: 134, comment_count: 1, attachment_count: 2 },
+]
+
+const PAGE_SIZE = 10
+
 export default function BoardPage() {
+  const router = useRouter()
+  const [tab, setTab] = useState<'info' | 'suggest'>('info')
+  const [searchType, setSearchType] = useState('title')
+  const [searchInput, setSearchInput] = useState('')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [page, setPage] = useState(1)
+  const [notices, setNotices] = useState<Post[]>([])
+  const [posts, setPosts] = useState<Post[]>([])
+  const [totalPages, setTotalPages] = useState(1)
+  const [loading, setLoading] = useState(false)
+  const [userRole, setUserRole] = useState<string>('')
+
+  useEffect(() => {
+    const saved = localStorage.getItem('user')
+    if (saved) {
+      try { setUserRole(JSON.parse(saved).role ?? '') } catch { /* ignore */ }
+    }
+  }, [])
+
+  const fetchPosts = useCallback(async () => {
+    setLoading(true)
+    try {
+      const params = new URLSearchParams({
+        tab,
+        page: String(page),
+        search: searchQuery,
+        search_type: searchType,
+      })
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/board/posts?${params}`)
+      const data = await res.json()
+      if (data.success) {
+        setNotices(data.notices)
+        setPosts(data.posts)
+        setTotalPages(data.total_pages)
+        setLoading(false)
+        return
+      }
+    } catch {
+      // 백엔드 미연결 시 목업 데이터 사용
+    }
+    // 목업 fallback
+    const source = tab === 'info' ? MOCK_INFO : MOCK_SUGGEST
+    const filtered = source.filter(p => {
+      if (!searchQuery) return true
+      const q = searchQuery.toLowerCase()
+      if (searchType === 'title') return p.title.toLowerCase().includes(q)
+      if (searchType === 'content') return false
+      return p.title.toLowerCase().includes(q)
+    })
+    const total = filtered.length
+    setNotices(MOCK_NOTICES)
+    setPosts(filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE))
+    setTotalPages(Math.max(1, Math.ceil(total / PAGE_SIZE)))
+    setLoading(false)
+  }, [tab, page, searchQuery, searchType])
+
+  useEffect(() => { fetchPosts() }, [fetchPosts])
+
+  const handleTabChange = (newTab: 'info' | 'suggest') => {
+    setTab(newTab)
+    setPage(1)
+    setSearchInput('')
+    setSearchQuery('')
+  }
+
+  const handleSearch = () => {
+    setPage(1)
+    setSearchQuery(searchInput)
+  }
+
+  const paginationRange = () => {
+    const delta = 2
+    const range: number[] = []
+    for (let i = Math.max(1, page - delta); i <= Math.min(totalPages, page + delta); i++) {
+      range.push(i)
+    }
+    return range
+  }
+
+  const getCatClass = (cat: string) => {
+    if (cat === '정보') return `${styles.category} ${styles.categoryInfo}`
+    if (cat === '건의') return `${styles.category} ${styles.categorySuggest}`
+    return `${styles.category} ${styles.categoryNotice}`
+  }
+
   return (
-    <div style={{ width: '100%', overflowX: 'hidden' }}>
-      <section style={{ width: '100%', padding: '30px 0 40px', background: 'linear-gradient(160deg, #e8f6ff, #ffffff)', borderBottom: '1px solid rgba(7,85,157,0.12)' }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 24px' }}>
-          <p style={{ fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#1b9bd1', marginBottom: '12px' }}>게시판</p>
-          <h1 style={{ fontFamily: 'Exo 2, sans-serif', fontSize: '2.5rem', fontWeight: 700, color: '#20436d', marginBottom: '16px' }}>커뮤니티 & 공지</h1>
-          <p style={{ fontSize: '1rem', color: '#5a85a8' }}>탐지 결과 공유, 사례 분석, 공지사항을 확인하세요</p>
+    <div className={styles.wrapper}>
+      <section className={styles.heroWrap}>
+        <div className={styles.hero}>
+          <p className={styles.eyebrow}>게시판</p>
+          <h1 className={styles.title}>커뮤니티 & 공지</h1>
+          <p className={styles.desc}>공지사항, 정보 공유, 건의사항을 확인하세요</p>
         </div>
       </section>
 
-      <section style={{ padding: '30px 0' }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 24px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', marginBottom: '24px', flexWrap: 'wrap' as const }}>
-            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' as const }}>
-              {['전체', '공지', '사례', '분석', '질문'].map(c => (
-                <button key={c} style={{ padding: '7px 16px', borderRadius: '999px', fontSize: '0.82rem', fontWeight: 600, color: c === '전체' ? 'white' : '#5a85a8', background: c === '전체' ? '#07559d' : '#f0f8ff', border: '1.5px solid ' + (c === '전체' ? '#07559d' : 'rgba(7,85,157,0.12)'), cursor: 'pointer' }}>{c}</button>
-              ))}
-            </div>
-            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-              <input type="text" placeholder="검색..." style={{ padding: '9px 16px', border: '1.5px solid rgba(7,85,157,0.12)', borderRadius: '10px', fontSize: '0.85rem', outline: 'none', width: '200px' }} />
-              <button style={{ padding: '9px 18px', background: 'linear-gradient(135deg, #07559d, #1b9bd1)', color: 'white', borderRadius: '10px', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer', border: 'none' }}>✏️ 글쓰기</button>
-            </div>
+      <section>
+        <div className={styles.main}>
+          <div className={styles.tabs}>
+            <button
+              className={tab === 'info' ? `${styles.tab} ${styles.tabActive}` : styles.tab}
+              onClick={() => handleTabChange('info')}
+            >
+              정보게시판
+            </button>
+            <button
+              className={tab === 'suggest' ? `${styles.tab} ${styles.tabActive}` : styles.tab}
+              onClick={() => handleTabChange('suggest')}
+            >
+              건의게시판
+            </button>
           </div>
 
-          <div style={{ background: 'white', borderRadius: '16px', border: '1.5px solid rgba(7,85,157,0.12)', overflow: 'hidden' }}>
-            {posts.map(post => (
-              <Link key={post.id} href={`/board/${post.id}`} style={{ display: 'grid', gridTemplateColumns: '80px 1fr 90px 100px 70px', gap: '16px', alignItems: 'center', padding: '16px 20px', borderBottom: '1px solid rgba(7,85,157,0.12)', textDecoration: 'none', background: post.isPinned ? '#fffde8' : 'transparent' }}>
-                <span style={{ padding: '3px 10px', borderRadius: '999px', fontSize: '0.72rem', fontWeight: 700, textAlign: 'center' as const, background: post.category === '공지' ? '#e8f0ff' : post.category === '사례' ? '#e8fff0' : post.category === '분석' ? '#fff3e8' : '#f8e8ff', color: post.category === '공지' ? '#3b5bdb' : post.category === '사례' ? '#2b8a3e' : post.category === '분석' ? '#d9480f' : '#7c3aed' }}>{post.category}</span>
-                <span style={{ fontSize: '0.9rem', color: '#20436d', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  {post.isPinned && <span>📌</span>}
+          <div className={styles.toolbar}>
+            <div className={styles.searchBox}>
+              <select
+                value={searchType}
+                onChange={e => setSearchType(e.target.value)}
+                className={styles.searchSelect}
+              >
+                {SEARCH_TYPES.map(t => (
+                  <option key={t.value} value={t.value}>{t.label}</option>
+                ))}
+              </select>
+              <input
+                type="text"
+                placeholder="검색어를 입력하세요"
+                value={searchInput}
+                onChange={e => setSearchInput(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleSearch()}
+                className={styles.search}
+              />
+              <button onClick={handleSearch} className={styles.searchBtn}>검색</button>
+            </div>
+            {(tab === 'suggest' || userRole === 'admin' || userRole === 'manager') && (
+              <button className={styles.writeBtn} onClick={() => router.push(`/board/write?tab=${tab}`)}>✏️ 글쓰기</button>
+            )}
+          </div>
+
+          <div className={styles.postList}>
+            <div className={styles.listHeader}>
+              <span>카테고리</span>
+              <span>제목</span>
+              <span>작성자</span>
+              <span>날짜</span>
+              <span>댓글</span>
+              <span>조회</span>
+            </div>
+
+            {notices.map(post => (
+              <Link key={`n-${post.id}`} href={`/board/${post.id}`} className={`${styles.postRow} ${styles.pinned}`}>
+                <span className={getCatClass('공지')}>공지</span>
+                <span className={styles.postTitle}>
+                  <span className={styles.pin}>📌</span>
                   {post.title}
+                  {!!post.attachment_count && <span className={styles.clip}>[{post.attachment_count}]</span>}
                 </span>
-                <span style={{ fontSize: '0.82rem', color: '#5a85a8', textAlign: 'center' as const }}>{post.author}</span>
-                <span style={{ fontSize: '0.8rem', color: '#5a85a8', textAlign: 'center' as const }}>{post.date}</span>
-                <span style={{ fontSize: '0.8rem', color: '#5a85a8', textAlign: 'right' as const }}>👁 {post.views}</span>
+                <span className={styles.author}>{post.author_nickname}</span>
+                <span className={styles.date}>{post.created_at}</span>
+                <span className={styles.commentCol}>{post.comment_count ?? 0}</span>
+                <span className={styles.views}>👁 {post.views}</span>
+              </Link>
+            ))}
+
+            {loading ? (
+              <div className={styles.empty}>불러오는 중...</div>
+            ) : posts.length === 0 ? (
+              <div className={styles.empty}>게시글이 없습니다.</div>
+            ) : posts.map(post => (
+              <Link key={post.id} href={`/board/${post.id}`} className={styles.postRow}>
+                <span className={getCatClass(post.category)}>{post.category}</span>
+                <span className={styles.postTitle}>
+                  {post.title}
+                  {!!post.attachment_count && <span className={styles.clip}>[{post.attachment_count}]</span>}
+                </span>
+                <span className={styles.author}>{post.author_nickname}</span>
+                <span className={styles.date}>{post.created_at}</span>
+                <span className={styles.commentCol}>{post.comment_count ?? 0}</span>
+                <span className={styles.views}>👁 {post.views}</span>
               </Link>
             ))}
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '6px', marginTop: '32px' }}>
-            {[1,2,3,4,5].map(n => (
-              <button key={n} style={{ width: '36px', height: '36px', borderRadius: '8px', fontSize: '0.85rem', fontWeight: 600, color: n === 1 ? 'white' : '#5a85a8', background: n === 1 ? '#07559d' : 'white', border: '1.5px solid ' + (n === 1 ? '#07559d' : 'rgba(7,85,157,0.12)'), cursor: 'pointer' }}>{n}</button>
+          <div className={styles.pagination}>
+            <button
+              className={styles.pageNav}
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={page === 1}
+            >&lt;</button>
+            {paginationRange().map(n => (
+              <button
+                key={n}
+                onClick={() => setPage(n)}
+                className={n === page ? `${styles.pageBtn} ${styles.pageActive}` : styles.pageBtn}
+              >{n}</button>
             ))}
+            <button
+              className={styles.pageNav}
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+            >&gt;</button>
           </div>
         </div>
       </section>
