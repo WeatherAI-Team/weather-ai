@@ -77,7 +77,7 @@ class MemberService:
             return {"success": False, "message": "아이디 또는 비밀번호가 올바르지 않습니다."}
 
         self.member_repo.update_last_login(member)
-        access_token = create_access_token({"sub": str(member.id)})
+        access_token = create_access_token({"sub": str(member.id), "role": str(member.role)})
         return {
             "success": True,
             "message": "로그인 성공",

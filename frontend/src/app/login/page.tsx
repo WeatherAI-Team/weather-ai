@@ -40,7 +40,10 @@ export default function LoginPage() {
         return;
       }
 
-      localStorage.setItem("user", JSON.stringify(data.data));
+      localStorage.setItem("user", JSON.stringify({
+        ...data.data,
+        access_token: data.access_token,
+      }));
       localStorage.setItem("loginUser", JSON.stringify(data.data));
 
       window.location.href = "/";

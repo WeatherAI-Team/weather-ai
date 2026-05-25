@@ -78,6 +78,7 @@ def create_app():
     from .api.map_api import map_bp
     from .api.dashboard_api import dashboard_bp
     from .api.chatbot_api import chatbot_bp
+    from .api.board_api import board_bp
 
     app.register_blueprint(kakao_auth_bp)
     app.register_blueprint(naver_auth_bp)
@@ -88,6 +89,7 @@ def create_app():
     app.register_blueprint(dashboard_bp)
     app.register_blueprint(chatbot_bp)
     app.register_blueprint(weather_alert_bp)
+    app.register_blueprint(board_bp)
 
     # 관리자 라우트 (dev에서 가져옴)
     from .api.admin_api import admin_bp
@@ -104,6 +106,7 @@ def create_app():
         # 탐지 이벤트 모델을 가져와.
         # Flask가 detection_events 테이블 구조를 알 수 있게 해.
         from .models.detection_event import DetectionEvent
+        from .models.board import Board, BoardComment
         
         db.create_all()
 

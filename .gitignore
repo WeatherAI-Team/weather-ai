@@ -42,3 +42,6 @@ Thumbs.db
 # --- Keras 모델 파일 ---
 **/*.h5
 **/*.keras
+
+**/results.csv
+**/finetune.py
