@@ -1,4 +1,5 @@
 from ..repositories.member_repo import MemberRepository
+from ..models.member_social_account import MemberSocialAccount
 
 
 class AdminMemberService:
@@ -62,15 +63,18 @@ class AdminMemberService:
     # Member 객체를 JSON으로 바꿔주는 함수
     # 비밀번호는 절대 보내면 안 되기 때문에 password는 제외해.
     def _member_to_dict(self, member):
+        social = MemberSocialAccount.query.filter_by(member_id=member.id).first()
+        provider = social.provider if social else None
         return {
             "id": member.id,
             "login_id": member.login_id,
             "email": member.email,
+            "real_name": member.real_name,
             "nickname": member.nickname,
             "profile_img_url": member.profile_img_url,
             "role": member.role,
             "active": member.active,
-            "provider": member.provider,
+            "provider": provider,
             "created_at": member.created_at.isoformat() if member.created_at else None,
             "updated_at": member.updated_at.isoformat() if member.updated_at else None,
             "last_login_at": member.last_login_at.isoformat() if member.last_login_at else None

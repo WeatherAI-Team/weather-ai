@@ -48,11 +48,11 @@ def get_post_by_id_admin(post_id: int) -> Board | None:
     return Board.query.filter_by(id=post_id, deleted_at=None).first()
 
 
-def get_posts_admin(board_type: str, search: str, page: int, per_page: int):
+def get_posts_admin(board_types: list[str], search: str, page: int, per_page: int):
     """게시글 목록 조회 (관리자용 - active 무관)"""
     q = Board.query.filter(Board.deleted_at == None)
-    if board_type:
-        q = q.filter(Board.board_type == board_type)
+    if board_types:
+        q = q.filter(Board.board_type.in_(board_types))
     if search:
         q = q.filter(or_(
             Board.title.ilike(f"%{search}%"),
