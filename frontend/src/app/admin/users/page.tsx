@@ -19,7 +19,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL
 type User = {
   id: number
   login_id: string
-  name: string
+  real_name: string | null
   nickname: string
   email: string
   role: string
@@ -163,7 +163,7 @@ export default function UsersPage() {
                   <tr key={u.id} className={`${styles.tr} ${styles.trClickable}`} onClick={() => setDetailUser(u)}>
                     <td className={styles.td}>{u.id}</td>
                     <td className={styles.td}><span className={styles.loginId}>{u.login_id ?? '-'}</span></td>
-                    <td className={styles.td}>{u.name ?? '-'}</td>
+                    <td className={styles.td}>{u.real_name ?? '-'}</td>
                     <td className={styles.td}>{u.nickname}</td>
                     <td className={styles.td}><span className={styles.email}>{u.email}</span></td>
                     <td className={styles.td}>
@@ -205,12 +205,12 @@ export default function UsersPage() {
             </div>
             <div className={styles.detailBody}>
               <div className={styles.detailAvatar}>
-                {(detailUser.name ?? detailUser.nickname ?? '?')[0]}
+                {(detailUser.real_name ?? detailUser.nickname ?? '?')[0]}
               </div>
               {[
                 { label: 'ID',      value: String(detailUser.id) },
                 { label: '로그인 ID', value: detailUser.login_id ?? '-' },
-                { label: '이름',     value: detailUser.name ?? '-' },
+                { label: '이름',     value: detailUser.real_name ?? '-' },
                 { label: '닉네임',   value: detailUser.nickname },
                 { label: '이메일',   value: detailUser.email },
                 { label: '권한',     value: detailUser.role === 'admin' ? '관리자' : '일반' },

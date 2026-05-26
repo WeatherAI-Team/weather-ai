@@ -20,6 +20,7 @@ def _serialize_post(post: Board) -> dict:
         "content":         post.content,
         "board_type":      post.board_type,
         "view_count":      post.view_count,
+        "comment_count":   post.comments.filter_by(active=True).count(),
         "pinned":          post.pinned,
         "active":          post.active,
         "created_at":      post.created_at.strftime("%Y-%m-%d") if post.created_at else None,
@@ -140,7 +141,8 @@ def delete_post(post_id: int, user_id: str, user_role: str) -> tuple[str, int]:
 # ──────────────────────────────────────────────────────────────
 
 def admin_get_post_list(board_type: str, search: str, page: int, per_page: int) -> dict:
-    posts, total = board_repo.get_posts_admin(board_type, search, page, per_page)
+    board_types = [bt.strip() for bt in board_type.split(",")] if board_type else []
+    posts, total = board_repo.get_posts_admin(board_types, search, page, per_page)
     return {
         "posts":    [_serialize_post(p) for p in posts],
         "total":    total,

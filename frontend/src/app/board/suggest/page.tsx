@@ -1,8 +1,10 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import styles from './page.module.css'
+
+const API = process.env.NEXT_PUBLIC_API_URL
 
 const sideMenus = [
   { label: '대시보드', href: '/admin', icon: '📊' },
@@ -14,50 +16,92 @@ const boardMenus = [
   { label: '정보게시판', href: '/board/info', icon: '📋' },
 ]
 
-const dummyPosts = [
-  { id: 1, author: '홍길동', title: '날씨 알림 기능 추가 건의', content: '폭우 예보 시 미리 알림을 받을 수 있으면 좋겠습니다.', views: 142, isNotice: false, active: true, createdAt: '2026-04-01' },
-  { id: 2, author: '김철수', title: '지도 UI 개선 요청', content: '지도에서 지역 클릭 시 더 상세한 정보가 보였으면 합니다.', views: 89, isNotice: false, active: true, createdAt: '2026-04-05' },
-  { id: 3, author: '관리자', title: '[공지] 건의게시판 이용 안내', content: '건의사항은 이곳에 작성해주세요.', views: 312, isNotice: true, active: true, createdAt: '2026-03-15' },
-  { id: 4, author: '이영희', title: '모바일 화면 최적화 요청', content: '모바일에서 지도가 잘 안보입니다.', views: 67, isNotice: false, active: false, createdAt: '2026-04-10' },
-  { id: 5, author: '박민준', title: 'AI 탐지 정확도 개선 건의', content: '안개 상황에서 탐지율이 낮은 것 같습니다.', views: 201, isNotice: false, active: true, createdAt: '2026-04-12' },
-]
+type Post = {
+  id: number
+  author_nickname: string
+  title: string
+  content: string
+  board_type: string
+  view_count: number
+  pinned: boolean
+  active: boolean
+  created_at: string
+}
 
-type Post = typeof dummyPosts[0]
+const getToken = (): string => {
+  try { return JSON.parse(localStorage.getItem('user') ?? 'null')?.access_token ?? '' } catch { return '' }
+}
 
 export default function SuggestBoardPage() {
   const pathname = usePathname()
   const [boardOpen, setBoardOpen] = useState(true)
-  const [posts, setPosts] = useState(dummyPosts)
+  const [posts, setPosts] = useState<Post[]>([])
   const [search, setSearch] = useState('')
   const [selectedPost, setSelectedPost] = useState<Post | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
 
+  const fetchPosts = async () => {
+    try {
+      const res = await fetch(`${API}/api/board/admin/posts?board_type=FREE&per_page=200`, {
+        headers: { Authorization: `Bearer ${getToken()}` },
+      })
+      const data = await res.json()
+      if (data.success) setPosts(data.posts)
+    } catch {}
+  }
+
+  useEffect(() => { fetchPosts() }, [])
+
   const filtered = posts.filter(p =>
-    p.title.includes(search) || p.author.includes(search) || p.content.includes(search)
+    p.title.includes(search) || p.author_nickname.includes(search) || p.content.includes(search)
   )
 
-  const handleEdit = (post: Post) => {
-    setSelectedPost({ ...post })
-    setModalOpen(true)
+  const handleEdit = (post: Post) => { setSelectedPost({ ...post }); setModalOpen(true) }
+
+  const handleToggleActive = async (id: number) => {
+    const res = await fetch(`${API}/api/board/admin/posts/${id}/toggle-active`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${getToken()}` },
+    })
+    const data = await res.json()
+    if (data.success) {
+      setPosts(prev => prev.map(p => p.id === id ? { ...p, active: data.active } : p))
+    } else {
+      alert(data.message ?? '오류가 발생했습니다.')
+    }
   }
 
-  const handleToggleActive = (id: number) => {
-    setPosts(prev => prev.map(p => p.id === id ? { ...p, active: !p.active } : p))
+  const handleTogglePinned = async (id: number) => {
+    const res = await fetch(`${API}/api/board/admin/posts/${id}/toggle-pinned`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${getToken()}` },
+    })
+    const data = await res.json()
+    if (data.success) {
+      setPosts(prev => prev.map(p => p.id === id ? { ...p, pinned: data.pinned } : p))
+    } else {
+      alert(data.message ?? '오류가 발생했습니다.')
+    }
   }
 
-  const handleToggleNotice = (id: number) => {
-    setPosts(prev => prev.map(p => p.id === id ? { ...p, isNotice: !p.isNotice } : p))
-  }
-
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!selectedPost) return
-    setPosts(prev => prev.map(p => p.id === selectedPost.id ? selectedPost : p))
-    setModalOpen(false)
-  }
-
-  const handleDelete = (id: number) => {
-    if (confirm('정말 삭제하시겠습니까?')) {
-      setPosts(prev => prev.filter(p => p.id !== id))
+    const res = await fetch(`${API}/api/board/posts/${selectedPost.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
+      body: JSON.stringify({
+        title: selectedPost.title,
+        content: selectedPost.content,
+        pinned: selectedPost.pinned,
+        active: selectedPost.active,
+      }),
+    })
+    const data = await res.json()
+    if (data.success) {
+      setPosts(prev => prev.map(p => p.id === selectedPost.id ? data.post : p))
+      setModalOpen(false)
+    } else {
+      alert(data.message ?? '수정에 실패했습니다.')
     }
   }
 
@@ -100,7 +144,7 @@ export default function SuggestBoardPage() {
           <div className={styles.statsRow}>
             {[
               { label: '전체 게시글', value: posts.length, color: '#07559d' },
-              { label: '공지 게시글', value: posts.filter(p => p.isNotice).length, color: '#1b9bd1' },
+              { label: '공지 게시글', value: posts.filter(p => p.pinned).length, color: '#1b9bd1' },
               { label: '활성 게시글', value: posts.filter(p => p.active).length, color: '#2b8a3e' },
               { label: '비활성 게시글', value: posts.filter(p => !p.active).length, color: '#e43b3b' },
             ].map(s => (
@@ -130,23 +174,23 @@ export default function SuggestBoardPage() {
             </thead>
             <tbody>
               {filtered.length > 0 ? filtered.map(p => (
-                <tr key={p.id} className={`${styles.tr} ${p.isNotice ? styles.noticeRow : ''}`}>
+                <tr key={p.id} className={`${styles.tr} ${p.pinned ? styles.noticeRow : ''}`}>
                   <td className={styles.td}>{p.id}</td>
-                  <td className={styles.td}>{p.author}</td>
+                  <td className={styles.td}>{p.author_nickname}</td>
                   <td className={styles.td}>
                     <span className={styles.title}>
-                      {p.isNotice && <span className={styles.noticeBadge}>공지</span>}
+                      {p.pinned && <span className={styles.noticeBadge}>공지</span>}
                       {p.title}
                     </span>
                   </td>
                   <td className={styles.td}><span className={styles.content}>{p.content}</span></td>
-                  <td className={styles.td}>{p.views}</td>
+                  <td className={styles.td}>{p.view_count}</td>
                   <td className={styles.td}>
                     <button
-                      className={`${styles.toggleBtn} ${p.isNotice ? styles.toggleOn : styles.toggleOff}`}
-                      onClick={() => handleToggleNotice(p.id)}
+                      className={`${styles.toggleBtn} ${p.pinned ? styles.toggleOn : styles.toggleOff}`}
+                      onClick={() => handleTogglePinned(p.id)}
                     >
-                      {p.isNotice ? '공지' : '일반'}
+                      {p.pinned ? '공지' : '일반'}
                     </button>
                   </td>
                   <td className={styles.td}>
@@ -157,11 +201,10 @@ export default function SuggestBoardPage() {
                       {p.active ? '활성' : '비활성'}
                     </button>
                   </td>
-                  <td className={styles.td}>{p.createdAt}</td>
+                  <td className={styles.td}>{p.created_at}</td>
                   <td className={styles.td}>
                     <div className={styles.actions}>
                       <button className={styles.editBtn} onClick={() => handleEdit(p)}>수정</button>
-                      <button className={styles.deleteBtn} onClick={() => handleDelete(p.id)}>삭제</button>
                     </div>
                   </td>
                 </tr>
@@ -193,8 +236,8 @@ export default function SuggestBoardPage() {
               </div>
               <div className={styles.modalField}>
                 <label className={styles.modalLabel}>공지 여부</label>
-                <select className={styles.modalInput} value={selectedPost.isNotice ? 'true' : 'false'}
-                  onChange={e => setSelectedPost({ ...selectedPost, isNotice: e.target.value === 'true' })}>
+                <select className={styles.modalInput} value={selectedPost.pinned ? 'true' : 'false'}
+                  onChange={e => setSelectedPost({ ...selectedPost, pinned: e.target.value === 'true' })}>
                   <option value="false">일반</option>
                   <option value="true">공지</option>
                 </select>

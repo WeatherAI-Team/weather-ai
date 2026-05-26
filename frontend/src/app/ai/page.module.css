@@ -38,6 +38,12 @@
   gap: 24px;
   margin-bottom: 32px;
 }
+.cctvTabGrid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 24px;
+  margin-bottom: 32px;
+}
 
 /* ── 패널 ── */
 .panel { background: var(--surface); border-radius: var(--radius); border: 1.5px solid var(--border); padding: 28px 32px; }
@@ -47,7 +53,7 @@
 .cctvBox {
   background: #0a0a0a;
   border-radius: 12px;
-  height: 260px;
+  height: 440px;
   display: flex; align-items: center; justify-content: center;
   overflow: hidden;
   margin-bottom: 16px;
@@ -55,7 +61,7 @@
 .cctvStream { width: 100%; height: 100%; object-fit: cover; border-radius: 12px; }
 .cctvEmpty { display: flex; flex-direction: column; align-items: center; gap: 12px; color: rgba(255,255,255,0.4); font-size: 0.88rem; text-align: center; line-height: 1.6; }
 .cctvEmpty span { font-size: 2.5rem; }
-.cctvHistory { display: flex; flex-direction: column; gap: 10px; max-height: 340px; overflow-y: auto; }
+.cctvHistory { display: flex; flex-direction: column; gap: 10px; height: 440px; overflow-y: auto; }
 .cctvHistoryItem { display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: #f8fbff; border-radius: 10px; border: 1px solid var(--border); cursor: pointer; transition: all 0.15s; }
 .cctvHistoryItem:hover { border-color: var(--secondary); background: rgba(27,155,209,0.05); }
 .cctvItemSelected { border-color: var(--primary) !important; background: rgba(7,85,157,0.07) !important; box-shadow: 0 0 0 2px rgba(7,85,157,0.15); }
