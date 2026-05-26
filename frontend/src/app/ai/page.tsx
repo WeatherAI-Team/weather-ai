@@ -15,7 +15,7 @@ type Detection = {
 }
 
 type Result = {
-  detected: boolean 
+  detected: boolean
   confidence: number
   label: string
   detections: Detection[]
@@ -88,10 +88,15 @@ function BoundingBoxOverlay({ src, detections }: { src: string; detections: Dete
   )
 }
 
-// ── HLS 플레이어 컴포넌트 ──
+// ── HLS 플레이어 + AI 바운딩박스 컴포넌트 ──
 function HlsPlayer({ src, className }: { src: string; className?: string }) {
   const videoRef = useRef<HTMLVideoElement>(null)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const overlayRef = useRef<HTMLCanvasElement>(null)
+  const intervalRef = useRef<NodeJS.Timeout | null>(null)
+  const isAnalyzingRef = useRef(false)  // 분석 중 중복 요청 방지
 
+  // HLS 스트리밍 연결
   useEffect(() => {
     const video = videoRef.current
     if (!video || !src) return
@@ -113,7 +118,131 @@ function HlsPlayer({ src, className }: { src: string; className?: string }) {
     return () => { hls?.destroy() }
   }, [src])
 
-  return <video ref={videoRef} className={className} autoPlay muted playsInline controls />
+  // 프레임 캡처 → AI 서버 전송 → 바운딩박스 그리기
+  useEffect(() => {
+    const video = videoRef.current
+    const captureCanvas = canvasRef.current
+    const overlay = overlayRef.current
+    if (!video || !captureCanvas || !overlay) return
+
+    const analyzeFrame = async () => {
+      // 이전 분석 중이면 스킵
+      if (isAnalyzingRef.current) return
+      if (video.readyState < 2 || video.paused) return
+
+      isAnalyzingRef.current = true
+
+      try {
+        // 프레임 캡처
+        captureCanvas.width = 640
+        captureCanvas.height = 360
+        const ctx = captureCanvas.getContext('2d')
+        if (!ctx) { isAnalyzingRef.current = false; return }
+        ctx.drawImage(video, 0, 0, captureCanvas.width, captureCanvas.height)
+
+        // blob 변환 후 AI 서버로 전송
+        captureCanvas.toBlob(async (blob) => {
+          if (!blob) { isAnalyzingRef.current = false; return }
+          try {
+            const formData = new FormData()
+            formData.append('file', blob, 'frame.jpg')
+
+            const res = await fetch(`${API_URL}/api/ai/detect`, {
+              method: 'POST',
+              body: formData,
+            })
+            const data = await res.json()
+
+            // 오버레이 초기화
+            overlay.width = video.offsetWidth
+            overlay.height = video.offsetHeight
+            const octx = overlay.getContext('2d')
+            if (!octx) { isAnalyzingRef.current = false; return }
+            octx.clearRect(0, 0, overlay.width, overlay.height)
+
+            if (data.success) {
+              // 날씨/위험차량 정보 텍스트 오버레이
+              const weatherColor = data.is_danger ? '#e74c3c' : '#2ecc71'
+              octx.fillStyle = 'rgba(0,0,0,0.5)'
+              octx.fillRect(10, 10, 280, 60)
+              octx.fillStyle = weatherColor
+              octx.font = 'bold 16px sans-serif'
+              octx.fillText(`날씨: ${data.weather} (${data.confidence}%)`, 20, 35)
+              const hasDangerVehicle = data.yolo_boxes && data.yolo_boxes.length > 0
+              octx.fillStyle = hasDangerVehicle ? '#e74c3c' : '#2ecc71'
+              octx.fillText(
+                hasDangerVehicle ? '⚠️ 위험차량: 감지됨' : '✅ 위험차량: 없음',
+                20, 58
+              )
+
+              // YOLO 바운딩박스 그리기
+              if (data.yolo_boxes && data.yolo_boxes.length > 0) {
+                data.yolo_boxes.forEach((box: any) => {
+                  const [x1, y1, x2, y2] = box.box_coords
+                  const scaleX = overlay.width / captureCanvas.width
+                  const scaleY = overlay.height / captureCanvas.height
+
+                  const x = x1 * scaleX
+                  const y = y1 * scaleY
+                  const w = (x2 - x1) * scaleX
+                  const h = (y2 - y1) * scaleY
+
+                  octx.strokeStyle = '#e74c3c'
+                  octx.lineWidth = 2.5
+                  octx.shadowColor = '#e74c3c'
+                  octx.shadowBlur = 4
+                  octx.strokeRect(x, y, w, h)
+                  octx.shadowBlur = 0
+
+                  const text = `${box.class_name} ${box.confidence}%`
+                  octx.font = 'bold 13px sans-serif'
+                  const tw = octx.measureText(text).width
+                  octx.fillStyle = '#e74c3c'
+                  octx.fillRect(x, y - 24, tw + 12, 22)
+                  octx.fillStyle = '#fff'
+                  octx.fillText(text, x + 6, y - 7)
+                })
+              }
+            }
+          } catch (e) {
+            console.error('AI 분석 실패:', e)
+          } finally {
+            isAnalyzingRef.current = false  // 분석 완료
+          }
+        }, 'image/jpeg', 0.8)
+      } catch (e) {
+        console.error('프레임 캡처 실패:', e)
+        isAnalyzingRef.current = false
+      }
+    }
+
+    // 500ms마다 프레임 분석 시도 (분석 중이면 자동 스킵)
+    intervalRef.current = setInterval(analyzeFrame, 500)
+
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current)
+    }
+  }, [src])
+
+  return (
+    <div style={{ position: 'relative', width: '100%' }}>
+      <video ref={videoRef} className={className} autoPlay muted playsInline controls />
+      {/* 캡처용 숨김 캔버스 */}
+      <canvas ref={canvasRef} style={{ display: 'none' }} />
+      {/* 바운딩박스 오버레이 캔버스 */}
+      <canvas
+        ref={overlayRef}
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          pointerEvents: 'none',
+        }}
+      />
+    </div>
+  )
 }
 
 // ── 메인 페이지 ──
