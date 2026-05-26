@@ -21,6 +21,12 @@ dashboard_bp = Blueprint(
 dashboard_service = DashboardService()
 
 
+@dashboard_bp.route("/weekly", methods=["GET"])
+def get_weekly_counts():
+    result = dashboard_service.get_weekly_counts()
+    return jsonify({"success": True, "data": result}), 200
+
+
 @dashboard_bp.route("/summary", methods=["GET"])
 def get_dashboard_summary():
     # 이 함수는 GET /api/admin/dashboard/summary 요청이 들어오면 실행돼.

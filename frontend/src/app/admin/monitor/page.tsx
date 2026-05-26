@@ -131,7 +131,7 @@ export default function MonitorPage() {
   const [cctvList, setCctvList] = useState<CctvItem[]>([])
   const [leftTab, setLeftTab] = useState<'map' | 'cctv'>('map')
   const [leftCctvIdx, setLeftCctvIdx] = useState<number | null>(null)
-  const [rightCctvIdx, setRightCctvIdx] = useState<number | null>(null)
+
 
   useEffect(() => {
     async function load() {
@@ -181,10 +181,6 @@ export default function MonitorPage() {
     return llmTarget ? filtered.slice(0, llmTarget.count) : filtered
   })()
 
-  const rightCctvs: CctvItem[] = llmTarget?.regionId
-    ? cctvList.filter(c => getRegionFromCoords(c.coordy, c.coordx) === llmTarget.regionId)
-    : []
-
   const handleRegionSelect = (id: string) => {
     setSelected(id)
     setLeftCctvIdx(0)
@@ -197,7 +193,6 @@ export default function MonitorPage() {
 
   const handleEventClick = (event: EventItem, regionName: string) => {
     setLlmTarget({ ...event, regionName, regionId: selected ?? '' })
-    setRightCctvIdx(0)
     setPopupOpen(false)
   }
 
@@ -378,39 +373,6 @@ export default function MonitorPage() {
                   <p className={styles.locationEmpty}>상세 정보가 여기에 표시됩니다</p>
                 )}
               </div>
-            </div>
-
-            {/* CCTV 화면 */}
-            <div className={styles.infoSection}>
-              <h3 className={styles.infoTitle}>📷 연동 CCTV</h3>
-              <div className={styles.cctvSmallBox}>
-                {rightCctvIdx !== null && rightCctvs[rightCctvIdx] ? (
-                  <HlsPlayer
-                    key={rightCctvs[rightCctvIdx].cctvurl}
-                    src={`${API_URL}/api/cctv/stream?url=${encodeURIComponent(rightCctvs[rightCctvIdx].cctvurl)}`}
-                    className={styles.cctvSmallStream}
-                  />
-                ) : (
-                  <div className={styles.cctvEmpty}>
-                    <span>📷</span>
-                    <p>{llmTarget ? '해당 지역 연동 CCTV 없음' : '지역을 선택하세요'}</p>
-                  </div>
-                )}
-              </div>
-              {rightCctvs.length > 0 && (
-                <div className={styles.cctvSmallList}>
-                  {rightCctvs.map((cam, i) => (
-                    <button
-                      key={i}
-                      className={`${styles.cctvSmallItem} ${rightCctvIdx === i ? styles.cctvSmallItemActive : ''}`}
-                      onClick={() => setRightCctvIdx(i)}
-                    >
-                      <span className={styles.cctvDotGreen} />
-                      <span className={styles.cctvSmallName}>{cam.cctvname}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
             </div>
 
           </div>

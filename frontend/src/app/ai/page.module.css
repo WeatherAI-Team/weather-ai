@@ -61,7 +61,12 @@
 .cctvStream { width: 100%; height: 100%; object-fit: cover; border-radius: 12px; }
 .cctvEmpty { display: flex; flex-direction: column; align-items: center; gap: 12px; color: rgba(255,255,255,0.4); font-size: 0.88rem; text-align: center; line-height: 1.6; }
 .cctvEmpty span { font-size: 2.5rem; }
-.cctvHistory { display: flex; flex-direction: column; gap: 10px; height: 440px; overflow-y: auto; }
+.regionBar { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+.regionBtn { padding: 5px 13px; border-radius: 999px; border: 1.5px solid var(--border); background: var(--surface); font-size: 0.78rem; font-weight: 600; color: var(--text-muted); cursor: pointer; transition: all 0.18s; white-space: nowrap; }
+.regionBtn:hover { border-color: var(--secondary); color: var(--secondary); }
+.regionActive { background: var(--primary) !important; border-color: var(--primary) !important; color: #fff !important; }
+.cctvEmpty2 { font-size: 0.85rem; color: var(--text-muted); padding: 24px 0; text-align: center; }
+.cctvHistory { display: flex; flex-direction: column; gap: 10px; height: 380px; overflow-y: auto; }
 .cctvHistoryItem { display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: #f8fbff; border-radius: 10px; border: 1px solid var(--border); cursor: pointer; transition: all 0.15s; }
 .cctvHistoryItem:hover { border-color: var(--secondary); background: rgba(27,155,209,0.05); }
 .cctvItemSelected { border-color: var(--primary) !important; background: rgba(7,85,157,0.07) !important; box-shadow: 0 0 0 2px rgba(7,85,157,0.15); }

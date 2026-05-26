@@ -29,11 +29,30 @@ type CctvItem = {
   coordy: number
 }
 
-const recentDetections = [
-  { time: '2026-04-28 14:22', loc: '경부고속도로 상행 23km', weather: '폭우', type: '탱크로리',      conf: 98.1, status: '위험' },
-  { time: '2026-04-28 11:05', loc: '서울외곽순환 북부',       weather: '폭설', type: 'LPG 화물차',   conf: 95.4, status: '위험' },
-  { time: '2026-04-27 22:40', loc: '중부고속도로 하행',       weather: '안개', type: '화학물질 탱크', conf: 91.7, status: '경고' },
+const REGIONS = [
+  { label: '전체',  keywords: [] },
+  { label: '서울',  keywords: ['서울'] },
+  { label: '경기',  keywords: ['경기', '수원', '성남', '안양', '부천', '평택', '안산', '고양', '용인', '파주', '시흥', '김포', '화성', '양주', '포천'] },
+  { label: '인천',  keywords: ['인천'] },
+  { label: '강원',  keywords: ['강원', '춘천', '원주', '강릉', '동해', '태백', '속초', '삼척'] },
+  { label: '충청',  keywords: ['충북', '충남', '충청', '대전', '세종', '청주', '천안', '공주', '아산', '서산', '논산'] },
+  { label: '전북',  keywords: ['전북', '전주', '군산', '익산', '정읍', '남원', '김제'] },
+  { label: '전남',  keywords: ['전남', '목포', '여수', '순천', '나주', '광양'] },
+  { label: '광주',  keywords: ['광주'] },
+  { label: '경북',  keywords: ['경북', '포항', '경주', '김천', '안동', '구미', '영주'] },
+  { label: '경남',  keywords: ['경남', '창원', '진주', '통영', '사천', '김해', '밀양', '거제', '양산'] },
+  { label: '대구',  keywords: ['대구'] },
+  { label: '울산',  keywords: ['울산'] },
+  { label: '부산',  keywords: ['부산'] },
+  { label: '제주',  keywords: ['제주'] },
 ]
+
+function getRegion(cctvname: string): string {
+  for (const r of REGIONS.slice(1)) {
+    if (r.keywords.some(kw => cctvname.includes(kw))) return r.label
+  }
+  return '기타'
+}
 
 // ── 바운딩박스 오버레이 컴포넌트 ──
 function BoundingBoxOverlay({ src, detections }: { src: string; detections: Detection[] }) {
@@ -251,6 +270,7 @@ export default function AiPage() {
   const [selectedCctv, setSelectedCctv] = useState<number | null>(null)
   const [cctvList, setCctvList] = useState<CctvItem[]>([])
   const [cctvLoading, setCctvLoading] = useState(false)
+  const [selectedRegion, setSelectedRegion] = useState('전체')
 
   const [uploading, setUploading] = useState(false)
   const [result, setResult] = useState<Result | null>(null)
@@ -357,22 +377,44 @@ export default function AiPage() {
 
               <div className={styles.panel}>
                 <h2>연동 CCTV 목록</h2>
+                <div className={styles.regionBar}>
+                  {REGIONS.map(r => (
+                    <button
+                      key={r.label}
+                      className={`${styles.regionBtn} ${selectedRegion === r.label ? styles.regionActive : ''}`}
+                      onClick={() => { setSelectedRegion(r.label); setSelectedCctv(null) }}
+                    >
+                      {r.label}
+                    </button>
+                  ))}
+                </div>
                 <div className={styles.cctvHistory}>
                   {cctvLoading && <p>불러오는 중...</p>}
                   {!cctvLoading && cctvList.length === 0 && <p>CCTV 목록이 없습니다.</p>}
-                  {cctvList.map((cam, i) => (
-                    <div
-                      key={i}
-                      className={`${styles.cctvHistoryItem} ${selectedCctv === i ? styles.cctvItemSelected : ''}`}
-                      onClick={() => setSelectedCctv(i)}
-                    >
-                      <span className={`${styles.cctvDot} ${styles.dotWarn}`} />
-                      <div className={styles.cctvHistoryInfo}>
-                        <p className={styles.cctvHistoryUrl}>{cam.cctvname}</p>
-                        <p className={styles.cctvHistoryMeta}>{cam.cctvformat} · {cam.coordx}, {cam.coordy}</p>
-                      </div>
-                    </div>
-                  ))}
+                  {!cctvLoading && (() => {
+                    const filtered = selectedRegion === '전체'
+                      ? cctvList
+                      : cctvList.filter(cam => getRegion(cam.cctvname) === selectedRegion)
+                    if (filtered.length === 0 && cctvList.length > 0) {
+                      return <p className={styles.cctvEmpty2}>해당 지역에 연동된 CCTV가 없습니다</p>
+                    }
+                    return filtered.map((cam) => {
+                      const origIdx = cctvList.indexOf(cam)
+                      return (
+                        <div
+                          key={origIdx}
+                          className={`${styles.cctvHistoryItem} ${selectedCctv === origIdx ? styles.cctvItemSelected : ''}`}
+                          onClick={() => setSelectedCctv(origIdx)}
+                        >
+                          <span className={`${styles.cctvDot} ${styles.dotWarn}`} />
+                          <div className={styles.cctvHistoryInfo}>
+                            <p className={styles.cctvHistoryUrl}>{cam.cctvname}</p>
+                            <p className={styles.cctvHistoryMeta}>{cam.cctvformat} · {cam.coordx}, {cam.coordy}</p>
+                          </div>
+                        </div>
+                      )
+                    })
+                  })()}
                 </div>
               </div>
             </div>
@@ -468,23 +510,6 @@ export default function AiPage() {
             </div>
           )}
 
-          <div className={styles.recent}>
-            <h2>최근 탐지 이력</h2>
-            <table className={styles.table}>
-              <thead>
-                <tr><th>일시</th><th>위치</th><th>날씨</th><th>차량 유형</th><th>신뢰도</th><th>상태</th></tr>
-              </thead>
-              <tbody>
-                {recentDetections.map((r, i) => (
-                  <tr key={i}>
-                    <td>{r.time}</td><td>{r.loc}</td><td>{r.weather}</td><td>{r.time}</td>
-                    <td>{r.conf}%</td>
-                    <td><span className={`${styles.badge} ${r.status === '위험' ? styles.badgeDanger : styles.badgeWarn}`}>{r.status}</span></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
 
         </div>
       </section>
