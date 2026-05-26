@@ -2,6 +2,7 @@
 import os
 import asyncio
 import subprocess
+from collections import Counter
 os.environ['KERAS_BACKEND'] = 'torch'
 
 import cv2
@@ -10,9 +11,10 @@ import datetime
 from fastapi import UploadFile
 
 import keras
+from ultralytics import YOLO
 
 CLASS_NAMES = ['heavy_rain', 'heavy_snow', 'sun']
-DANGER_CLASSES = ['heavy_rain', 'heavy_snow']
+DANGER_CLASSES = ['heavy_rain', 'heavy_snow', 'fog']
 
 STATIC_DIR = os.getenv('STATIC_DIR', 'static')
 
@@ -21,33 +23,22 @@ class AIModelService:
 
     def __init__(self):
         print("[AI] 모델 로딩 중...")
-        self.model = keras.models.load_model('weather_danger_finetuned_model.keras')
-        print("[AI] 모델 로딩 완료!")
+        self.keras_model = keras.models.load_model('weather_danger_finetuned_model.keras')
+        self.yolo_model = YOLO('best.pt')
+        print("[AI] 모든 모델 로딩 완료!")
 
-        # ════════════════════════════════════════
-        # 분석 상태 관리 (일시정지/중지용)
-        # ════════════════════════════════════════
-        self.is_analyzing = False   # 현재 분석 중인지
-        self.stop_requested = False # 중지 요청 여부
+        self.is_analyzing = False
+        self.stop_requested = False
 
-    # ════════════════════════════════════════
-    # 분석 중지 요청
-    # ════════════════════════════════════════
     def stop_analysis(self):
         self.stop_requested = True
         self.is_analyzing = False
         print("[AI] 분석 중지 요청됨")
 
-    # ════════════════════════════════════════
-    # 분석 상태 초기화
-    # ════════════════════════════════════════
     def _reset_state(self):
         self.is_analyzing = True
         self.stop_requested = False
 
-    # ════════════════════════════════════════
-    # ffmpeg으로 코덱 변환 (어떤 영상이든 읽을 수 있게)
-    # ════════════════════════════════════════
     def _convert_to_h264(self, input_path: str) -> str:
         output_path = os.path.splitext(input_path)[0] + '_converted.mp4'
         try:
@@ -70,14 +61,14 @@ class AIModelService:
             return input_path
 
     # ════════════════════════════════════════
-    # 단일 프레임 기상 + 위험차량 분류
+    # 케라스: 기상 + 위험차량 1차 분류
     # ════════════════════════════════════════
     def _predict_weather(self, frame: np.ndarray) -> dict:
         img = cv2.resize(frame, (224, 224))
         img = img / 255.0
         img = np.expand_dims(img, axis=0)
 
-        pred_weather, pred_danger = self.model.predict(img, verbose=0)
+        pred_weather, pred_danger = self.keras_model.predict(img, verbose=0)
 
         class_idx = np.argmax(pred_weather[0])
         class_name = CLASS_NAMES[class_idx]
@@ -94,8 +85,49 @@ class AIModelService:
             'danger_confidence': round(danger_score * 100, 1)
         }
 
-        print(f"[AI] 기상: {class_name} | 신뢰도: {round(weather_confidence*100,1)}% | 위험차량: {has_danger_car}")
+        print(f"[AI] 케라스 기상: {class_name} | 신뢰도: {round(weather_confidence*100,1)}% | 위험차량: {has_danger_car}")
         return result
+
+    # ════════════════════════════════════════
+    # YOLO: 악천후 + 위험차량 감지 시에만 실행
+    # ════════════════════════════════════════
+    def _run_yolo(self, frame: np.ndarray, keras_result: dict) -> list:
+        yolo_boxes = []
+
+        if keras_result['is_danger']:
+            print(f"[AI] 🚨 악천후 + 위험차량 감지 → YOLO 정밀 분석 시작")
+            yolo_results = self.yolo_model(frame, verbose=False)
+
+            for box in yolo_results[0].boxes:
+                coords = box.xyxy[0].tolist()
+                conf = float(box.conf[0])
+                cls_id = int(box.cls[0])
+                cls_name = self.yolo_model.names[cls_id]
+
+                yolo_boxes.append({
+                    'class_name': cls_name,
+                    'confidence': round(conf * 100, 1),
+                    'box_coords': [round(c, 1) for c in coords]
+                })
+
+                cv2.rectangle(frame,
+                    (int(coords[0]), int(coords[1])),
+                    (int(coords[2]), int(coords[3])),
+                    (0, 0, 255), 3)
+                cv2.putText(frame,
+                    f"{cls_name} {round(conf*100)}%",
+                    (int(coords[0]), int(coords[1]) - 10),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2)
+
+            if yolo_boxes:
+                best_box = max(yolo_boxes, key=lambda x: x['confidence'])
+                print(f"[AI] YOLO 대표 차종: {best_box['class_name']} ({best_box['confidence']}%)")
+
+            print(f"[AI] YOLO 탐지 결과: {[b['class_name'] for b in yolo_boxes]}")
+        else:
+            print(f"[AI] YOLO 스킵 (악천후: {keras_result['is_danger']}, 위험차량: {keras_result['has_danger_car']})")
+
+        return yolo_boxes
 
     # ════════════════════════════════════════
     # 이미지 분석
@@ -107,9 +139,24 @@ class AIModelService:
         frame = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
 
         if frame is None:
-            raise ValueError("이미지 디코딩 실패. 파일이 손상되었거나 지원하지 않는 형식입니다.")
+            raise ValueError("이미지 디코딩 실패.")
 
-        result = self._predict_weather(frame)
+        keras_result = self._predict_weather(frame)
+        yolo_boxes = self._run_yolo(frame, keras_result)
+
+        # 이미지에서 신뢰도 가장 높은 차종 하나
+        if yolo_boxes:
+            best_box = max(yolo_boxes, key=lambda x: x['confidence'])
+            dominant_vehicle = f"{best_box['class_name']} ({best_box['confidence']}%)"
+        else:
+            dominant_vehicle = None
+
+        result = {
+            **keras_result,
+            'yolo_boxes': yolo_boxes,
+            'detected_vehicle': dominant_vehicle,
+            'yolo_detected': len(yolo_boxes) > 0
+        }
         print(f"[AI] 이미지 분석 완료: {result}")
         return result
 
@@ -123,14 +170,21 @@ class AIModelService:
         frame = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
 
         if frame is None:
-            raise ValueError("이미지 디코딩 실패. 파일이 손상되었거나 지원하지 않는 형식입니다.")
+            raise ValueError("이미지 디코딩 실패.")
 
-        result = self._predict_weather(frame)
+        keras_result = self._predict_weather(frame)
+        yolo_boxes = self._run_yolo(frame, keras_result)
 
-        weather_label = f"{result['weather']} ({result['confidence']}%)"
-        danger_label = f"Danger Car: DETECTED ({result['danger_confidence']}%)" if result['has_danger_car'] else "Danger Car: None"
-        weather_color = (0, 0, 255) if result['is_danger'] else (0, 255, 0)
-        danger_color = (0, 0, 255) if result['has_danger_car'] else (0, 255, 0)
+        if yolo_boxes:
+            best_box = max(yolo_boxes, key=lambda x: x['confidence'])
+            dominant_vehicle = f"{best_box['class_name']} ({best_box['confidence']}%)"
+        else:
+            dominant_vehicle = None
+
+        weather_label = f"{keras_result['weather']} ({keras_result['confidence']}%)"
+        danger_label = f"Danger Car: DETECTED ({keras_result['danger_confidence']}%)" if keras_result['has_danger_car'] else "Danger Car: None"
+        weather_color = (0, 0, 255) if keras_result['is_danger'] else (0, 255, 0)
+        danger_color = (0, 0, 255) if keras_result['has_danger_car'] else (0, 255, 0)
 
         cv2.putText(frame, weather_label, (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 1.2, weather_color, 2)
         cv2.putText(frame, danger_label, (10, 80), cv2.FONT_HERSHEY_SIMPLEX, 1.2, danger_color, 2)
@@ -142,7 +196,13 @@ class AIModelService:
         cv2.imwrite(local_path, frame)
 
         print(f"[AI] 이미지 저장 완료: {local_path}")
-        return {**result, 'local_path': local_path}
+        return {
+            **keras_result,
+            'yolo_boxes': yolo_boxes,
+            'detected_vehicle': dominant_vehicle,
+            'yolo_detected': len(yolo_boxes) > 0,
+            'local_path': local_path
+        }
 
     # ════════════════════════════════════════
     # 영상 분석 + 저장
@@ -185,9 +245,10 @@ class AIModelService:
             danger_car_frames = 0
             analyzed_frame_count = 0
             frame_count = 0
+            vehicle_counter = Counter()
+            vehicle_confidence = {}  # 차종별 신뢰도 리스트
 
             while True:
-                # 중지 요청 확인
                 if self.stop_requested:
                     print("[AI] 분석 중지됨")
                     break
@@ -201,11 +262,20 @@ class AIModelService:
                     continue
 
                 if frame_count % 5 == 0:
-                    result = self._predict_weather(frame)
-                    weather_counts[result['weather']] += 1
-                    confidence_sum[result['weather']] += result['confidence']
-                    if result['has_danger_car']:
+                    keras_result = self._predict_weather(frame)
+                    weather_counts[keras_result['weather']] += 1
+                    confidence_sum[keras_result['weather']] += keras_result['confidence']
+
+                    if keras_result['has_danger_car']:
                         danger_car_frames += 1
+
+                    yolo_boxes = self._run_yolo(frame, keras_result)
+                    for box in yolo_boxes:
+                        vehicle_counter[box['class_name']] += 1
+                        if box['class_name'] not in vehicle_confidence:
+                            vehicle_confidence[box['class_name']] = []
+                        vehicle_confidence[box['class_name']].append(box['confidence'])
+
                     analyzed_frame_count += 1
                 frame_count += 1
 
@@ -218,6 +288,7 @@ class AIModelService:
                     'confidence': 0.0,
                     'is_danger': False,
                     'has_danger_car': False,
+                    'detected_vehicle': None,
                     'weather_counts': weather_counts,
                     'message': '분석 실패: 영상에서 프레임을 읽을 수 없습니다.'
                 }
@@ -228,7 +299,17 @@ class AIModelService:
             dominant_count = weather_counts[dominant_weather]
             avg_confidence = round(confidence_sum[dominant_weather] / max(1, dominant_count), 1)
 
-            print(f"[AI] 영상 분석 완료 | 최종 기상: {dominant_weather} ({avg_confidence}%) | 위험차량: {has_danger_car} | 분포: {weather_counts}")
+            # 가장 많이 나온 차종 + 평균 신뢰도
+            if vehicle_counter:
+                dominant_vehicle_name = vehicle_counter.most_common(1)[0][0]
+                avg_vehicle_conf = round(
+                    sum(vehicle_confidence[dominant_vehicle_name]) / len(vehicle_confidence[dominant_vehicle_name]), 1
+                )
+                dominant_vehicle = f"{dominant_vehicle_name} ({avg_vehicle_conf}%)"
+            else:
+                dominant_vehicle = None
+
+            print(f"[AI] 영상 분석 완료 | 최종 기상: {dominant_weather} ({avg_confidence}%) | 위험차량: {has_danger_car} | 대표 차종: {dominant_vehicle}")
 
             return {
                 'weather': dominant_weather,
@@ -236,6 +317,7 @@ class AIModelService:
                 'is_danger': is_danger,
                 'has_danger_car': has_danger_car,
                 'danger_confidence': round(danger_car_frames / max(1, analyzed_frame_count) * 100, 1),
+                'detected_vehicle': dominant_vehicle,
                 'weather_counts': weather_counts,
                 'message': '중지됨' if self.stop_requested else '분석 완료'
             }
@@ -270,7 +352,6 @@ class AIModelService:
 
         try:
             while True:
-                # 중지 요청 확인
                 if self.stop_requested:
                     print("[AI] CCTV 스트리밍 중지됨")
                     break
@@ -280,11 +361,13 @@ class AIModelService:
                     break
 
                 if frame_count % 5 == 0:
-                    result = self._predict_weather(frame)
-                    weather_label = f"{result['weather']} ({result['confidence']}%)"
-                    danger_label = f"Danger Car: DETECTED ({result['danger_confidence']}%)" if result['has_danger_car'] else "Danger Car: None"
-                    weather_color = (0, 0, 255) if result['is_danger'] else (0, 255, 0)
-                    danger_color = (0, 0, 255) if result['has_danger_car'] else (0, 255, 0)
+                    keras_result = self._predict_weather(frame)
+                    weather_label = f"{keras_result['weather']} ({keras_result['confidence']}%)"
+                    danger_label = f"Danger Car: DETECTED ({keras_result['danger_confidence']}%)" if keras_result['has_danger_car'] else "Danger Car: None"
+                    weather_color = (0, 0, 255) if keras_result['is_danger'] else (0, 255, 0)
+                    danger_color = (0, 0, 255) if keras_result['has_danger_car'] else (0, 255, 0)
+
+                    self._run_yolo(frame, keras_result)
 
                 cv2.putText(frame, weather_label, (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 1.2, weather_color, 2)
                 cv2.putText(frame, danger_label, (10, 80), cv2.FONT_HERSHEY_SIMPLEX, 1.2, danger_color, 2)
