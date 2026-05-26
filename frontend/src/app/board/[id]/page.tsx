@@ -110,7 +110,7 @@ function PostDetail() {
   const isPrivileged = localUser?.role === 'admin' || localUser?.role === 'manager'
   const isAuthor     = post?.member_id === localUser?.id
   const canEdit      = isAuthor
-  const canDelete    = isAuthor || isPrivileged
+  const canDelete    = isAuthor
 
   // ── 게시글 삭제
   const handleDeletePost = async () => {

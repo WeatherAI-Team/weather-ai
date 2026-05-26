@@ -128,8 +128,7 @@ def delete_post(post_id: int, user_id: str, user_role: str) -> tuple[str, int]:
     if not post:
         return "게시글을 찾을 수 없습니다.", 404
 
-    is_author = str(post.member_id) == str(user_id)
-    if not is_author and not _is_privileged(user_role):
+    if str(post.member_id) != str(user_id):
         return "삭제 권한이 없습니다.", 403
 
     board_repo.soft_delete_post(post)
@@ -194,3 +193,38 @@ def delete_comment(comment_id: int, user_id: str, user_role: str) -> tuple[str, 
 
     board_repo.soft_delete_comment(comment)
     return "", 200
+
+
+# ──────────────────────────────────────────────────────────────
+# 마이페이지 서비스
+# ──────────────────────────────────────────────────────────────
+
+_TYPE_TO_BOARD = {"FREE": "건의게시판", "INFO": "정보게시판", "NOTICE": "정보게시판"}
+
+
+def get_my_posts(member_id: str, search: str, page: int, per_page: int) -> dict:
+    posts, total = board_repo.get_posts_by_member(member_id, search, page, per_page)
+    return {
+        "posts":       [_serialize_post(p) for p in posts],
+        "total":       total,
+        "page":        page,
+        "per_page":    per_page,
+        "total_pages": (total + per_page - 1) // per_page,
+    }
+
+
+def get_my_comments(member_id: str, search: str, page: int, per_page: int) -> dict:
+    comments, total = board_repo.get_comments_by_member(member_id, search, page, per_page)
+    result = []
+    for c in comments:
+        d = _serialize_comment(c)
+        d["post_title"]     = c.board.title if c.board else ""
+        d["post_board_type"] = c.board.board_type if c.board else ""
+        result.append(d)
+    return {
+        "comments":    result,
+        "total":       total,
+        "page":        page,
+        "per_page":    per_page,
+        "total_pages": (total + per_page - 1) // per_page,
+    }

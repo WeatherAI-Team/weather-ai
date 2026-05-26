@@ -136,7 +136,6 @@ function WriteForm() {
               >
                 <option value="FREE">건의</option>
                 <option value="INFO">정보</option>
-                <option value="NOTICE">공지</option>
               </select>
             </div>
             <label className={styles.pinnedLabel}>
