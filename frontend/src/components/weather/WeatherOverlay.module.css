@@ -13,7 +13,7 @@
   inset: 0;
   transition: background 1.5s ease;
 }
-.sky.sun {
+.sky.clear {
   background: linear-gradient(170deg, #c9ecff 0%, #b5dff3 30%, #e8f6ff 100%);
 }
 .sky.cloudy {

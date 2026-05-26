@@ -20,10 +20,10 @@ const boardMenus = [
 
 
 const WEATHER_LABEL: Record<string, string> = {
-  sun: '맑음', fog: '안개', heavy_rain: '폭우', heavy_snow: '폭설',
+  clear: '맑음', fog: '안개', heavy_rain: '폭우', heavy_snow: '폭설',
 }
 const WEATHER_COLOR: Record<string, string> = {
-  sun:        '#d5e3a9',
+  clear:      '#d5e3a9',
   fog:        '#94a3b8',
   heavy_rain: '#1b9bd1',
   heavy_snow: '#81c4e2',

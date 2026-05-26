@@ -16,21 +16,20 @@ type User = {
 
 export default function Header() {
   const pathname = usePathname();
-  const [user, setUser] = useState<User>(() => {
-    if (typeof window === "undefined") return null;
-    try {
-      const saved = localStorage.getItem("user");
-      return saved ? JSON.parse(saved) : null;
-    } catch {
-      return null;
-    }
-  });
+  const [user, setUser] = useState<User>(null);
+  const [mounted, setMounted] = useState(false);
   const isAdmin = user?.role === "admin";
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
 
   useEffect(() => {
+    try {
+      const saved = localStorage.getItem("user");
+      setUser(saved ? JSON.parse(saved) : null);
+    } catch {}
+    setMounted(true);
+
     const onScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener("scroll", onScroll);
     return () => window.removeEventListener("scroll", onScroll);
@@ -90,7 +89,7 @@ export default function Header() {
         {/* 오른쪽 영역 */}
         <div className={styles.right}>
 
-          {user ? (
+          {mounted && (user ? (
             /* ── 로그인 상태 ── */
             <div className={styles.profileArea}>
               <button
@@ -117,13 +116,12 @@ export default function Header() {
                 </div>
               )}
             </div>
-          ) : ( 
-            
+          ) : (
             /* ── 비로그인 상태 ── */
             <Link href="/login" className={styles.loginBtn}>
               로그인
             </Link>
-          )}
+          ))}
 
           {/* 모바일 햄버거 */}
           <button

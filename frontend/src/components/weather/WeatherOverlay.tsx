@@ -2,8 +2,8 @@
 import { useEffect, useState } from 'react'
 import styles from './WeatherOverlay.module.css'
 
-type WeatherState = 'sun' | 'cloudy' | 'rain' | 'snow'
-const CYCLE: WeatherState[] = ['sun', 'cloudy', 'rain', 'snow']
+type WeatherState = 'clear' | 'cloudy' | 'rain' | 'snow'
+const CYCLE: WeatherState[] = ['clear', 'cloudy', 'rain', 'snow']
 const DURATION = 3000
 
 function generateRain(count: number) {
@@ -65,7 +65,7 @@ export default function WeatherOverlay() {
       <div className={`${styles.sky} ${styles[weather]}`} />
 
       {/* 맑음 - 태양 */}
-      {weather === 'sun' && (
+      {weather === 'clear' && (
         <div className={styles.sunContainer}>
           <div className={styles.sunCore} />
           <div className={styles.sunRay} />
