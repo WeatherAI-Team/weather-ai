@@ -53,6 +53,7 @@ protobuf==7.34.1
 pydantic==2.13.3
 pydantic_core==2.46.3
 Pygments==2.20.0
+python-multipart==0.0.29
 requests==2.33.1
 rich==15.0.0
 setuptools==81.0.0

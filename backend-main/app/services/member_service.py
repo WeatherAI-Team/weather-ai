@@ -96,10 +96,20 @@ class MemberService:
 
         return {"success": True, "data": self.to_public_dict(member)}
 
+    def get_display_login_id(self, member):
+        if member.login_id:
+            return member.login_id
+
+        if member.email and "@" in member.email:
+            return member.email.split("@")[0]
+
+        return "-"
+    
     def to_public_dict(self, member):
         return {
             "id": member.id,
             "login_id": member.login_id,
+            "display_login_id": self.get_display_login_id(member),
             "email": member.email,
             "nickname": member.nickname,
             "real_name": member.real_name,
