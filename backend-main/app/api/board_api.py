@@ -5,6 +5,7 @@ board_api.py  –  API 레이어 (요청/응답만)
 
 from flask import Blueprint, request, jsonify
 from app.services import board_service
+from app.repositories import board_repo
 from functools import wraps
 from jose import jwt
 import os
@@ -176,6 +177,50 @@ def delete_comment(comment_id):
     if error:
         return jsonify({"success": False, "message": error}), status
     return jsonify({"success": True, "message": "삭제되었습니다."})
+
+
+# ──────────────────────────────────────────────────────────────
+# 내 활동 통계
+# GET /api/board/my-stats
+# ──────────────────────────────────────────────────────────────
+@board_bp.route("/my-stats", methods=["GET"])
+@login_required
+def get_my_stats():
+    post_count    = board_repo.count_posts_by_member(request.user_id)
+    comment_count = board_repo.count_comments_by_member(request.user_id)
+    return jsonify({"success": True, "post_count": post_count, "comment_count": comment_count})
+
+
+# ──────────────────────────────────────────────────────────────
+# 내가 작성한 게시글
+# GET /api/board/my-posts?search=&page=1&per_page=10
+# ──────────────────────────────────────────────────────────────
+@board_bp.route("/my-posts", methods=["GET"])
+@login_required
+def get_my_posts():
+    result = board_service.get_my_posts(
+        member_id = request.user_id,
+        search    = request.args.get("search", "").strip(),
+        page      = int(request.args.get("page", 1)),
+        per_page  = int(request.args.get("per_page", 10)),
+    )
+    return jsonify({"success": True, **result})
+
+
+# ──────────────────────────────────────────────────────────────
+# 내가 작성한 댓글
+# GET /api/board/my-comments?search=&page=1&per_page=10
+# ──────────────────────────────────────────────────────────────
+@board_bp.route("/my-comments", methods=["GET"])
+@login_required
+def get_my_comments():
+    result = board_service.get_my_comments(
+        member_id = request.user_id,
+        search    = request.args.get("search", "").strip(),
+        page      = int(request.args.get("page", 1)),
+        per_page  = int(request.args.get("per_page", 10)),
+    )
+    return jsonify({"success": True, **result})
 
 
 # ──────────────────────────────────────────────────────────────

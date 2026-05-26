@@ -1,47 +1,92 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import styles from './page.module.css'
+
+const API = process.env.NEXT_PUBLIC_API_URL ?? ''
 
 type Post = {
   id: number
-  board: '건의게시판' | '정보게시판'
+  board_type: string
   title: string
   content: string
-  views: number
-  createdAt: string
+  view_count: number
+  comment_count: number
+  created_at: string
 }
 
-const dummyPosts: Post[] = [
-  { id: 12, board: '건의게시판', title: 'AI 탐지 정확도 개선 건의',          content: '안개 상황에서 탐지율이 낮은 것 같습니다. 개선 부탁드립니다.',    views: 201, createdAt: '2026-05-10' },
-  { id: 11, board: '정보게시판', title: '폭우 시 고속도로 대피 요령 정리',     content: '폭우 시 고속도로에서 대피하는 방법을 공유합니다.',              views: 134, createdAt: '2026-05-03' },
-  { id: 10, board: '건의게시판', title: '지도 UI 개선 요청',                  content: '지도에서 지역 클릭 시 더 상세한 정보가 보였으면 합니다.',        views: 89,  createdAt: '2026-04-22' },
-  { id: 9,  board: '정보게시판', title: '안개 구간 위험 차량 목격 제보',       content: '중부고속도로 안개 구간에서 과속 탱크로리를 목격했습니다.',      views: 315, createdAt: '2026-04-15' },
-  { id: 8,  board: '건의게시판', title: '날씨 알림 기능 추가 건의',            content: '폭우 예보 시 미리 알림을 받을 수 있으면 좋겠습니다.',           views: 142, createdAt: '2026-04-01' },
-  { id: 7,  board: '정보게시판', title: '겨울철 도로 결빙 위험 구간 안내',     content: '결빙 위험이 높은 구간 정보를 공유합니다.',                     views: 278, createdAt: '2026-03-20' },
-  { id: 6,  board: '건의게시판', title: '모바일 화면 최적화 요청',             content: '모바일에서 지도가 잘 안 보입니다. 최적화 부탁드립니다.',         views: 67,  createdAt: '2026-03-10' },
-]
+const TYPE_LABEL: Record<string, string> = {
+  FREE:   '건의게시판',
+  INFO:   '정보게시판',
+  NOTICE: '정보게시판',
+}
+const TYPE_COLOR: Record<string, string> = {
+  FREE:   'suggest',
+  INFO:   'info',
+  NOTICE: 'info',
+}
 
-const BOARD_COLOR: Record<string, string> = {
-  건의게시판: 'suggest',
-  정보게시판: 'info',
+function getToken(): string | null {
+  try {
+    const raw = localStorage.getItem('user')
+    if (raw) {
+      const parsed = JSON.parse(raw)
+      if (parsed?.access_token) return parsed.access_token
+    }
+    return localStorage.getItem('access_token')
+  } catch { return null }
 }
 
 export default function MyPostsPage() {
-  const [search, setSearch] = useState('')
+  const router = useRouter()
+  const [posts, setPosts]           = useState<Post[]>([])
+  const [total, setTotal]           = useState(0)
+  const [page, setPage]             = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [search, setSearch]         = useState('')
+  const [searchInput, setSearchInput] = useState('')
   const [boardFilter, setBoardFilter] = useState('전체')
-  const [detailPost, setDetailPost] = useState<Post | null>(null)
+  const [detailPost, setDetailPost]   = useState<Post | null>(null)
+  const [loading, setLoading]         = useState(true)
 
-  const filtered = dummyPosts.filter(p => {
-    const matchSearch = p.title.includes(search) || p.content.includes(search)
-    const matchBoard = boardFilter === '전체' || p.board === boardFilter
-    return matchSearch && matchBoard
-  })
+  const PER_PAGE = 10
+
+  const fetchPosts = useCallback(async (p: number, s: string) => {
+    const token = getToken()
+    if (!token) { router.push('/login'); return }
+    setLoading(true)
+    try {
+      const res = await fetch(
+        `${API}/api/board/my-posts?page=${p}&per_page=${PER_PAGE}&search=${encodeURIComponent(s)}`,
+        { headers: { Authorization: `Bearer ${token}` } },
+      )
+      const data = await res.json()
+      if (data.success) {
+        setPosts(data.posts)
+        setTotal(data.total)
+        setTotalPages(data.total_pages)
+      }
+    } finally {
+      setLoading(false)
+    }
+  }, [router])
+
+  useEffect(() => { fetchPosts(page, search) }, [page, search, fetchPosts])
+
+  const handleSearch = () => {
+    setPage(1)
+    setSearch(searchInput)
+  }
+
+  const filtered = boardFilter === '전체'
+    ? posts
+    : posts.filter(p => TYPE_LABEL[p.board_type] === boardFilter)
 
   const counts = {
-    total: dummyPosts.length,
-    suggest: dummyPosts.filter(p => p.board === '건의게시판').length,
-    info: dummyPosts.filter(p => p.board === '정보게시판').length,
+    total:   total,
+    suggest: posts.filter(p => p.board_type === 'FREE').length,
+    info:    posts.filter(p => p.board_type !== 'FREE').length,
   }
 
   return (
@@ -59,7 +104,7 @@ export default function MyPostsPage() {
 
           <div className={styles.statsRow}>
             {[
-              { label: '전체 게시글', value: counts.total,   key: '전체',    color: '#07559d' },
+              { label: '전체 게시글', value: counts.total,   key: '전체',      color: '#07559d' },
               { label: '건의게시판',  value: counts.suggest, key: '건의게시판', color: '#1b9bd1' },
               { label: '정보게시판',  value: counts.info,    key: '정보게시판', color: '#2b8a3e' },
             ].map(s => (
@@ -79,9 +124,11 @@ export default function MyPostsPage() {
               type="text"
               placeholder="제목, 내용 검색..."
               className={styles.search}
-              value={search}
-              onChange={e => setSearch(e.target.value)}
+              value={searchInput}
+              onChange={e => setSearchInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleSearch()}
             />
+            <button className={styles.searchBtn} onClick={handleSearch}>검색</button>
             <div className={styles.filterGroup}>
               {['전체', '건의게시판', '정보게시판'].map(f => (
                 <button
@@ -105,15 +152,19 @@ export default function MyPostsPage() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.length > 0 ? filtered.map(p => (
+                {loading ? (
+                  <tr><td colSpan={5} className={styles.noData}>불러오는 중...</td></tr>
+                ) : filtered.length > 0 ? filtered.map(p => (
                   <tr key={p.id} className={styles.tr} onClick={() => setDetailPost(p)}>
                     <td className={styles.td}><span className={styles.idChip}>{p.id}</span></td>
                     <td className={styles.td}>
-                      <span className={`${styles.boardBadge} ${styles[BOARD_COLOR[p.board]]}`}>{p.board}</span>
+                      <span className={`${styles.boardBadge} ${styles[TYPE_COLOR[p.board_type] ?? 'suggest']}`}>
+                        {TYPE_LABEL[p.board_type] ?? p.board_type}
+                      </span>
                     </td>
                     <td className={styles.td}><span className={styles.postTitle}>{p.title}</span></td>
-                    <td className={styles.td}>{p.views.toLocaleString()}</td>
-                    <td className={styles.td}>{p.createdAt}</td>
+                    <td className={styles.td}>{p.view_count.toLocaleString()}</td>
+                    <td className={styles.td}>{p.created_at}</td>
                   </tr>
                 )) : (
                   <tr><td colSpan={5} className={styles.noData}>작성한 게시글이 없습니다</td></tr>
@@ -121,6 +172,28 @@ export default function MyPostsPage() {
               </tbody>
             </table>
           </div>
+
+          {totalPages > 1 && (
+            <div className={styles.pagination}>
+              <button
+                className={styles.pageBtn}
+                disabled={page <= 1}
+                onClick={() => setPage(p => p - 1)}
+              >이전</button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(n => (
+                <button
+                  key={n}
+                  className={`${styles.pageBtn} ${page === n ? styles.pageBtnActive : ''}`}
+                  onClick={() => setPage(n)}
+                >{n}</button>
+              ))}
+              <button
+                className={styles.pageBtn}
+                disabled={page >= totalPages}
+                onClick={() => setPage(p => p + 1)}
+              >다음</button>
+            </div>
+          )}
 
         </div>
       </section>
@@ -130,8 +203,10 @@ export default function MyPostsPage() {
           <div className={styles.modal} onClick={e => e.stopPropagation()}>
             <div className={styles.modalHeader}>
               <div className={styles.modalMeta}>
-                <span className={`${styles.boardBadge} ${styles[BOARD_COLOR[detailPost.board]]}`}>{detailPost.board}</span>
-                <span className={styles.modalDate}>{detailPost.createdAt}</span>
+                <span className={`${styles.boardBadge} ${styles[TYPE_COLOR[detailPost.board_type] ?? 'suggest']}`}>
+                  {TYPE_LABEL[detailPost.board_type] ?? detailPost.board_type}
+                </span>
+                <span className={styles.modalDate}>{detailPost.created_at}</span>
               </div>
               <button className={styles.modalClose} onClick={() => setDetailPost(null)}>✕</button>
             </div>
@@ -140,7 +215,8 @@ export default function MyPostsPage() {
               <p className={styles.modalContent}>{detailPost.content}</p>
             </div>
             <div className={styles.modalFooter}>
-              <span className={styles.modalViews}>조회 {detailPost.views.toLocaleString()}</span>
+              <span className={styles.modalViews}>조회 {detailPost.view_count.toLocaleString()}</span>
+              <Link href={`/board/${detailPost.id}`} className={styles.modalLink}>게시글 보기 →</Link>
             </div>
           </div>
         </div>

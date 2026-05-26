@@ -161,3 +161,33 @@ def soft_delete_comment(comment: BoardComment) -> None:
     comment.deleted_at = datetime.utcnow()
     comment.active     = False
     db.session.commit()
+
+
+def count_posts_by_member(member_id) -> int:
+    """회원이 작성한 게시글 수"""
+    return Board.query.filter_by(member_id=member_id, active=True, deleted_at=None).count()
+
+
+def count_comments_by_member(member_id) -> int:
+    """회원이 작성한 댓글 수 (대댓글 포함)"""
+    return BoardComment.query.filter_by(member_id=member_id, active=True, deleted_at=None).count()
+
+
+def get_posts_by_member(member_id, search: str, page: int, per_page: int):
+    """내가 작성한 게시글 목록"""
+    q = Board.query.filter_by(member_id=member_id, active=True, deleted_at=None)
+    if search:
+        q = q.filter(or_(Board.title.ilike(f"%{search}%"), Board.content.ilike(f"%{search}%")))
+    total = q.count()
+    posts = q.order_by(Board.created_at.desc()).offset((page - 1) * per_page).limit(per_page).all()
+    return posts, total
+
+
+def get_comments_by_member(member_id, search: str, page: int, per_page: int):
+    """내가 작성한 댓글 목록 (원본 게시글 정보 포함)"""
+    q = BoardComment.query.filter_by(member_id=member_id, active=True, deleted_at=None)
+    if search:
+        q = q.filter(BoardComment.content.ilike(f"%{search}%"))
+    total = q.count()
+    comments = q.order_by(BoardComment.created_at.desc()).offset((page - 1) * per_page).limit(per_page).all()
+    return comments, total
