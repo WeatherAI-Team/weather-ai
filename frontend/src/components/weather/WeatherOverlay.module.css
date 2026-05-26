@@ -13,7 +13,7 @@
   inset: 0;
   transition: background 1.5s ease;
 }
-.sky.clear {
+.sky.sun {
   background: linear-gradient(170deg, #c9ecff 0%, #b5dff3 30%, #e8f6ff 100%);
 }
 .sky.cloudy {
@@ -27,7 +27,7 @@
 }
 
 /* 맑음 - 태양 */
-.sun {
+.sunContainer {
   position: absolute;
   top: 8%;
   right: 12%;

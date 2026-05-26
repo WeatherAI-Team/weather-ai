@@ -16,16 +16,21 @@ type User = {
 
 export default function Header() {
   const pathname = usePathname();
-  const [user, setUser] = useState<User>(null);
+  const [user, setUser] = useState<User>(() => {
+    if (typeof window === "undefined") return null;
+    try {
+      const saved = localStorage.getItem("user");
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
   const isAdmin = user?.role === "admin";
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
 
   useEffect(() => {
-    const savedUser = localStorage.getItem("user");
-    if (savedUser) setUser(JSON.parse(savedUser));
-
     const onScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener("scroll", onScroll);
     return () => window.removeEventListener("scroll", onScroll);

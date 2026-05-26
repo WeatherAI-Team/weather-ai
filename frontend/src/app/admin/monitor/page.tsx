@@ -88,7 +88,7 @@ const VEHICLE_TYPE_KO: Record<string, string> = {
   RMC: '래미콘', Gas_Truck: '탱크로리', cargo_truck: '카고트럭', '25t_truck': '25톤 이상의 차량',
 }
 const WEATHER_KO: Record<string, string> = {
-  clear: '맑음', heavy_snow: '폭설', heavy_rain: '폭우', fog: '안개',
+  sun: '맑음', heavy_snow: '폭설', heavy_rain: '폭우', fog: '안개',
 }
 
 function toVehicleType(v: string | null) { return v ? (VEHICLE_TYPE_KO[v] ?? v) : '알 수 없음' }
@@ -131,7 +131,7 @@ export default function MonitorPage() {
   const [cctvList, setCctvList] = useState<CctvItem[]>([])
   const [leftTab, setLeftTab] = useState<'map' | 'cctv'>('map')
   const [leftCctvIdx, setLeftCctvIdx] = useState<number | null>(null)
-  const [rightCctvIdx, setRightCctvIdx] = useState<number | null>(null)
+
 
   useEffect(() => {
     async function load() {
@@ -181,10 +181,6 @@ export default function MonitorPage() {
     return llmTarget ? filtered.slice(0, llmTarget.count) : filtered
   })()
 
-  const rightCctvs: CctvItem[] = llmTarget?.regionId
-    ? cctvList.filter(c => getRegionFromCoords(c.coordy, c.coordx) === llmTarget.regionId)
-    : []
-
   const handleRegionSelect = (id: string) => {
     setSelected(id)
     setLeftCctvIdx(0)
@@ -197,7 +193,6 @@ export default function MonitorPage() {
 
   const handleEventClick = (event: EventItem, regionName: string) => {
     setLlmTarget({ ...event, regionName, regionId: selected ?? '' })
-    setRightCctvIdx(0)
     setPopupOpen(false)
   }
 
@@ -380,39 +375,6 @@ export default function MonitorPage() {
               </div>
             </div>
 
-            {/* CCTV 화면 */}
-            <div className={styles.infoSection}>
-              <h3 className={styles.infoTitle}>📷 연동 CCTV</h3>
-              <div className={styles.cctvSmallBox}>
-                {rightCctvIdx !== null && rightCctvs[rightCctvIdx] ? (
-                  <HlsPlayer
-                    key={rightCctvs[rightCctvIdx].cctvurl}
-                    src={`${API_URL}/api/cctv/stream?url=${encodeURIComponent(rightCctvs[rightCctvIdx].cctvurl)}`}
-                    className={styles.cctvSmallStream}
-                  />
-                ) : (
-                  <div className={styles.cctvEmpty}>
-                    <span>📷</span>
-                    <p>{llmTarget ? '해당 지역 연동 CCTV 없음' : '지역을 선택하세요'}</p>
-                  </div>
-                )}
-              </div>
-              {rightCctvs.length > 0 && (
-                <div className={styles.cctvSmallList}>
-                  {rightCctvs.map((cam, i) => (
-                    <button
-                      key={i}
-                      className={`${styles.cctvSmallItem} ${rightCctvIdx === i ? styles.cctvSmallItemActive : ''}`}
-                      onClick={() => setRightCctvIdx(i)}
-                    >
-                      <span className={styles.cctvDotGreen} />
-                      <span className={styles.cctvSmallName}>{cam.cctvname}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
           </div>
         </div>
       </main>
@@ -435,7 +397,7 @@ export default function MonitorPage() {
                       <span className={`${styles.popupDot} ${e.status === '위험' ? styles.dotDanger : styles.dotWarn}`}/>
                       <div>
                         <p className={styles.popupItemArea}>{e.city} · {e.area}</p>
-                        <p className={styles.popupItemMeta}>🚛 {e.type} · {e.weather === 'CLEAR' ? '☀️' : e.weather === 'SNOW' ? '🌨️' : (e.weather === 'HEAVY_RAIN' || e.weather === 'RAIN') ? '🌧️' : '🌤️'} {e.weather} · ⏰ {e.time}</p>
+                        <p className={styles.popupItemMeta}>🚛 {e.type} · {e.weather === 'SUN' ? '☀️' : e.weather === 'SNOW' ? '🌨️' : (e.weather === 'HEAVY_RAIN' || e.weather === 'RAIN') ? '🌧️' : '🌤️'} {e.weather} · ⏰ {e.time}</p>
                       </div>
                     </div>
                     <span className={`${styles.popupCount} ${e.status === '위험' ? styles.countDanger : styles.countWarn}`}>

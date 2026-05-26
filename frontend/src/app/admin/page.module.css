@@ -209,8 +209,14 @@
 .eventLoc { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
 .eventRight { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
 .eventBadge {
-  font-size: 0.68rem; font-weight: 700;
-  padding: 2px 8px; border-radius: 999px;
+  font-size: 0.72rem; font-weight: 800;
+  padding: 5px 12px; border-radius: 999px;
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 64px; text-align: center;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.10);
+  letter-spacing: 0.02em;
+  background: #b5dff3;
+  color: #20436d;
 }
 .badgeDanger { background: #ffe0e0; color: #c0392b; }
 .badgeWarn { background: #fff3cd; color: #856404; }
@@ -260,11 +266,11 @@
   gap: 16px;
 }
 
-/* ── 주간 차트 (가로) ── */
+/* ── 위험도 분포 차트 (가로 막대) ── */
 .weekChart {
   display: flex;
   flex-direction: column;
-  gap: 23px;
+  gap: 18px;
   padding: 4px 0;
 }
 .weekCol {
@@ -297,8 +303,8 @@
 .weekCount {
   font-size: 0.88rem;
   font-weight: 700;
-  color: var(--primary);
-  width: 28px;
+  color: var(--dark-navy);
+  width: 36px;
   flex-shrink: 0;
   text-align: right;
 }
