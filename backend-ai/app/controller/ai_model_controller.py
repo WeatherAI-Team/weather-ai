@@ -1,5 +1,5 @@
 # app/controller/ai_model_controller.py
-from fastapi import APIRouter, UploadFile, File, Form, Depends
+from fastapi import APIRouter, UploadFile, File, Form
 from fastapi.responses import StreamingResponse
 from app.service.ai_model_service import AIModelService
 
@@ -72,7 +72,35 @@ async def cctv_stream(body: dict):
     if not rtsp_url:
         return {"success": False, "message": "URL이 없습니다."}
     try:
-        stream = ai_model_service.get_cctv_stream(rtsp_url)
-        return StreamingResponse(stream, media_type="multipart/x-mixed-replace; boundary=frame")
+        async def generate():
+            async for chunk in ai_model_service.get_cctv_stream(rtsp_url):
+                yield chunk
+
+        return StreamingResponse(generate(), media_type="multipart/x-mixed-replace; boundary=frame")
     except Exception as e:
         return {"success": False, "error": str(e)}
+
+
+# ════════════════════════════════════════
+# 분석 중지
+# ════════════════════════════════════════
+
+@router.post("/stop")
+async def stop_analysis():
+    try:
+        ai_model_service.stop_analysis()
+        return {"success": True, "message": "분석 중지됨"}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+# ════════════════════════════════════════
+# 분석 상태 확인
+# ════════════════════════════════════════
+
+@router.get("/status")
+async def get_status():
+    return {
+        "is_analyzing": ai_model_service.is_analyzing,
+        "stop_requested": ai_model_service.stop_requested
+    }

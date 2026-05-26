@@ -1,0 +1,186 @@
+.page {
+  min-height: calc(100vh - 70px);
+  padding: 110px 20px 80px;
+  background:
+    radial-gradient(circle at top left, rgba(18, 126, 194, 0.12), transparent 34%),
+    linear-gradient(180deg, #eef8ff 0%, #ffffff 60%);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+.loginCard {
+  width: 100%;
+  max-width: 430px;
+  padding: 38px 34px 34px;
+  background: #ffffff;
+  border: 1px solid rgba(130, 170, 200, 0.28);
+  border-radius: 28px;
+  box-shadow: 0 24px 70px rgba(15, 55, 90, 0.14);
+}
+.header {
+  text-align: center;
+  margin-bottom: 28px;
+}
+.logoWrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 14px;
+}
+.header h1 {
+  margin: 0;
+  color: #173b63;
+  font-size: 32px;
+  font-weight: 900;
+}
+.header p {
+  margin: 10px 0 0;
+  color: #6f8aa5;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* 단계 표시 */
+.steps {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  margin-bottom: 28px;
+}
+.stepDot {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #e2edf5;
+  color: #8ba1b5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 800;
+  transition: all 0.3s;
+}
+.stepLine {
+  width: 60px;
+  height: 2px;
+  background: #e2edf5;
+  transition: all 0.3s;
+}
+.stepActive {
+  background: #0b83d0;
+  color: #ffffff;
+}
+
+/* 폼 */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.field span {
+  color: #244763;
+  font-size: 13px;
+  font-weight: 800;
+}
+.field input {
+  height: 48px;
+  padding: 0 16px;
+  border: 1px solid #d6e5f0;
+  border-radius: 14px;
+  background: #f8fcff;
+  color: #1d3850;
+  font-size: 14px;
+  outline: none;
+}
+.field input:focus {
+  border-color: #0b83d0;
+  background: #ffffff;
+  box-shadow: 0 0 0 4px rgba(11, 131, 208, 0.12);
+}
+.loginButton {
+  height: 50px;
+  margin-top: 8px;
+  border: none;
+  border-radius: 15px;
+  background: #0b83d0;
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow: 0 14px 28px rgba(11, 131, 208, 0.24);
+  width: 100%;
+}
+.loginButton:hover {
+  background: #066fb4;
+}
+.loginButton:disabled {
+  background: #9cc4e0;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* 에러 */
+.error {
+  margin: 0;
+  color: #d64545;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+}
+
+/* 완료 화면 */
+.done {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  padding: 12px 0;
+}
+.doneIcon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #0b83d0;
+  color: #ffffff;
+  font-size: 32px;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 12px 28px rgba(11, 131, 208, 0.3);
+}
+.doneText {
+  margin: 0;
+  color: #6f8aa5;
+  font-size: 14px;
+  line-height: 1.7;
+  text-align: center;
+}
+
+/* 하단 링크 */
+.links {
+  margin-top: 22px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 9px;
+  font-size: 12px;
+}
+.links a {
+  color: #587793;
+  text-decoration: none;
+  font-weight: 700;
+}
+.links a:hover {
+  color: #0b83d0;
+}
+.links span {
+  width: 1px;
+  height: 11px;
+  background: #d8e4ee;
+}

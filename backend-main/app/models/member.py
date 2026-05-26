@@ -24,10 +24,7 @@ class Member(db.Model):
     # Enum 설정 (admin, manager, user)
     role = db.Column(Enum('admin', 'manager', 'user', name='user_roles'), default='user')
     active = db.Column(db.Boolean, default=True)
-    
-    # 4. 소셜 로그인 관련
-    provider = db.Column(db.String(20), default='local') # local, google, kakao 등
-    social_id = db.Column(db.String(255), unique=True, nullable=True)
+
     
     # 5. 시간 기록 (Audit)
     created_at = db.Column(db.DateTime, default=utc_now)

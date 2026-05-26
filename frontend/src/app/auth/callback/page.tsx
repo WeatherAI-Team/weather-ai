@@ -41,7 +41,10 @@ function AuthCallbackContent() {
         .then(res => res.json())
         .then(data => {
           if (data?.data) {
-            localStorage.setItem('user', JSON.stringify(data.data))
+            localStorage.setItem('user', JSON.stringify({
+              ...data.data,
+              access_token: token,   // URL에서 받은 token 사용
+            }))
             localStorage.setItem('loginUser', JSON.stringify(data.data))
           }
         })
