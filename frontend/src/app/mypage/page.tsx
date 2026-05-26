@@ -1,87 +1,166 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import styles from './page.module.css'
 
-type User = {
-  id: number
-  login_id: string
-  name: string
-  nickname: string
-  email: string
-  role: string
-  grade: string
-  joined: string
-  posts: number
-  comments: number
-  provider: string
-}
+const API = process.env.NEXT_PUBLIC_API_URL
 
-const gradePermissions: Record<string, { label: string; color: string; permissions: string[] }> = {
+const GRADE_INFO: Record<string, { label: string; color: string; permissions: string[] }> = {
   ADMIN: {
-    label: 'ADMIN',
-    color: '#20436d',
-    permissions: ['실시간 CCTV 분석', 'CCTV 분석 결과 확인', '리포트 생성', '탐지 이력 조회', '게시글 관리', '회원 관리'],
+    label: 'ADMIN', color: '#20436d',
+    permissions: ['CCTV 분석 결과 확인', '리포트 생성', '탐지 이력 조회', '게시글 관리', '회원 관리'],
   },
   MANAGER: {
-    label: 'MANAGER',
-    color: '#07559d',
-    permissions: ['실시간 CCTV 분석', 'CCTV 분석 결과 확인', '탐지 이력 조회', '게시글 작성 · 수정 · 관리'],
+    label: 'MANAGER', color: '#07559d',
+    permissions: ['CCTV 분석 결과 확인', '탐지 이력 조회', '게시글 작성 · 수정 · 관리'],
   },
   USER: {
-    label: 'USER',
-    color: '#1b9bd1',
-    permissions: ['CCTV 분석 결과 확인', '탐지 이력 조회', '건의 게시글 작성/수정'],
+    label: 'USER', color: '#1b9bd1',
+    permissions: ['건의 게시글 작성/수정'],
   },
+}
+
+const PROVIDER_LABEL: Record<string, string> = {
+  local: '일반', google: '구글', kakao: '카카오', naver: '네이버',
+}
+
+const roleToGrade = (role: string) => {
+  if (role === 'admin')   return 'ADMIN'
+  if (role === 'manager') return 'MANAGER'
+  return 'USER'
 }
 
 export default function MyPage() {
-  const [user, setUser] = useState<User>({
-    id: 1,
-    login_id: 'hong123',
-    name: '홍길동',
-    nickname: '홍길동',
-    email: 'hong@example.com',
-    role: 'admin',
-    grade: 'ADMIN',
-    joined: '2025-09-01',
-    posts: 37,
-    comments: 21,
-    provider: '일반',
-  })
+  const router = useRouter()
 
-  const [nameModal, setNameModal] = useState(false)
-  const [pwModal, setPwModal] = useState(false)
-  const [notiModal, setNotiModal] = useState(false)
-  const [permModal, setPermModal] = useState(false)
+  const [nickname, setNickname]     = useState('')
+  const [realName, setRealName]     = useState('')
+  const [email, setEmail]           = useState('')
+  const [role, setRole]             = useState('user')
+  const [provider, setProvider]     = useState('local')
+  const [joinedAt, setJoinedAt]     = useState('')
+  const [loading, setLoading]       = useState(true)
+  const [isSocial, setIsSocial]     = useState(false)
 
-  const [newName, setNewName] = useState('')
-  const [pwForm, setPwForm] = useState({ current: '', next: '', confirm: '' })
-  const [pwError, setPwError] = useState('')
-  const [noti, setNoti] = useState({ email: true, sms: false, app: true })
+  const [nameModal, setNameModal]   = useState(false)
+  const [pwModal, setPwModal]       = useState(false)
+  const [notiModal, setNotiModal]   = useState(false)
+  const [permModal, setPermModal]   = useState(false)
 
-  const handleNameSave = () => {
-    if (!newName.trim()) return
-    setUser(prev => ({ ...prev, name: newName }))
-    setNameModal(false)
+  const [newNickname, setNewNickname] = useState('')
+  const [pwForm, setPwForm]           = useState({ current: '', next: '', confirm: '' })
+  const [pwError, setPwError]         = useState('')
+  const [noti, setNoti]               = useState({ email: true, sms: false, app: true })
+  const [saving, setSaving]           = useState(false)
+  const [postCount, setPostCount]     = useState(0)
+  const [commentCount, setCommentCount] = useState(0)
+
+  const getToken = () => {
+    try {
+      const user = localStorage.getItem('user')
+      if (user) {
+        const parsed = JSON.parse(user)
+        if (parsed?.access_token) return parsed.access_token
+      }
+      return localStorage.getItem('access_token')
+    } catch { return null }
   }
 
-  const handlePwSave = () => {
-    if (pwForm.next !== pwForm.confirm) {
-      setPwError('새 비밀번호가 일치하지 않습니다')
-      return
+  // ── 프로필 불러오기
+  useEffect(() => {
+    const load = async () => {
+      const token = getToken()
+      if (!token) { router.replace('/login'); return }
+      try {
+        const res  = await fetch(`${API}/api/member/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        const data = await res.json()
+        if (!data.success) { router.replace('/login'); return }
+        const m = data.data
+        setNickname(m.nickname ?? '')
+        setRealName(m.real_name ?? '')
+        setEmail(m.email ?? '')
+        setRole(m.role ?? 'user')
+        setProvider(m.provider ?? 'local')
+        setJoinedAt(m.created_at ? m.created_at.slice(0, 10) : '')
+        setIsSocial(m.provider !== 'local')
+
+        // 게시글/댓글 수 별도 조회
+        try {
+          const statsRes  = await fetch(`${API}/api/board/my-stats`, {
+            headers: { Authorization: `Bearer ${token}` },
+          })
+          const statsData = await statsRes.json()
+          if (statsData.success) {
+            setPostCount(statsData.post_count ?? 0)
+            setCommentCount(statsData.comment_count ?? 0)
+          }
+        } catch { /* 통계 실패 시 0 유지 */ }
+      } catch {
+        router.replace('/login')
+      } finally {
+        setLoading(false)
+      }
     }
-    if (pwForm.next.length < 8) {
-      setPwError('비밀번호는 8자 이상이어야 합니다')
-      return
-    }
+    load()
+  }, [router])
+
+  const grade    = roleToGrade(role)
+  const gradeInfo = GRADE_INFO[grade]
+  const displayName = nickname || realName || '사용자'
+
+  // ── 닉네임 변경
+  const handleNameSave = async () => {
+    if (!newNickname.trim()) return
+    setSaving(true)
+    const token = getToken()
+    try {
+      const res  = await fetch(`${API}/api/member/me`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ nickname: newNickname.trim(), email }),
+      })
+      const data = await res.json()
+      if (!data.success) { alert(data.message); return }
+      setNickname(data.data.nickname)
+      // localStorage user 동기화
+      const saved = localStorage.getItem('user')
+      if (saved) {
+        try {
+          const u = JSON.parse(saved)
+          localStorage.setItem('user', JSON.stringify({ ...u, nickname: data.data.nickname }))
+        } catch { /* ignore */ }
+      }
+      setNameModal(false)
+    } catch { alert('오류가 발생했습니다.') }
+    finally { setSaving(false) }
+  }
+
+  // ── 비밀번호 변경
+  const handlePwSave = async () => {
+    if (pwForm.next !== pwForm.confirm) { setPwError('새 비밀번호가 일치하지 않습니다.'); return }
+    if (pwForm.next.length < 8)        { setPwError('비밀번호는 8자 이상이어야 합니다.'); return }
     setPwError('')
-    setPwForm({ current: '', next: '', confirm: '' })
-    setPwModal(false)
-    alert('비밀번호가 변경되었습니다')
+    setSaving(true)
+    const token = getToken()
+    try {
+      const res  = await fetch(`${API}/api/member/me/password`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ current_password: pwForm.current, new_password: pwForm.next }),
+      })
+      const data = await res.json()
+      if (!data.success) { setPwError(data.message); return }
+      alert('비밀번호가 변경되었습니다.')
+      setPwForm({ current: '', next: '', confirm: '' })
+      setPwModal(false)
+    } catch { setPwError('오류가 발생했습니다.') }
+    finally { setSaving(false) }
   }
 
-  const gradeInfo = gradePermissions[user.grade] || gradePermissions.USER
+  if (loading) return <div style={{ padding: '80px', textAlign: 'center', color: '#5a85a8' }}>불러오는 중...</div>
 
   return (
     <div className={styles.page}>
@@ -98,25 +177,25 @@ export default function MyPage() {
 
             {/* 프로필 카드 */}
             <div className={styles.profileCard}>
-              <div className={styles.avatar}>{user.name[0]}</div>
-              <h2 className={styles.profileName}>{user.name}</h2>
-              <p className={styles.profileEmail}>{user.email}</p>
+              <div className={styles.avatar}>{displayName[0]}</div>
+              <h2 className={styles.profileName}>{displayName}</h2>
+              <p className={styles.profileEmail}>{email}</p>
               <div className={styles.badges}>
                 <span className={styles.roleBadge}>
-                  {user.role === 'admin' ? '관리자' : user.role === 'manager' ? '매니저' : '일반회원'}
+                  {role === 'admin' ? '관리자' : role === 'manager' ? '매니저' : '일반회원'}
                 </span>
                 <span className={styles.gradeBadge} style={{ borderColor: gradeInfo.color, color: gradeInfo.color }}>
-                  {user.grade}
+                  {grade}
                 </span>
               </div>
               <div className={styles.profileMeta}>
                 <div className={styles.metaItem}>
                   <span className={styles.metaLabel}>가입일</span>
-                  <span className={styles.metaValue}>{user.joined}</span>
+                  <span className={styles.metaValue}>{joinedAt}</span>
                 </div>
                 <div className={styles.metaItem}>
                   <span className={styles.metaLabel}>가입유형</span>
-                  <span className={styles.metaValue}>{user.provider}</span>
+                  <span className={styles.metaValue}>{PROVIDER_LABEL[provider] ?? provider}</span>
                 </div>
               </div>
             </div>
@@ -129,11 +208,11 @@ export default function MyPage() {
                 <h3 className={styles.sectionTitle}>활동 통계</h3>
                 <div className={styles.stats}>
                   <Link href="/mypage/posts" className={styles.stat}>
-                    <span className={styles.statNum}>{user.posts}</span>
+                    <span className={styles.statNum}>{postCount}</span>
                     <span className={styles.statLabel}>작성 게시글</span>
                   </Link>
                   <Link href="/mypage/comments" className={styles.stat}>
-                    <span className={styles.statNum}>{user.comments}</span>
+                    <span className={styles.statNum}>{commentCount}</span>
                     <span className={styles.statLabel}>작성 댓글</span>
                   </Link>
                 </div>
@@ -143,21 +222,24 @@ export default function MyPage() {
               <div className={styles.section}>
                 <h3 className={styles.sectionTitle}>계정 설정</h3>
                 <div className={styles.settingsList}>
-                  <button className={styles.settingItem} onClick={() => { setNewName(user.name); setNameModal(true) }}>
+
+                  <button className={styles.settingItem} onClick={() => { setNewNickname(nickname); setNameModal(true) }}>
                     <div className={styles.settingLeft}>
                       <span className={styles.settingIcon}>✏️</span>
-                      <span className={styles.settingName}>이름 변경</span>
+                      <span className={styles.settingName}>닉네임 변경</span>
                     </div>
                     <span className={styles.settingArrow}>›</span>
                   </button>
 
-                  <button className={styles.settingItem} onClick={() => { setPwForm({ current: '', next: '', confirm: '' }); setPwError(''); setPwModal(true) }}>
-                    <div className={styles.settingLeft}>
-                      <span className={styles.settingIcon}>🔒</span>
-                      <span className={styles.settingName}>비밀번호 변경</span>
-                    </div>
-                    <span className={styles.settingArrow}>›</span>
-                  </button>
+                  {!isSocial && (
+                    <button className={styles.settingItem} onClick={() => { setPwForm({ current: '', next: '', confirm: '' }); setPwError(''); setPwModal(true) }}>
+                      <div className={styles.settingLeft}>
+                        <span className={styles.settingIcon}>🔒</span>
+                        <span className={styles.settingName}>비밀번호 변경</span>
+                      </div>
+                      <span className={styles.settingArrow}>›</span>
+                    </button>
+                  )}
 
                   <button className={styles.settingItem} onClick={() => setNotiModal(true)}>
                     <div className={styles.settingLeft}>
@@ -174,6 +256,7 @@ export default function MyPage() {
                     </div>
                     <span className={styles.settingArrow}>›</span>
                   </button>
+
                 </div>
               </div>
 
@@ -182,27 +265,35 @@ export default function MyPage() {
         </div>
       </section>
 
-      {/* 이름 변경 모달 */}
+      {/* 닉네임 변경 모달 */}
       {nameModal && (
         <div className={styles.overlay} onClick={() => setNameModal(false)}>
           <div className={styles.modal} onClick={e => e.stopPropagation()}>
             <div className={styles.modalHeader}>
-              <h2>이름 변경</h2>
+              <h2>닉네임 변경</h2>
               <button className={styles.modalClose} onClick={() => setNameModal(false)}>✕</button>
             </div>
             <div className={styles.modalBody}>
               <div className={styles.currentInfo}>
-                <span className={styles.currentLabel}>현재 이름</span>
-                <span className={styles.currentValue}>{user.name}</span>
+                <span className={styles.currentLabel}>현재 닉네임</span>
+                <span className={styles.currentValue}>{nickname}</span>
               </div>
               <div className={styles.field}>
-                <label>변경할 이름</label>
-                <input className={styles.input} value={newName} onChange={e => setNewName(e.target.value)} placeholder="새 이름을 입력하세요" />
+                <label>변경할 닉네임</label>
+                <input
+                  className={styles.input}
+                  value={newNickname}
+                  onChange={e => setNewNickname(e.target.value)}
+                  placeholder="새 닉네임을 입력하세요"
+                  onKeyDown={e => e.key === 'Enter' && handleNameSave()}
+                />
               </div>
             </div>
             <div className={styles.modalActions}>
               <button className={styles.cancelBtn} onClick={() => setNameModal(false)}>취소</button>
-              <button className={styles.saveBtn} onClick={handleNameSave}>저장</button>
+              <button className={styles.saveBtn} onClick={handleNameSave} disabled={saving}>
+                {saving ? '저장 중...' : '저장'}
+              </button>
             </div>
           </div>
         </div>
@@ -225,7 +316,7 @@ export default function MyPage() {
               <div className={styles.field}>
                 <label>새 비밀번호</label>
                 <input type="password" className={styles.input} value={pwForm.next}
-                  onChange={e => setPwForm(p => ({ ...p, next: e.target.value }))} placeholder="8자 이상, 영문+숫자+특수문자" />
+                  onChange={e => setPwForm(p => ({ ...p, next: e.target.value }))} placeholder="8자 이상" />
               </div>
               <div className={styles.field}>
                 <label>새 비밀번호 확인</label>
@@ -236,7 +327,9 @@ export default function MyPage() {
             </div>
             <div className={styles.modalActions}>
               <button className={styles.cancelBtn} onClick={() => setPwModal(false)}>취소</button>
-              <button className={styles.saveBtn} onClick={handlePwSave}>변경</button>
+              <button className={styles.saveBtn} onClick={handlePwSave} disabled={saving}>
+                {saving ? '변경 중...' : '변경'}
+              </button>
             </div>
           </div>
         </div>
@@ -253,8 +346,8 @@ export default function MyPage() {
             <div className={styles.modalBody}>
               {[
                 { key: 'email', icon: '📧', label: '이메일 알림', desc: '위험 탐지 시 이메일로 알림을 받습니다' },
-                { key: 'sms', icon: '📱', label: 'SMS 알림', desc: '위험 탐지 시 문자로 알림을 받습니다' },
-                { key: 'app', icon: '🔔', label: '앱 푸시 알림', desc: '앱에서 실시간 알림을 받습니다' },
+                { key: 'sms',   icon: '📱', label: 'SMS 알림',   desc: '위험 탐지 시 문자로 알림을 받습니다' },
+                { key: 'app',   icon: '🔔', label: '앱 푸시 알림', desc: '앱에서 실시간 알림을 받습니다' },
               ].map(n => (
                 <div key={n.key} className={styles.notiRow}>
                   <div className={styles.notiLeft}>
@@ -291,8 +384,8 @@ export default function MyPage() {
             <div className={styles.modalBody}>
               <div className={styles.gradeCard} style={{ borderColor: gradeInfo.color }}>
                 <div className={styles.gradeTop}>
-                  <span className={styles.gradeBig} style={{ color: gradeInfo.color }}>{user.grade}</span>
-                  <span className={styles.roleTag}>{user.role === 'admin' ? '관리자' : '일반회원'}</span>
+                  <span className={styles.gradeBig} style={{ color: gradeInfo.color }}>{grade}</span>
+                  <span className={styles.roleTag}>{role === 'admin' ? '관리자' : role === 'manager' ? '매니저' : '일반회원'}</span>
                 </div>
                 <p className={styles.gradeDesc}>현재 {gradeInfo.label} 등급으로 아래 기능을 이용할 수 있습니다</p>
               </div>

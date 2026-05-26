@@ -1,46 +1,92 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import styles from './page.module.css'
+
+const API = process.env.NEXT_PUBLIC_API_URL ?? ''
 
 type Comment = {
   id: number
-  board: '건의게시판' | '정보게시판'
-  postTitle: string
+  board_id: number
+  board_type: string
+  post_title: string
+  post_board_type: string
   content: string
-  createdAt: string
+  created_at: string
 }
 
-const dummyComments: Comment[] = [
-  { id: 21, board: '정보게시판', postTitle: '폭우 시 고속도로 대피 요령 정리',     content: '정말 유용한 정보네요. 저도 비슷한 상황을 겪었는데 도움이 됐습니다.',           createdAt: '2026-05-12' },
-  { id: 20, board: '건의게시판', postTitle: 'AI 탐지 정확도 개선 건의',           content: '안개 외에도 역광 상황에서 탐지율이 낮은 것 같습니다. 같이 개선됐으면 합니다.',   createdAt: '2026-05-08' },
-  { id: 19, board: '정보게시판', postTitle: '겨울철 도로 결빙 위험 구간 안내',     content: '제가 아는 구간도 추가할게요. 영동고속도로 대관령 부근도 위험합니다.',            createdAt: '2026-04-30' },
-  { id: 18, board: '건의게시판', postTitle: '지도 UI 개선 요청',                  content: '동의합니다. 모바일에서도 클릭이 잘 안 됩니다.',                                 createdAt: '2026-04-18' },
-  { id: 17, board: '정보게시판', postTitle: '안개 구간 위험 차량 목격 제보',       content: '저도 같은 구간에서 비슷한 상황 목격했습니다. 관계 기관에 신고해야 할 것 같아요.', createdAt: '2026-04-10' },
-  { id: 16, board: '건의게시판', postTitle: '날씨 알림 기능 추가 건의',            content: '앱 푸시 알림도 함께 추가해주시면 더 좋을 것 같습니다.',                          createdAt: '2026-03-28' },
-  { id: 15, board: '정보게시판', postTitle: '[공지] 서비스 이용 안내',             content: '확인했습니다. 감사합니다.',                                                     createdAt: '2026-03-15' },
-]
+const TYPE_LABEL: Record<string, string> = {
+  FREE:   '건의게시판',
+  INFO:   '정보게시판',
+  NOTICE: '정보게시판',
+}
+const TYPE_COLOR: Record<string, string> = {
+  FREE:   'suggest',
+  INFO:   'info',
+  NOTICE: 'info',
+}
 
-const BOARD_COLOR: Record<string, string> = {
-  건의게시판: 'suggest',
-  정보게시판: 'info',
+function getToken(): string | null {
+  try {
+    const raw = localStorage.getItem('user')
+    if (raw) {
+      const parsed = JSON.parse(raw)
+      if (parsed?.access_token) return parsed.access_token
+    }
+    return localStorage.getItem('access_token')
+  } catch { return null }
 }
 
 export default function MyCommentsPage() {
-  const [search, setSearch] = useState('')
+  const router = useRouter()
+  const [comments, setComments]       = useState<Comment[]>([])
+  const [total, setTotal]             = useState(0)
+  const [page, setPage]               = useState(1)
+  const [totalPages, setTotalPages]   = useState(1)
+  const [search, setSearch]           = useState('')
+  const [searchInput, setSearchInput] = useState('')
   const [boardFilter, setBoardFilter] = useState('전체')
   const [detailComment, setDetailComment] = useState<Comment | null>(null)
+  const [loading, setLoading]         = useState(true)
 
-  const filtered = dummyComments.filter(c => {
-    const matchSearch = c.content.includes(search) || c.postTitle.includes(search)
-    const matchBoard = boardFilter === '전체' || c.board === boardFilter
-    return matchSearch && matchBoard
-  })
+  const PER_PAGE = 10
+
+  const fetchComments = useCallback(async (p: number, s: string) => {
+    const token = getToken()
+    if (!token) { router.push('/login'); return }
+    setLoading(true)
+    try {
+      const res = await fetch(
+        `${API}/api/board/my-comments?page=${p}&per_page=${PER_PAGE}&search=${encodeURIComponent(s)}`,
+        { headers: { Authorization: `Bearer ${token}` } },
+      )
+      const data = await res.json()
+      if (data.success) {
+        setComments(data.comments)
+        setTotal(data.total)
+        setTotalPages(data.total_pages)
+      }
+    } finally {
+      setLoading(false)
+    }
+  }, [router])
+
+  useEffect(() => { fetchComments(page, search) }, [page, search, fetchComments])
+
+  const handleSearch = () => {
+    setPage(1)
+    setSearch(searchInput)
+  }
+
+  const filtered = boardFilter === '전체'
+    ? comments
+    : comments.filter(c => TYPE_LABEL[c.post_board_type] === boardFilter)
 
   const counts = {
-    total: dummyComments.length,
-    suggest: dummyComments.filter(c => c.board === '건의게시판').length,
-    info: dummyComments.filter(c => c.board === '정보게시판').length,
+    total:   total,
+    suggest: comments.filter(c => c.post_board_type === 'FREE').length,
+    info:    comments.filter(c => c.post_board_type !== 'FREE').length,
   }
 
   return (
@@ -78,9 +124,11 @@ export default function MyCommentsPage() {
               type="text"
               placeholder="댓글 내용, 게시글 제목 검색..."
               className={styles.search}
-              value={search}
-              onChange={e => setSearch(e.target.value)}
+              value={searchInput}
+              onChange={e => setSearchInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleSearch()}
             />
+            <button className={styles.searchBtn} onClick={handleSearch}>검색</button>
             <div className={styles.filterGroup}>
               {['전체', '건의게시판', '정보게시판'].map(f => (
                 <button
@@ -104,15 +152,19 @@ export default function MyCommentsPage() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.length > 0 ? filtered.map(c => (
+                {loading ? (
+                  <tr><td colSpan={5} className={styles.noData}>불러오는 중...</td></tr>
+                ) : filtered.length > 0 ? filtered.map(c => (
                   <tr key={c.id} className={styles.tr} onClick={() => setDetailComment(c)}>
                     <td className={styles.td}><span className={styles.idChip}>{c.id}</span></td>
                     <td className={styles.td}>
-                      <span className={`${styles.boardBadge} ${styles[BOARD_COLOR[c.board]]}`}>{c.board}</span>
+                      <span className={`${styles.boardBadge} ${styles[TYPE_COLOR[c.post_board_type] ?? 'suggest']}`}>
+                        {TYPE_LABEL[c.post_board_type] ?? c.post_board_type}
+                      </span>
                     </td>
-                    <td className={styles.td}><span className={styles.postRef}>{c.postTitle}</span></td>
+                    <td className={styles.td}><span className={styles.postRef}>{c.post_title}</span></td>
                     <td className={styles.td}><span className={styles.commentPreview}>{c.content}</span></td>
-                    <td className={styles.td}>{c.createdAt}</td>
+                    <td className={styles.td}>{c.created_at}</td>
                   </tr>
                 )) : (
                   <tr><td colSpan={5} className={styles.noData}>작성한 댓글이 없습니다</td></tr>
@@ -120,6 +172,28 @@ export default function MyCommentsPage() {
               </tbody>
             </table>
           </div>
+
+          {totalPages > 1 && (
+            <div className={styles.pagination}>
+              <button
+                className={styles.pageBtn}
+                disabled={page <= 1}
+                onClick={() => setPage(p => p - 1)}
+              >이전</button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(n => (
+                <button
+                  key={n}
+                  className={`${styles.pageBtn} ${page === n ? styles.pageBtnActive : ''}`}
+                  onClick={() => setPage(n)}
+                >{n}</button>
+              ))}
+              <button
+                className={styles.pageBtn}
+                disabled={page >= totalPages}
+                onClick={() => setPage(p => p + 1)}
+              >다음</button>
+            </div>
+          )}
 
         </div>
       </section>
@@ -129,15 +203,19 @@ export default function MyCommentsPage() {
           <div className={styles.modal} onClick={e => e.stopPropagation()}>
             <div className={styles.modalHeader}>
               <div className={styles.modalMeta}>
-                <span className={`${styles.boardBadge} ${styles[BOARD_COLOR[detailComment.board]]}`}>{detailComment.board}</span>
-                <span className={styles.modalDate}>{detailComment.createdAt}</span>
+                <span className={`${styles.boardBadge} ${styles[TYPE_COLOR[detailComment.post_board_type] ?? 'suggest']}`}>
+                  {TYPE_LABEL[detailComment.post_board_type] ?? detailComment.post_board_type}
+                </span>
+                <span className={styles.modalDate}>{detailComment.created_at}</span>
               </div>
               <button className={styles.modalClose} onClick={() => setDetailComment(null)}>✕</button>
             </div>
             <div className={styles.modalBody}>
               <div className={styles.modalPostRef}>
                 <span className={styles.modalPostLabel}>원본 게시글</span>
-                <span className={styles.modalPostTitle}>{detailComment.postTitle}</span>
+                <Link href={`/board/${detailComment.board_id}`} className={styles.modalPostTitle}>
+                  {detailComment.post_title}
+                </Link>
               </div>
               <div className={styles.modalCommentBox}>
                 <span className={styles.modalCommentLabel}>내 댓글</span>
