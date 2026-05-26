@@ -93,7 +93,7 @@ def detect_image():
     file = request.files['file']
     try:
         files = {"file": (file.filename, file.read(), file.content_type)}
-        response = requests.post(f"{AI_SERVER_URL}/api/ai/detect", files=files, timeout=60)
+        response = requests.post(f"{AI_SERVER_URL}/api/ai/detect", files=files, timeout=30)  # 60 → 30
         return jsonify(response.json()), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
