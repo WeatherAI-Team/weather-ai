@@ -59,6 +59,16 @@ class ChatbotService:
         if intent == "weather_help":
             return self._handle_weather_help()
 
+        # 사용자가 기상청 API나 악천후 판단 방식을 물어본 경우야.
+        if intent == "weather_api_help":
+            return self._handle_weather_api_help()
+        
+        if intent == "yolo_help":
+            return self._handle_yolo_help()
+
+        if intent == "board_help":
+            return self._handle_board_help()
+        
         # 사용자가 위험 상태를 물어본 경우야.
         if intent == "risk_status":
             return self._handle_risk_status(message)
@@ -387,6 +397,76 @@ class ChatbotService:
         if any(keyword in lower_message for keyword in weather_keywords):
             return "weather_help"
 
+        # 기상청 API와 악천후 판단 질문을 확인해.
+        # 예: "기상청 API는 왜 사용해?", "날씨 정보는 어디서 가져와?"
+        weather_api_keywords = [
+            # 기상청 API 관련
+            "기상청",
+            "기상청 api",
+            "날씨 api",
+            "날씨 정보",
+            "날씨 데이터",
+            "날씨는 어디서",
+            "기상 정보",
+            "기상 데이터",
+
+            # 악천후 판단 관련
+            "악천후 판단",
+            "악천후 심각도",
+            "감시 활성화",
+            "감시 on",
+            "감시 켜",
+            "감시 시작",
+            "날씨 판단",
+        ]
+
+        # 질문 안에 기상청 API나 악천후 판단 관련 단어가 있으면 weather_api_help로 판단해.
+        if any(keyword in lower_message for keyword in weather_api_keywords):
+            return "weather_api_help"
+
+        # YOLO와 차량 탐지 방식 질문을 확인해.
+        # 예: "YOLO는 뭐 하는 거야?", "차량 탐지는 어떻게 해?"
+        yolo_keywords = [
+            "yolo",
+            "욜로",
+            "차량 탐지 방식",
+            "차량은 어떻게 탐지",
+            "차량을 어떻게 탐지",
+            "탐지 방식",
+            "탐지 모델",
+            "객체 탐지",
+            "object detection",
+            "바운딩박스",
+            "바운딩 박스",
+            "신뢰도",
+            "탐지 신뢰도",
+        ]
+
+        # 질문 안에 YOLO나 차량 탐지 방식 관련 단어가 있으면 yolo_help로 판단해.
+        if any(keyword in lower_message for keyword in yolo_keywords):
+            return "yolo_help"
+
+        # 위험 이벤트 게시판과 자동 등록 질문을 확인해.
+        # 예: "위험 이벤트 게시판은 뭐야?", "알림이 오면 게시판에도 등록돼?"
+        board_keywords = [
+            "게시판",
+            "위험 이벤트 게시판",
+            "이벤트 게시판",
+            "게시판 등록",
+            "자동 등록",
+            "자동으로 등록",
+            "알림 등록",
+            "llm 제목",
+            "llm 본문",
+            "제목 생성",
+            "본문 생성",
+            "처리 상태",
+            "추가 조치",
+        ]
+
+        # 질문 안에 게시판이나 자동 등록 관련 단어가 있으면 board_help로 판단해.
+        if any(keyword in lower_message for keyword in board_keywords):
+            return "board_help"
         # CCTV 관련 질문을 확인해.
         # 예: "CCTV는 어디서 볼 수 있어?", "카메라 영상은 어디 있어?"
         cctv_keywords = [
@@ -692,7 +772,35 @@ class ChatbotService:
             "answer": "현재 Weather-AI의 MVP 범위는 폭우와 폭설 상황을 중심으로 하며, 주간과 야간 도로 환경을 함께 고려합니다. 안개와 복원 탐지는 MVP 범위에서 제외했습니다.",
             "data": None
         }
+    
+    def _handle_weather_api_help(self):
+        # 이 함수는 기상청 API와 악천후 판단 방식을 설명하는 곳이야.
 
+        return {
+            "intent": "weather_api_help",
+            "answer": "Weather-AI는 기상청 API를 통해 현재 도로 주변의 날씨 정보를 확인합니다. 이 날씨 정보를 바탕으로 폭우·폭설 같은 악천후 심각도를 판단하고, 감시를 활성화할지 결정합니다. 이후 탐지 결과와 함께 위험도 점수 산출에도 활용합니다.",
+            "data": None
+        }
+    
+    def _handle_yolo_help(self):
+    # 이 함수는 YOLO와 차량 탐지 방식을 설명하는 곳이야.
+
+        return {
+            "intent": "yolo_help",
+            "answer": "YOLO는 CCTV 영상에서 차량을 탐지하는 객체 탐지 모델입니다. Weather-AI는 YOLO를 통해 차량 위치, 차량 유형, 탐지 신뢰도 정보를 얻고, 이 결과를 바탕으로 위험 차량 여부와 위험도 점수를 계산합니다.",
+            "data": None
+        }
+
+
+    def _handle_board_help(self):
+        # 이 함수는 위험 이벤트 게시판과 자동 등록 기능을 설명하는 곳이야.
+
+        return {
+            "intent": "board_help",
+            "answer": "위험도 기준 이상 이벤트가 발생하면 관리자에게 알림이 전달되고, LLM이 생성한 제목과 본문을 기반으로 위험 이벤트 게시판에 자동 등록됩니다. 관리자는 게시판에서 이벤트 내용을 확인하고 처리 상태를 변경하거나 추가 조치를 기록할 수 있습니다.",
+            "data": None
+        }
+    
     def _handle_notification_help(self):
         # 이 함수는 알림 기준이나 알림 방식에 대한 질문에 답하는 곳이야.
 
