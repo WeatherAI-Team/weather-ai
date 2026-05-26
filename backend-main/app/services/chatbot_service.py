@@ -783,7 +783,7 @@ class ChatbotService:
         }
     
     def _handle_yolo_help(self):
-    # 이 함수는 YOLO와 차량 탐지 방식을 설명하는 곳이야.
+        # 이 함수는 YOLO와 차량 탐지 방식을 설명하는 곳이야.
 
         return {
             "intent": "yolo_help",
