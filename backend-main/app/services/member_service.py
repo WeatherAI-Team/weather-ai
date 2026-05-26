@@ -1,6 +1,7 @@
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 from ..repositories.member_repo import MemberRepository
+from ..repositories.social_account_repo import SocialAccountRepository
 from .auth_utils import create_access_token
 from ..models.member import Member
 import os
@@ -11,6 +12,7 @@ from .mail_service import send_password_reset_email
 class MemberService:
     def __init__(self):
         self.member_repo = MemberRepository()
+        self.social_account_repo = SocialAccountRepository()
 
     # 일반 회원가입
     def register_member(self, data):
@@ -39,8 +41,6 @@ class MemberService:
             real_name=real_name,
             role="user",
             active=True,
-            provider="local",
-            social_id=None,
             created_at=datetime.now(),
             updated_at=datetime.now(),
             last_login_at=None,
@@ -68,48 +68,22 @@ class MemberService:
             return {"success": False, "message": "탈퇴한 회원입니다."}
         if member.active is False:
             return {"success": False, "message": "비활성화된 계정입니다."}
-        if member.provider not in (None, "local"):
+        if not member.password:
             return {
                 "success": False,
                 "message": "소셜 로그인 계정입니다. 해당 소셜 로그인으로 접속해주세요."
-        }
+            }
         if not check_password_hash(member.password, password):
             return {"success": False, "message": "아이디 또는 비밀번호가 올바르지 않습니다."}
 
         self.member_repo.update_last_login(member)
-        access_token = create_access_token({"sub": str(member.id)})
+        access_token = create_access_token({"sub": str(member.id), "role": str(member.role)})
         return {
             "success": True,
             "message": "로그인 성공",
             "access_token": access_token,
             "token_type": "bearer",
             "data": self.to_public_dict(member)
-        }
-
-    # 소셜 로그인 (dev에서 가져옴)
-    def social_login_or_register(self, data):
-        member = self.member_repo.find_by_email(data['email'])
-        if not member:
-            member = Member(
-                login_id=f"{data['provider']}_{data['social_id'][:10]}",
-                password="SOCIAL_AUTH_USER",
-                email=data['email'],
-                nickname=data['nickname'],
-                role='user',
-                provider=data['provider']
-            )
-            self.member_repo.save(member)
-            message = f"{member.nickname}님, 첫 소셜 가입을 환영합니다!"
-        else:
-            message = f"{member.nickname}님, 로그인되었습니다."
-
-        access_token = create_access_token({"sub": str(member.id)})
-        return {
-            "success": True,
-            "message": message,
-            "access_token": access_token,
-            "token_type": "bearer",
-            "data": {"id": member.id, "nickname": member.nickname, "email": member.email}
         }
 
     # 회원 정보 조회
@@ -132,8 +106,6 @@ class MemberService:
             "profile_img_url": member.profile_img_url,
             "role": str(member.role),
             "active": member.active,
-            "provider": member.provider,
-            "social_id": member.social_id,
             "created_at": member.created_at.isoformat() if member.created_at else None,
             "updated_at": member.updated_at.isoformat() if member.updated_at else None,
             "last_login_at": member.last_login_at.isoformat() if member.last_login_at else None,
@@ -156,28 +128,37 @@ class MemberService:
                 "message": "해당 이메일로 가입된 회원이 없습니다."
             }
 
-        # 소셜 로그인 계정은 내부 login_id를 보여주지 않음
-        if member.provider not in (None, "local"):
-            provider_name_map = {
-                "kakao": "카카오",
-                "naver": "네이버",
-                "google": "구글",
-            }
-
-            provider_name = provider_name_map.get(member.provider, member.provider)
-
+        # 일반 회원이면 login_id 반환
+        if member.login_id and member.password:
             return {
                 "success": True,
-                "account_type": "social",
-                "provider": member.provider,
-                "message": f"해당 이메일은 {provider_name} 소셜 로그인으로 가입된 계정입니다. {provider_name} 로그인으로 접속해주세요."
+                "account_type": "local",
+                "message": "아이디를 찾았습니다.",
+                "login_id": member.login_id
+
             }
+
+        # 소셜 전용 회원이면 member_social_accounts에서 provider 조회
+        social_accounts = self.social_account_repo.find_all_by_member_id(member.id)
+
+        provider_name_map = {
+            "kakao": "카카오",
+            "naver": "네이버",
+            "google": "구글",
+        }
+
+        provider_names = [
+            provider_name_map.get(account.provider, account.provider)
+            for account in social_accounts
+        ]
+
+        provider_text = ", ".join(provider_names) if provider_names else "소셜"
 
         return {
             "success": True,
-            "account_type": "local",
-            "message": "아이디를 찾았습니다.",
-            "login_id": member.login_id
+            "account_type": "social",
+            "providers": [account.provider for account in social_accounts],
+            "message": f"해당 이메일은 {provider_text} 로그인으로 가입된 계정입니다. 해당 소셜 로그인으로 접속해주세요."
         }
     
      # 비밀번호 재설정 링크 요청
@@ -201,8 +182,7 @@ class MemberService:
         if not member or member.deleted_at is not None or member.active is False:
             return generic_response
 
-        # 소셜 로그인 회원은 비밀번호 재설정 대상에서 제외
-        if member.provider not in (None, "local"):
+        if not member.password:
             return generic_response
 
         # URL에 넣어도 안전한 랜덤 토큰 생성
@@ -258,12 +238,12 @@ class MemberService:
             }
 
         # 소셜 로그인 유저 차단
-        if member.provider in ("kakao", "google"):
+        if not member.password:
             return {
                 "success": False,
                 "message": "소셜 로그인 계정은 비밀번호를 변경할 수 없습니다."
             }
-
+        
         # 토큰 만료 확인
         if member.password_reset_token_expires_at < datetime.utcnow():
             return {
@@ -354,7 +334,7 @@ class MemberService:
             }
 
         # 소셜 로그인 계정은 비밀번호 변경 불가
-        if member.provider not in (None, "local"):
+        if not member.password:
             return {
                 "success": False,
                 "message": "소셜 로그인 계정은 비밀번호를 변경할 수 없습니다."

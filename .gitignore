@@ -46,3 +46,4 @@ Thumbs.db
 
 # --- 욜로 모델 파일 ---
 **/*.pt
+**/results.csv

@@ -1,10 +1,45 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import Hls from 'hls.js'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import styles from './page.module.css'
 import KakaoMap, { type RegionData } from '@/components/map/KakaoMap'
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL
+
+type DetectionApiItem = {
+  id: number
+  location_name: string | null
+  latitude: number | null
+  longitude: number | null
+  weather_type: string | null
+  main_vehicle_type: string | null
+  risk_level: string | null
+  risk_vehicle_count: number | null
+  total_vehicle_count: number | null
+  event_status: string | null
+  llm_title: string | null
+  llm_summary: string | null
+  detected_at: string | null
+}
+
+type EventItem = {
+  id: number
+  city: string; area: string; type: string; weather: string
+  count: number; status: string; time: string
+  llm_title: string | null; llm_summary: string | null
+}
+type LLMTarget = EventItem & { regionName: string; regionId: string }
+
+type CctvItem = {
+  cctvname: string
+  cctvurl: string
+  cctvformat: string
+  coordx: number
+  coordy: number
+}
 
 const sideMenus = [
   { label: '대시보드', href: '/admin', icon: '📊' },
@@ -16,14 +51,70 @@ const boardMenus = [
   { label: '정보게시판', href: '/board/info', icon: '📋' },
 ]
 
-const getLLMReport = (city: string, area: string, type: string, weather: string, count: number) =>
-  `${city} ${area} 구간에서 ${weather} 기상 조건 하에 ${type} 차량이 총 ${count}건 탐지되었습니다.\n\n해당 기상 조건은 시야 확보를 어렵게 하며 노면 마찰력을 저하시켜 위험물질 운반 차량의 사고 위험을 크게 높입니다. 특히 ${type}의 경우 급제동 시 적재물 쏠림 현상이 발생할 수 있으며, 충돌 시 위험물질 유출로 인한 2차 피해가 우려됩니다.\n\n즉각적인 해당 구간 모니터링 강화와 담당 기관 통보가 필요하며, 필요 시 차량 통행 제한 조치를 검토하시기 바랍니다.`
-
-type EventItem = {
-  city: string; area: string; type: string; weather: string
-  count: number; status: string; time: string
+const REGION_NAMES: Record<string, string> = {
+  seoul: '서울특별시', gyeonggi: '경기도', gangwon: '강원도',
+  chungbuk: '충청북도', chungnam: '충청남도', daejeon: '대전광역시',
+  jeonbuk: '전라북도', gwangju: '광주광역시', jeonnam: '전라남도',
+  gyeongbuk: '경상북도', daegu: '대구광역시', gyeongnam: '경상남도',
+  ulsan: '울산광역시', busan: '부산광역시', jeju: '제주특별자치도',
 }
-type LLMTarget = EventItem & { regionName: string }
+
+const REGION_BOUNDS = [
+  { id: 'seoul',     latMin: 37.41, latMax: 37.70, lngMin: 126.73, lngMax: 127.18 },
+  { id: 'busan',     latMin: 35.05, latMax: 35.40, lngMin: 128.74, lngMax: 129.32 },
+  { id: 'daegu',     latMin: 35.78, latMax: 35.98, lngMin: 128.45, lngMax: 128.73 },
+  { id: 'daejeon',   latMin: 36.25, latMax: 36.48, lngMin: 127.32, lngMax: 127.55 },
+  { id: 'gwangju',   latMin: 35.08, latMax: 35.27, lngMin: 126.74, lngMax: 127.00 },
+  { id: 'ulsan',     latMin: 35.46, latMax: 35.65, lngMin: 128.94, lngMax: 129.43 },
+  { id: 'jeju',      latMin: 33.10, latMax: 33.60, lngMin: 126.10, lngMax: 126.97 },
+  { id: 'gyeonggi',  latMin: 36.90, latMax: 38.30, lngMin: 126.40, lngMax: 127.90 },
+  { id: 'gangwon',   latMin: 37.00, latMax: 38.60, lngMin: 127.70, lngMax: 129.40 },
+  { id: 'chungbuk',  latMin: 36.10, latMax: 37.20, lngMin: 127.30, lngMax: 128.50 },
+  { id: 'chungnam',  latMin: 36.00, latMax: 37.10, lngMin: 125.90, lngMax: 127.30 },
+  { id: 'jeonbuk',   latMin: 35.50, latMax: 36.10, lngMin: 126.30, lngMax: 127.80 },
+  { id: 'jeonnam',   latMin: 33.90, latMax: 35.10, lngMin: 125.90, lngMax: 127.80 },
+  { id: 'gyeongbuk', latMin: 35.60, latMax: 37.20, lngMin: 127.90, lngMax: 130.00 },
+  { id: 'gyeongnam', latMin: 34.70, latMax: 35.60, lngMin: 127.50, lngMax: 129.50 },
+]
+
+function getRegionFromCoords(lat: number, lng: number): string | null {
+  for (const b of REGION_BOUNDS) {
+    if (lat >= b.latMin && lat <= b.latMax && lng >= b.lngMin && lng <= b.lngMax) return b.id
+  }
+  return null
+}
+
+const VEHICLE_TYPE_KO: Record<string, string> = {
+  RMC: '래미콘', Gas_Truck: '탱크로리', cargo_truck: '카고트럭', '25t_truck': '25톤 이상의 차량',
+}
+const WEATHER_KO: Record<string, string> = {
+  clear: '맑음', heavy_snow: '폭설', heavy_rain: '폭우', fog: '안개',
+}
+
+function toVehicleType(v: string | null) { return v ? (VEHICLE_TYPE_KO[v] ?? v) : '알 수 없음' }
+function toWeather(w: string | null) { return w ? (WEATHER_KO[w] ?? w) : '알 수 없음' }
+function toStatus(r: string | null) { return r === 'high' ? '위험' : '경고' }
+function toTime(iso: string | null) { return iso ? iso.slice(11, 16) : '--:--' }
+
+function HlsPlayer({ src, className }: { src: string; className?: string }) {
+  const videoRef = useRef<HTMLVideoElement>(null)
+  useEffect(() => {
+    const video = videoRef.current
+    if (!video || !src) return
+    let hls: Hls | null = null
+    if (Hls.isSupported()) {
+      hls = new Hls()
+      hls.loadSource(src)
+      hls.attachMedia(video)
+      hls.on(Hls.Events.MANIFEST_PARSED, () => { video.play().catch(() => {}) })
+    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      video.src = src
+      video.play().catch(() => {})
+    }
+    return () => { hls?.destroy() }
+  }, [src])
+  return <video ref={videoRef} className={className} autoPlay muted playsInline controls />
+}
 
 export default function MonitorPage() {
   const pathname = usePathname()
@@ -31,113 +122,82 @@ export default function MonitorPage() {
   const [selected, setSelected] = useState<string | null>(null)
   const [hovered, setHovered] = useState<string | null>(null)
   const [regionData, setRegionData] = useState<RegionData>({})
+  const [eventsByRegion, setEventsByRegion] = useState<Record<string, EventItem[]>>({})
   const [loading, setLoading] = useState(true)
   const [popupOpen, setPopupOpen] = useState(false)
   const [popupData, setPopupData] = useState<{ name: string; events: EventItem[] } | null>(null)
   const [llmTarget, setLlmTarget] = useState<LLMTarget | null>(null)
 
+  const [cctvList, setCctvList] = useState<CctvItem[]>([])
+  const [leftTab, setLeftTab] = useState<'map' | 'cctv'>('map')
+  const [leftCctvIdx, setLeftCctvIdx] = useState<number | null>(null)
+  const [rightCctvIdx, setRightCctvIdx] = useState<number | null>(null)
 
   useEffect(() => {
-    async function fetchRegionData() {
+    async function load() {
       try {
-        // 임시 더미 데이터 (API 연결 전까지 사용)
-        const dummyData: RegionData = {
-          seoul: { name: '서울특별시', total: 12, events: [
-            { city: '서울시', area: '강남구', type: 'LPG 화물차', weather: '폭설', count: 3, status: '위험', time: '11:05' },
-            { city: '서울시', area: '송파구', type: '탱크로리', weather: '폭우', count: 2, status: '경고', time: '09:20' },
-          ]},
-          gyeonggi: { name: '경기도', total: 24, events: [
-            { city: '수원시', area: '경부고속도로 상행', type: '탱크로리', weather: '폭우', count: 5, status: '위험', time: '14:22' },
-            { city: '성남시', area: '중부고속도로 하행', type: '화학물질 탱크', weather: '안개', count: 3, status: '경고', time: '09:40' },
-          ]},
-          gangwon: { name: '강원도', total: 8, events: [
-            { city: '춘천시', area: '중앙고속도로', type: 'LPG 화물차', weather: '폭설', count: 2, status: '위험', time: '13:10' },
-            { city: '강릉시', area: '동해고속도로', type: '탱크로리', weather: '강풍', count: 3, status: '경고', time: '10:30' },
-          ]},
-          chungbuk: { name: '충청북도', total: 6, events: [
-            { city: '청주시', area: '경부고속도로', type: '화학물질 탱크', weather: '폭우', count: 2, status: '경고', time: '12:00' },
-            { city: '충주시', area: '중부내륙고속도로', type: '탱크로리', weather: '안개', count: 1, status: '경고', time: '07:50' },
-          ]},
-          chungnam: { name: '충청남도', total: 5, events: [
-            { city: '천안시', area: '천안논산고속도로', type: 'LPG 화물차', weather: '폭우', count: 2, status: '위험', time: '11:40' },
-            { city: '아산시', area: '서해안고속도로', type: '탱크로리', weather: '강풍', count: 1, status: '경고', time: '09:00' },
-          ]},
-          daejeon: { name: '대전광역시', total: 4, events: [
-            { city: '대전시', area: '경부고속도로', type: '탱크로리', weather: '안개', count: 2, status: '경고', time: '09:30' },
-          ]},
-          jeonbuk: { name: '전라북도', total: 4, events: [
-            { city: '전주시', area: '호남고속도로', type: '화학물질 탱크', weather: '폭우', count: 2, status: '경고', time: '10:20' },
-          ]},
-          jeonnam: { name: '전라남도', total: 3, events: [
-            { city: '순천시', area: '남해고속도로', type: '탱크로리', weather: '안개', count: 1, status: '경고', time: '08:30' },
-          ]},
-          gyeongbuk: { name: '경상북도', total: 9, events: [
-            { city: '포항시', area: '동해고속도로', type: 'LPG 화물차', weather: '강풍', count: 3, status: '위험', time: '13:45' },
-            { city: '구미시', area: '경부고속도로', type: '탱크로리', weather: '폭우', count: 2, status: '경고', time: '11:00' },
-          ]},
-          daegu: { name: '대구광역시', total: 5, events: [
-            { city: '대구시', area: '경부고속도로', type: '화학물질 탱크', weather: '폭우', count: 2, status: '경고', time: '11:20' },
-          ]},
-          gyeongnam: { name: '경상남도', total: 7, events: [
-            { city: '창원시', area: '남해고속도로', type: '화학물질 탱크', weather: '폭우', count: 3, status: '위험', time: '12:30' },
-            { city: '진주시', area: '대전통영고속도로', type: '탱크로리', weather: '안개', count: 2, status: '경고', time: '09:15' },
-          ]},
-          ulsan: { name: '울산광역시', total: 4, events: [
-            { city: '울산시', area: '울산고속도로', type: '탱크로리', weather: '강풍', count: 2, status: '위험', time: '14:10' },
-          ]},
-          busan: { name: '부산광역시', total: 6, events: [
-            { city: '부산시', area: '부산외곽순환', type: 'LPG 화물차', weather: '폭우', count: 2, status: '위험', time: '14:00' },
-            { city: '부산시', area: '남해고속도로', type: '탱크로리', weather: '강풍', count: 2, status: '경고', time: '10:45' },
-          ]},
-          jeju: { name: '제주특별자치도', total: 2, events: [
-            { city: '제주시', area: '제주일주도로', type: 'LPG 화물차', weather: '강풍', count: 1, status: '경고', time: '13:00' },
-          ]},
+        const res  = await fetch(`${API_URL}/api/detections?per_page=200`)
+        const json = await res.json()
+        if (!json.success) throw new Error(json.message)
+        const items: DetectionApiItem[] = json.data.items
+        const buckets: Record<string, EventItem[]> = {}
+        for (const e of items) {
+          if (e.latitude == null || e.longitude == null) continue
+          const regionId = getRegionFromCoords(e.latitude, e.longitude)
+          if (!regionId) continue
+          if (!buckets[regionId]) buckets[regionId] = []
+          buckets[regionId].push({
+            id: e.id, city: REGION_NAMES[regionId], area: e.location_name ?? '위치 미상',
+            type: toVehicleType(e.main_vehicle_type), weather: toWeather(e.weather_type),
+            count: e.risk_vehicle_count ?? e.total_vehicle_count ?? 1,
+            status: toStatus(e.risk_level), time: toTime(e.detected_at),
+            llm_title: e.llm_title, llm_summary: e.llm_summary,
+          })
         }
-
-        setRegionData(dummyData)
-
-        // 실제 API 연결 시 아래 주석 해제
-        // const res = await fetch('/api/monitor/regions', { cache: 'no-store' })
-        // if (!res.ok) throw new Error('데이터 로드 실패')
-        // const data: RegionData = await res.json()
-        // setRegionData(data)
-
+        setEventsByRegion(buckets)
+        setRegionData(Object.fromEntries(
+          Object.entries(buckets).map(([id, evs]) => [id, { name: REGION_NAMES[id], total: evs.length, events: [] }])
+        ))
       } catch (error) {
-        console.error(error)
+        console.error('[Monitor] 탐지 데이터 로드 실패:', error)
       } finally {
         setLoading(false)
       }
     }
-    fetchRegionData()
+    load()
   }, [])
 
-  // useEffect(() => {
-  //   async function fetchRegionData() {
-  //     try {
-  //       const res = await fetch('/api/monitor/regions', { cache: 'no-store' })
-  //       if (!res.ok) throw new Error('데이터 로드 실패')
-  //       const data: RegionData = await res.json()
-  //       setRegionData(data)
-  //     } catch (error) {
-  //       console.error(error)
-  //     } finally {
-  //       setLoading(false)
-  //     }
-  //   }
-  //   fetchRegionData()
-  // }, [])
+  useEffect(() => {
+    fetch(`${API_URL}/api/cctv`)
+      .then(r => r.json())
+      .then(data => setCctvList(data?.response?.data ?? []))
+      .catch(() => {})
+  }, [])
+
+  const leftCctvs: CctvItem[] = (() => {
+    const regionId = llmTarget?.regionId || selected
+    if (!regionId) return []
+    const filtered = cctvList.filter(c => getRegionFromCoords(c.coordy, c.coordx) === regionId)
+    return llmTarget ? filtered.slice(0, llmTarget.count) : filtered
+  })()
+
+  const rightCctvs: CctvItem[] = llmTarget?.regionId
+    ? cctvList.filter(c => getRegionFromCoords(c.coordy, c.coordx) === llmTarget.regionId)
+    : []
 
   const handleRegionSelect = (id: string) => {
     setSelected(id)
-    const data = regionData[id]
-    if (data) {
-      setPopupData({ name: data.name, events: data.events })
+    setLeftCctvIdx(0)
+    const evs = eventsByRegion[id]
+    if (evs?.length) {
+      setPopupData({ name: REGION_NAMES[id] ?? id, events: evs })
       setPopupOpen(true)
     }
   }
 
   const handleEventClick = (event: EventItem, regionName: string) => {
-    setLlmTarget({ ...event, regionName })
+    setLlmTarget({ ...event, regionName, regionId: selected ?? '' })
+    setRightCctvIdx(0)
     setPopupOpen(false)
   }
 
@@ -174,31 +234,84 @@ export default function MonitorPage() {
         </div>
 
         <div className={styles.contentRow}>
-          {/* 지도 */}
+          {/* ── 좌측: 지도 / CCTV 탭 ── */}
           <div className={styles.mapPanel}>
             <div className={styles.mapHeader}>
               <span className={styles.mapTitle}>대한민국 지역별 탐지 현황</span>
               <span className={styles.liveBadge}>LIVE</span>
-              <span className={styles.mapHint}>🖱️ 지역 클릭 시 팝업 표시</span>
+              {leftTab === 'map' && <span className={styles.mapHint}>🖱️ 지역 클릭 시 팝업 표시</span>}
+              <div className={styles.mapTabs}>
+                <button
+                  className={`${styles.mapTab} ${leftTab === 'map' ? styles.mapTabActive : ''}`}
+                  onClick={() => setLeftTab('map')}
+                >🗺️ 지도</button>
+                <button
+                  className={`${styles.mapTab} ${leftTab === 'cctv' ? styles.mapTabActive : ''}`}
+                  onClick={() => setLeftTab('cctv')}
+                >📷 CCTV</button>
+              </div>
             </div>
-            <div className={styles.mapLegend}>
-              {[['#20436d','20건+'],['#07559d','10~19건'],['#1b9bd1','5~9건'],['#81c4e2','1~4건'],['#dbeafe','0건']].map(([c,l]) => (
-                <span key={l} className={styles.legendItem}>
-                  <span className={styles.legendBox} style={{ background: c }}/>{l}
-                </span>
-              ))}
-            </div>
-            <div className={styles.mapArea}>
-              {loading ? (
-                <p className={styles.loadingText}>지도 데이터를 불러오는 중입니다...</p>
-              ) : (
-                <KakaoMap selected={selected} hovered={hovered} regionData={regionData}
-                  onSelect={handleRegionSelect} onHover={setHovered} />
-              )}
-            </div>
+
+            {leftTab === 'map' && (
+              <div className={styles.mapLegend}>
+                {[['#20436d','20건+'],['#07559d','10~19건'],['#1b9bd1','5~9건'],['#81c4e2','1~4건'],['#dbeafe','0건']].map(([c,l]) => (
+                  <span key={l} className={styles.legendItem}>
+                    <span className={styles.legendBox} style={{ background: c }}/>{l}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {leftTab === 'map' ? (
+              <div className={styles.mapArea}>
+                {loading ? (
+                  <p className={styles.loadingText}>지도 데이터를 불러오는 중입니다...</p>
+                ) : (
+                  <KakaoMap selected={selected} hovered={hovered} regionData={regionData}
+                    onSelect={handleRegionSelect} onHover={setHovered} />
+                )}
+              </div>
+            ) : (
+              <div className={styles.cctvPanel}>
+                <div className={styles.cctvPlayerBox}>
+                  {leftCctvIdx !== null && leftCctvs[leftCctvIdx] ? (
+                    <HlsPlayer
+                      key={leftCctvs[leftCctvIdx].cctvurl}
+                      src={`${API_URL}/api/cctv/stream?url=${encodeURIComponent(leftCctvs[leftCctvIdx].cctvurl)}`}
+                      className={styles.cctvStream}
+                    />
+                  ) : (
+                    <div className={styles.cctvEmpty}>
+                      <span>📷</span>
+                      <p>{selected ? '이 지역의 연동된 CCTV가 없습니다' : '지도 탭에서 지역을 선택하세요'}</p>
+                    </div>
+                  )}
+                </div>
+                {leftCctvs.length > 0 && (
+                  <div className={styles.cctvList}>
+                    <p className={styles.cctvListTitle}>
+                      {selected ? `${REGION_NAMES[selected]} CCTV (${leftCctvs.length}개)` : '연동 CCTV 목록'}
+                    </p>
+                    {leftCctvs.map((cam, i) => (
+                      <button
+                        key={i}
+                        className={`${styles.cctvItem} ${leftCctvIdx === i ? styles.cctvItemActive : ''}`}
+                        onClick={() => setLeftCctvIdx(i)}
+                      >
+                        <span className={styles.cctvDotGreen} />
+                        <div>
+                          <p className={styles.cctvItemName}>{cam.cctvname}</p>
+                          <p className={styles.cctvItemMeta}>{cam.cctvformat} · {cam.coordy}, {cam.coordx}</p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
-          {/* LLM 패널 */}
+          {/* ── 우측: LLM + CCTV ── */}
           <div className={styles.rightPanel}>
 
             {/* 위치 */}
@@ -206,16 +319,14 @@ export default function MonitorPage() {
               <h3 className={styles.infoTitle}>위치</h3>
               <div className={styles.locationBox}>
                 {llmTarget ? (
-                  <p className={styles.locationText}>
-                    {llmTarget.regionName} · {llmTarget.city} {llmTarget.area}
-                  </p>
+                  <p className={styles.locationText}>{llmTarget.regionName} · {llmTarget.city} {llmTarget.area}</p>
                 ) : (
                   <p className={styles.locationEmpty}>지도에서 지역을 선택하세요</p>
                 )}
               </div>
             </div>
 
-            {/* LLM 정보 분석 결과 */}
+            {/* LLM 분석 결과 */}
             <div className={styles.infoSectionLarge}>
               <h3 className={styles.infoTitle}>🤖 LLM 정보 분석 결과</h3>
               <div className={styles.llmBox}>
@@ -228,8 +339,12 @@ export default function MonitorPage() {
                       <span className={styles.llmTime}>{llmTarget.time}</span>
                     </div>
                     <div className={styles.llmReport}>
-                      {getLLMReport(llmTarget.city, llmTarget.area, llmTarget.type, llmTarget.weather, llmTarget.count)
-                        .split('\n\n').map((p, i) => <p key={i}>{p}</p>)}
+                      {llmTarget.llm_summary
+                        ? llmTarget.llm_summary.split('\n\n').map((p: string, i: number) => <p key={i}>{p}</p>)
+                        : llmTarget.llm_title
+                          ? <p>{llmTarget.llm_title}</p>
+                          : <p>AI 분석 결과가 없습니다.</p>
+                      }
                     </div>
                   </>
                 ) : (
@@ -258,16 +373,46 @@ export default function MonitorPage() {
                         </span>
                       </div>
                     ))}
-                    <div className={styles.llmActions}>
-                      <button className={styles.actionBtn}>📋 리포트 저장</button>
-                      <button className={styles.actionBtnSecondary}>🔔 담당자 알림</button>
-                    </div>
                   </>
                 ) : (
                   <p className={styles.locationEmpty}>상세 정보가 여기에 표시됩니다</p>
                 )}
               </div>
             </div>
+
+            {/* CCTV 화면 */}
+            <div className={styles.infoSection}>
+              <h3 className={styles.infoTitle}>📷 연동 CCTV</h3>
+              <div className={styles.cctvSmallBox}>
+                {rightCctvIdx !== null && rightCctvs[rightCctvIdx] ? (
+                  <HlsPlayer
+                    key={rightCctvs[rightCctvIdx].cctvurl}
+                    src={`${API_URL}/api/cctv/stream?url=${encodeURIComponent(rightCctvs[rightCctvIdx].cctvurl)}`}
+                    className={styles.cctvSmallStream}
+                  />
+                ) : (
+                  <div className={styles.cctvEmpty}>
+                    <span>📷</span>
+                    <p>{llmTarget ? '해당 지역 연동 CCTV 없음' : '지역을 선택하세요'}</p>
+                  </div>
+                )}
+              </div>
+              {rightCctvs.length > 0 && (
+                <div className={styles.cctvSmallList}>
+                  {rightCctvs.map((cam, i) => (
+                    <button
+                      key={i}
+                      className={`${styles.cctvSmallItem} ${rightCctvIdx === i ? styles.cctvSmallItemActive : ''}`}
+                      onClick={() => setRightCctvIdx(i)}
+                    >
+                      <span className={styles.cctvDotGreen} />
+                      <span className={styles.cctvSmallName}>{cam.cctvname}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
           </div>
         </div>
       </main>
@@ -290,7 +435,7 @@ export default function MonitorPage() {
                       <span className={`${styles.popupDot} ${e.status === '위험' ? styles.dotDanger : styles.dotWarn}`}/>
                       <div>
                         <p className={styles.popupItemArea}>{e.city} · {e.area}</p>
-                        <p className={styles.popupItemMeta}>🚛 {e.type} · 🌧️ {e.weather} · ⏰ {e.time}</p>
+                        <p className={styles.popupItemMeta}>🚛 {e.type} · {e.weather === 'CLEAR' ? '☀️' : e.weather === 'SNOW' ? '🌨️' : (e.weather === 'HEAVY_RAIN' || e.weather === 'RAIN') ? '🌧️' : '🌤️'} {e.weather} · ⏰ {e.time}</p>
                       </div>
                     </div>
                     <span className={`${styles.popupCount} ${e.status === '위험' ? styles.countDanger : styles.countWarn}`}>

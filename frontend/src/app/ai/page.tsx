@@ -336,7 +336,7 @@ export default function AiPage() {
           </div>
 
           {tab === 'cctv' && (
-            <div className={styles.tabGrid}>
+            <div className={styles.cctvTabGrid}>
               <div className={styles.panel}>
                 <h2>{selected ? selected.cctvname : 'CCTV 실시간 화면'}</h2>
                 <div className={styles.cctvBox}>
