@@ -4,13 +4,15 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { usePathname } from 'next/navigation'
 import styles from './page.module.css'
+import { useNotification } from '@/contexts/NotificationContext'
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? ''
 
 const sideMenus = [
-  { label: '대시보드',  href: '/admin',         icon: '📊' },
-  { label: '관제센터',  href: '/admin/monitor',  icon: '📡' },
-  { label: '사용자관리', href: '/admin/users',   icon: '👥' },
+  { label: '대시보드',  href: '/admin',                icon: '📊' },
+  { label: '관제센터',  href: '/admin/monitor',         icon: '📡' },
+  { label: '알림이력',  href: '/admin/notifications',   icon: '🔔' },
+  { label: '사용자관리', href: '/admin/users',           icon: '👥' },
 ]
 
 const boardMenus = [
@@ -67,6 +69,7 @@ type Summary = {
 export default function ControlPage() {
   const pathname  = usePathname()
   const router    = useRouter()
+  const { unreadCount } = useNotification()
   const [boardOpen, setBoardOpen]   = useState(false)
   const [summary, setSummary]       = useState<Summary | null>(null)
   const [memberCount, setMemberCount] = useState<number | null>(null)
@@ -85,7 +88,7 @@ export default function ControlPage() {
       fetch(`${API}/api/admin/dashboard/weekly`,   { headers }).then(r => r.json()),
     ]).then(([dash, members, weekly]) => {
       if (dash.success)    setSummary(dash.data)
-      if (members.success) setMemberCount(members.data?.total ?? null)
+      if (members.success) setMemberCount(members.data?.pagination?.total ?? null)
       if (weekly.success)  setWeeklyData(weekly.data)
     }).catch(console.error).finally(() => setLoading(false))
   }, [router])
@@ -131,6 +134,9 @@ export default function ControlPage() {
             >
               <span className={styles.sideIcon}>{m.icon}</span>
               {m.label}
+              {m.href === '/admin/notifications' && unreadCount > 0 && (
+                <span className={styles.notiBadge}>{unreadCount > 99 ? '99+' : unreadCount}</span>
+              )}
             </Link>
           ))}
 
@@ -207,6 +213,49 @@ export default function ControlPage() {
           </div>
 
           <div className={styles.panel}>
+            <h2 className={styles.panelTitle}>
+              최근 알림 필요 이벤트 (최근 5개)
+              <Link href="/admin/notifications" className={styles.panelViewAll}>전체보기 →</Link>
+            </h2>
+            <div className={styles.alertList}>
+              {(summary?.recent_events ?? []).filter(e => e.alert_required).slice(0, 5).length === 0 && (
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem' }}>알림 이벤트가 없습니다.</p>
+              )}
+              {(summary?.recent_events ?? []).filter(e => e.alert_required).slice(0, 5).map(e => (
+                <Link key={e.id} href="/admin/notifications" className={styles.alertItem}>
+                  <span className={`${styles.alertIcon} ${e.risk_level === 'high' ? styles.alertDanger : styles.alertWarn}`}>
+                    {e.risk_level === 'high' ? '🚨' : '⚠️'}
+                  </span>
+                  <span className={styles.alertMsg}>{e.llm_title || e.event_title}</span>
+                  <span className={styles.alertTime}>
+                    {e.detected_at ? new Date(e.detected_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }) : '-'}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* 하단 패널 (주간 탐지 현황 + 날씨별 탐지 통계) */}
+        <div className={styles.bottomRow}>
+          <div className={styles.panel}>
+            <h2 className={styles.panelTitle}>주간 탐지 현황 (최근 7일)</h2>
+            <div className={styles.weekChart}>
+              {weeklyData.length === 0 ? (
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem' }}>데이터가 없습니다.</p>
+              ) : weeklyData.map(d => (
+                <div key={d.day} className={styles.weekCol}>
+                  <span className={styles.weekDay}>{d.day}</span>
+                  <div className={styles.weekBarWrap}>
+                    <div className={styles.weekBar} style={{ width: `${(d.count / maxWeekly) * 100}%` }} />
+                  </div>
+                  <span className={styles.weekCount}>{d.count}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className={styles.panel}>
             <h2 className={styles.panelTitle}>날씨별 탐지 통계</h2>
             <div className={styles.chartWrap}>
               <div className={styles.donutWrap}>
@@ -272,46 +321,6 @@ export default function ControlPage() {
                   </div>
                 ))}
               </div>
-            </div>
-          </div>
-        </div>
-
-        {/* 하단 패널 (주간 탐지 현황 + 알림 이벤트) */}
-        <div className={styles.bottomRow}>
-          <div className={styles.panel}>
-            <h2 className={styles.panelTitle}>주간 탐지 현황 (최근 7일)</h2>
-            <div className={styles.weekChart}>
-              {weeklyData.length === 0 ? (
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem' }}>데이터가 없습니다.</p>
-              ) : weeklyData.map(d => (
-                <div key={d.day} className={styles.weekCol}>
-                  <span className={styles.weekDay}>{d.day}</span>
-                  <div className={styles.weekBarWrap}>
-                    <div className={styles.weekBar} style={{ width: `${(d.count / maxWeekly) * 100}%` }} />
-                  </div>
-                  <span className={styles.weekCount}>{d.count}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className={styles.panel}>
-            <h2 className={styles.panelTitle}>최근 알림 필요 이벤트 (최근 5개)</h2>
-            <div className={styles.alertList}>
-              {(summary?.recent_events ?? []).filter(e => e.alert_required).slice(0, 5).length === 0 && (
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem' }}>알림 이벤트가 없습니다.</p>
-              )}
-              {(summary?.recent_events ?? []).filter(e => e.alert_required).slice(0, 5).map(e => (
-                <div key={e.id} className={styles.alertItem}>
-                  <span className={`${styles.alertIcon} ${e.risk_level === 'high' ? styles.alertDanger : styles.alertWarn}`}>
-                    {e.risk_level === 'high' ? '🚨' : '⚠️'}
-                  </span>
-                  <span className={styles.alertMsg}>{e.llm_title || e.event_title}</span>
-                  <span className={styles.alertTime}>
-                    {e.detected_at ? new Date(e.detected_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }) : '-'}
-                  </span>
-                </div>
-              ))}
             </div>
           </div>
         </div>

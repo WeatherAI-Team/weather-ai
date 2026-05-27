@@ -3,11 +3,13 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import styles from './page.module.css'
+import { useNotification } from '@/contexts/NotificationContext'
 
 const sideMenus = [
-  { label: '대시보드', href: '/admin', icon: '📊' },
-  { label: '관제센터', href: '/admin/monitor', icon: '📡' },
-  { label: '사용자관리', href: '/admin/users', icon: '👥' },
+  { label: '대시보드',  href: '/admin',                icon: '📊' },
+  { label: '관제센터',  href: '/admin/monitor',         icon: '📡' },
+  { label: '알림이력',  href: '/admin/notifications',   icon: '🔔' },
+  { label: '사용자관리', href: '/admin/users',           icon: '👥' },
 ]
 const boardMenus = [
   { label: '건의게시판', href: '/board/suggest', icon: '💬' },
@@ -31,6 +33,7 @@ type User = {
 
 export default function UsersPage() {
   const pathname = usePathname()
+  const { unreadCount } = useNotification()
   const [boardOpen, setBoardOpen] = useState(false)
   const [users, setUsers] = useState<User[]>([])
   const [search, setSearch] = useState('')
@@ -98,6 +101,9 @@ export default function UsersPage() {
             <Link key={m.href} href={m.href}
               className={`${styles.sideItem} ${pathname === m.href ? styles.sideActive : ''}`}>
               <span className={styles.sideIcon}>{m.icon}</span>{m.label}
+              {m.href === '/admin/notifications' && unreadCount > 0 && (
+                <span className={styles.notiBadge}>{unreadCount > 99 ? '99+' : unreadCount}</span>
+              )}
             </Link>
           ))}
           <button className={`${styles.sideItem} ${styles.sideDropBtn}`} onClick={() => setBoardOpen(!boardOpen)}>

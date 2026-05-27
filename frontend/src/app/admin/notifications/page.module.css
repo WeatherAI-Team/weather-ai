@@ -1,0 +1,597 @@
+/* ── 전체 레이아웃 ── */
+.layout {
+  display: flex;
+  min-height: 100vh;
+  background: #f4f7f9;
+}
+
+/* ── 사이드바 ── */
+.sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  background: var(--dark-navy);
+  display: flex;
+  flex-direction: column;
+  padding: 24px 0;
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  z-index: 50;
+  overflow-y: auto;
+}
+.sideLogoWrap {
+  padding: 0 20px 24px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+}
+.logoLink { display: flex; align-items: center; }
+.sideNav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 10px;
+}
+.sideItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 14px;
+  border-radius: 10px;
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: rgba(255,255,255,0.95);
+  text-decoration: none;
+  transition: all 0.2s;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  width: 100%;
+  text-align: left;
+}
+.sideItem:hover { background: rgba(255,255,255,0.08); }
+.sideActive {
+  background: rgba(27,155,209,0.25);
+  color: white;
+  font-weight: 700;
+}
+.sideIcon { font-size: 1rem; }
+
+/* 알림 배지 */
+.notiBadge {
+  margin-left: auto;
+  background: #e43b3b;
+  color: white;
+  font-size: 0.65rem;
+  font-weight: 700;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5px;
+  animation: badgePulse 2s ease-in-out infinite;
+}
+@keyframes badgePulse {
+  0%,100% { box-shadow: 0 0 0 0 rgba(228,59,59,0.5); }
+  50%      { box-shadow: 0 0 0 4px rgba(228,59,59,0); }
+}
+
+.sideDropBtn { justify-content: flex-start; }
+.arrow {
+  margin-left: auto;
+  font-size: 0.7rem;
+  transition: transform 0.2s;
+  color: rgba(255,255,255,0.4);
+}
+.arrowOpen { transform: rotate(180deg); }
+.subMenu {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 4px 0 4px 16px;
+}
+.subItem {
+  display: block;
+  padding: 9px 14px;
+  border-radius: 8px;
+  font-size: 0.83rem;
+  color: rgba(255,255,255,0.9);
+  text-decoration: none;
+  transition: all 0.2s;
+}
+.subItem:hover { background: rgba(255,255,255,0.06); }
+
+/* ── 메인 ── */
+.main {
+  margin-left: 220px;
+  flex: 1;
+  padding: 32px;
+  padding-top: calc(var(--header-h) - 60px);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.topBar { display: flex; align-items: center; justify-content: space-between; }
+.pageTitle {
+  font-family: 'Exo 2', sans-serif;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--dark-navy);
+  letter-spacing: -0.02em;
+}
+
+/* ── 필터 바 ── */
+.filterBar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: white;
+  padding: 14px 20px;
+  border-radius: 12px;
+  border: 1.5px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  flex-wrap: wrap;
+}
+.filterLabel {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.filterSelect {
+  padding: 6px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.84rem;
+  color: var(--dark-navy);
+  background: #f8fbff;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.filterSelect:focus { border-color: var(--primary); }
+.totalCount {
+  margin-left: auto;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+/* ── 테이블 ── */
+.tableWrap {
+  background: white;
+  border-radius: 14px;
+  border: 1.5px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  overflow-x: auto;
+}
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+.th {
+  padding: 14px 16px;
+  text-align: left;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  background: #f8fbff;
+  border-bottom: 1.5px solid var(--border);
+  white-space: nowrap;
+}
+.th:first-child { border-radius: 12px 0 0 0; }
+.th:last-child  { border-radius: 0 12px 0 0; }
+
+.tr {
+  border-bottom: 1px solid #f0f4f8;
+  transition: background 0.15s;
+}
+.tr:hover { background: #f8fbff; }
+.trUrgent { background: #fff8f8; }
+.trUrgent:hover { background: #fff0f0; }
+.trClickable { cursor: pointer; }
+
+.td {
+  padding: 13px 16px;
+  color: var(--dark-navy);
+  vertical-align: middle;
+}
+.tdContent {
+  max-width: 280px;
+  word-break: break-word;
+  font-weight: 500;
+}
+
+.emptyCell {
+  padding: 48px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+}
+
+/* ── 배지들 ── */
+.badgeUrgent {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #ffe0e0;
+  color: #c0392b;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.badgeNormal {
+  display: inline-flex;
+  align-items: center;
+  background: #e8f4fb;
+  color: #20436d;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+.weatherBadge {
+  display: inline-flex;
+  align-items: center;
+  background: #b5dff3;
+  color: #20436d;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 999px;
+  min-width: 44px;
+  justify-content: center;
+}
+.resolved {
+  color: #27ae60;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+.unresolved {
+  color: #e67e22;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+/* ── 확인 여부 버튼 ── */
+.confirmedBtn {
+  padding: 4px 11px;
+  background: #eafaf1;
+  color: #27ae60;
+  border: 1.5px solid #27ae60;
+  border-radius: 7px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.confirmedBtn:hover { background: #d5f5e3; }
+
+.unconfirmedBtn {
+  padding: 4px 11px;
+  background: #fff8ef;
+  color: #e67e22;
+  border: 1.5px solid #e67e22;
+  border-radius: 7px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.unconfirmedBtn:hover { background: #fde8cc; }
+
+/* ── 처리 버튼들 ── */
+.resolveBtn {
+  padding: 5px 12px;
+  background: var(--primary, #07559d);
+  color: white;
+  border: none;
+  border-radius: 7px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+.resolveBtn:hover { background: #1b9bd1; }
+
+.cancelBtn {
+  padding: 5px 12px;
+  background: #f0f4f8;
+  color: #e43b3b;
+  border: 1.5px solid #e43b3b;
+  border-radius: 7px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.cancelBtn:hover { background: #ffe0e0; }
+
+/* ── 모달 ── */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(7, 18, 40, 0.55);
+  backdrop-filter: blur(3px);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  overflow-y: auto;
+}
+
+.modal {
+  background: white;
+  border-radius: 18px;
+  width: 100%;
+  max-width: 860px;
+  max-height: 88vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 24px 64px rgba(7,18,40,0.28);
+  animation: modalIn 0.22s ease;
+}
+@keyframes modalIn {
+  from { opacity: 0; transform: translateY(16px) scale(0.98); }
+  to   { opacity: 1; transform: none; }
+}
+
+.modalHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 22px 26px 18px;
+  border-bottom: 1.5px solid var(--border);
+  background: #f8fbff;
+}
+.modalHeaderUrgent { background: #fff5f5; border-bottom-color: #ffd0d0; }
+
+.modalTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+.modalUrgentBadge { flex-shrink: 0; }
+.modalTitle {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--dark-navy);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.modalHeaderActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.readBtnModal {
+  padding: 7px 16px;
+  background: var(--primary, #07559d);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+.readBtnModal:hover { background: #1b9bd1; }
+.closeBtn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: #e8f0f8;
+  color: var(--dark-navy);
+  font-size: 0.9rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+.closeBtn:hover { background: #d0e0ef; }
+
+.modalBody {
+  overflow-y: auto;
+  padding: 24px 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.modalLoading {
+  text-align: center;
+  padding: 60px;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+/* 상태 칩 */
+.infoChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  background: #e8f4fb;
+  color: #20436d;
+}
+.chipDanger  { background: #ffe0e0; color: #c0392b; }
+.chipBlue    { background: #e8f4fb; color: #20436d; }
+.chipGreen   { background: #e8f8f0; color: #27ae60; }
+.chipOrange  { background: #fff3e0; color: #e67e22; }
+.chipTime    { font-size: 0.75rem; color: var(--text-muted); font-weight: 500; }
+
+/* 2열 그리드 */
+.modalGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+@media (max-width: 640px) { .modalGrid { grid-template-columns: 1fr; } }
+
+/* 섹션 */
+.modalSection {
+  background: #f8fbff;
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  padding: 18px 20px;
+}
+.sectionTitle {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--dark-navy);
+  margin-bottom: 14px;
+}
+
+/* AI 분석 */
+.decisionRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.decisionLabel { font-size: 0.78rem; color: var(--text-muted); font-weight: 600; }
+.decisionValue { font-size: 0.82rem; font-weight: 700; }
+
+.llmBlock { margin-bottom: 12px; }
+.llmSubLabel {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 4px;
+}
+.llmText {
+  font-size: 0.85rem;
+  color: var(--dark-navy);
+  line-height: 1.6;
+}
+.emptyText { font-size: 0.84rem; color: var(--text-muted); }
+
+/* CCTV */
+.cctvPlaceholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 140px;
+  background: #eef4fa;
+  border-radius: 10px;
+  gap: 8px;
+}
+.cctvIcon { font-size: 2rem; }
+.cctvMsg  { font-size: 0.84rem; color: var(--dark-navy); font-weight: 600; }
+.cctvSub  { font-size: 0.76rem; color: var(--text-muted); }
+
+/* 위치 */
+.locationRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.locationInfo { display: flex; flex-direction: column; gap: 8px; }
+.locItem      { display: flex; gap: 12px; align-items: baseline; }
+.locLabel     { font-size: 0.76rem; font-weight: 600; color: var(--text-muted); width: 40px; flex-shrink: 0; }
+.locValue     { font-size: 0.88rem; color: var(--dark-navy); font-weight: 500; }
+.mapBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 16px;
+  background: #ffeb00;
+  color: #3c1e1e;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: opacity 0.15s;
+  flex-shrink: 0;
+}
+.mapBtn:hover { opacity: 0.85; }
+
+/* 차량 통계 */
+.vehicleGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+  gap: 10px;
+}
+.vehicleStat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: white;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 8px;
+  gap: 4px;
+}
+.vehicleStatDanger { border-color: #ffb3b3; background: #fff5f5; }
+.vehicleStatAccent { border-color: #b3d4f5; background: #f0f8ff; }
+.vehicleNum        { font-size: 1.4rem; font-weight: 700; color: var(--dark-navy); }
+.vehicleNumText    { font-size: 0.88rem !important; text-align: center; }
+.vehicleStatLabel  { font-size: 0.72rem; color: var(--text-muted); font-weight: 600; }
+
+/* ── 페이지네이션 ── */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+}
+.pageBtn {
+  padding: 7px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  background: white;
+  color: var(--dark-navy);
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.pageBtn:hover:not(:disabled) { background: #e8f4fb; border-color: var(--primary); }
+.pageBtn:disabled { opacity: 0.35; cursor: not-allowed; }
+.pageBtnActive {
+  background: var(--primary, #07559d);
+  color: white;
+  border-color: var(--primary, #07559d);
+}
+
+/* ── 반응형 ── */
+@media (max-width: 768px) {
+  .sidebar { display: none; }
+  .main { margin-left: 0; padding: 16px; }
+}
