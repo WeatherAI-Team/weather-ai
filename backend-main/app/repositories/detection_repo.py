@@ -122,5 +122,15 @@ class DetectionRepository:
         return DetectionEvent.query.filter(
             DetectionEvent.id == detection_id
         ).first()
+    
+    def create_detection_event(self, data: dict):
+        # 탐지 이벤트를 DB에 새로 저장해.
+        event = DetectionEvent(**data)
+
+        from app import db
+        db.session.add(event)
+        db.session.flush()
+
+        return event
 
         
