@@ -1,5 +1,8 @@
 import os
 import pytest
+from dotenv import load_dotenv
+
+load_dotenv()
 
 from app.services.gemma_service import judge_weather_gate, generate_final_alert
 
@@ -48,15 +51,23 @@ def test_generate_final_alert():
     print("최종 알림 결과:", final_result)
 
     assert isinstance(final_result, dict)
+
     assert "risk_level" in final_result
+    assert "title" in final_result
     assert "admin_message" in final_result
     assert "driver_message" in final_result
     assert "reason" in final_result
+    assert "alert_required" in final_result
+    assert "false_positive_suspected" in final_result
 
     assert final_result["risk_level"] in ["LOW", "NORMAL", "CAUTION", "DANGER"]
+    assert isinstance(final_result["title"], str)
     assert isinstance(final_result["admin_message"], str)
     assert isinstance(final_result["driver_message"], str)
     assert isinstance(final_result["reason"], str)
+    assert isinstance(final_result["alert_required"], bool)
+    assert isinstance(final_result["false_positive_suspected"], bool)
 
+    assert len(final_result["title"]) > 0
     assert len(final_result["admin_message"]) > 0
     assert len(final_result["driver_message"]) > 0

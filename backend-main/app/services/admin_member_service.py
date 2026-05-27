@@ -59,15 +59,33 @@ class AdminMemberService:
             "success": True,
             "data": self._member_to_dict(member)
         }
+    
+    def _get_display_login_id(self, member):
+        if member.login_id:
+            return member.login_id
+
+        if member.email and "@" in member.email:
+            return member.email.split("@")[0]
+
+        return "-"
 
     # Member 객체를 JSON으로 바꿔주는 함수
     # 비밀번호는 절대 보내면 안 되기 때문에 password는 제외해.
     def _member_to_dict(self, member):
         social = MemberSocialAccount.query.filter_by(member_id=member.id).first()
         provider = social.provider if social else None
+        display_login_id = self._get_display_login_id(member)
+
         return {
             "id": member.id,
-            "login_id": member.login_id,
+
+            # 관리자 화면에서 빈칸 안 뜨게 표시용 값으로 내려줌
+            "login_id": display_login_id,
+            "loginId": display_login_id,
+
+            # 원래 DB login_id도 필요하면 보관용으로 같이 내려줌
+            "raw_login_id": member.login_id,
+            
             "email": member.email,
             "real_name": member.real_name,
             "nickname": member.nickname,

@@ -146,6 +146,9 @@ class SocialAuthService:
             user_data = {
                 "id": member.id,
                 "login_id": member.login_id,
+                "display_login_id": member.login_id or (
+                    member.email.split("@")[0] if member.email and "@" in member.email else "-"
+                ),
                 "email": member.email,
                 "real_name": member.real_name,
                 "nickname": member.nickname,
