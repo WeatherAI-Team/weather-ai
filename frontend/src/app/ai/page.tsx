@@ -29,6 +29,13 @@ type CctvItem = {
   coordy: number
 }
 
+type DetectInfo = {
+  weather: string
+  confidence: number
+  hasDangerVehicle: boolean
+  is_danger: boolean
+}
+
 const REGIONS = [
   { label: '전체',  keywords: [] },
   { label: '서울',  keywords: ['서울'] },
@@ -108,7 +115,7 @@ function BoundingBoxOverlay({ src, detections }: { src: string; detections: Dete
 }
 
 // ── HLS 플레이어 + AI 바운딩박스 컴포넌트 ──
-function HlsPlayer({ src, className }: { src: string; className?: string }) {
+function HlsPlayer({ src, className, onDetect }: { src: string; className?: string; onDetect?: (info: DetectInfo | null) => void }) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const overlayRef = useRef<HTMLCanvasElement>(null)
@@ -180,19 +187,8 @@ function HlsPlayer({ src, className }: { src: string; className?: string }) {
             octx.clearRect(0, 0, overlay.width, overlay.height)
 
             if (data.success) {
-              // 날씨/위험차량 정보 텍스트 오버레이
-              const weatherColor = data.is_danger ? '#e74c3c' : '#2ecc71'
-              octx.fillStyle = 'rgba(0,0,0,0.5)'
-              octx.fillRect(10, 10, 280, 60)
-              octx.fillStyle = weatherColor
-              octx.font = 'bold 16px sans-serif'
-              octx.fillText(`날씨: ${data.weather} (${data.confidence}%)`, 20, 35)
-              const hasDangerVehicle = data.yolo_boxes && data.yolo_boxes.length > 0
-              octx.fillStyle = hasDangerVehicle ? '#e74c3c' : '#2ecc71'
-              octx.fillText(
-                hasDangerVehicle ? '⚠️ 위험차량: 감지됨' : '✅ 위험차량: 없음',
-                20, 58
-              )
+              const hasDangerVehicle = !!(data.yolo_boxes && data.yolo_boxes.length > 0)
+              onDetect?.({ weather: data.weather, confidence: data.confidence, hasDangerVehicle, is_danger: data.is_danger })
 
               // YOLO 바운딩박스 그리기
               if (data.yolo_boxes && data.yolo_boxes.length > 0) {
@@ -271,11 +267,14 @@ export default function AiPage() {
   const [cctvList, setCctvList] = useState<CctvItem[]>([])
   const [cctvLoading, setCctvLoading] = useState(false)
   const [selectedRegion, setSelectedRegion] = useState('전체')
+  const [detectInfo, setDetectInfo] = useState<DetectInfo | null>(null)
 
   const [uploading, setUploading] = useState(false)
   const [result, setResult] = useState<Result | null>(null)
   const [uploadedUrl, setUploadedUrl] = useState<string | null>(null)
   const [isImage, setIsImage] = useState(false)
+
+  useEffect(() => { setDetectInfo(null) }, [selectedCctv])
 
   useEffect(() => {
     if (tab !== 'cctv') return
@@ -359,12 +358,23 @@ export default function AiPage() {
             <div className={styles.cctvTabGrid}>
               <div className={styles.panel}>
                 <h2>{selected ? selected.cctvname : 'CCTV 실시간 화면'}</h2>
+              {selected && detectInfo && (
+                <div className={styles.cctvDetectBar}>
+                  <span style={{ color: detectInfo.is_danger ? '#e74c3c' : '#20436d' }}>
+                    날씨: {detectInfo.weather} ({detectInfo.confidence}%)
+                  </span>
+                  <span style={{ color: detectInfo.hasDangerVehicle ? '#e74c3c' : '#20436d' }}>
+                    {detectInfo.hasDangerVehicle ? '⚠️ 위험차량: 감지됨' : '✅ 위험차량: 없음'}
+                  </span>
+                </div>
+              )}
                 <div className={styles.cctvBox}>
                   {selected ? (
                     <HlsPlayer
                       key={selected.cctvurl}
                       src={`${BACKEND_URL}/api/cctv/stream?url=${encodeURIComponent(selected.cctvurl)}`}
                       className={styles.cctvStream}
+                      onDetect={setDetectInfo}
                     />
                   ) : (
                     <div className={styles.cctvEmpty}>
