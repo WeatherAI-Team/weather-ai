@@ -52,7 +52,8 @@ function isAdmin(): boolean {
 export function NotificationProvider({ children }: { children: ReactNode }) {
   const [unreadCount, setUnreadCount] = useState(0)
   const [notifications, setNotifications] = useState<Notification[]>([])
-  const esRef = useRef<EventSource | null>(null)
+  const esRef    = useRef<EventSource | null>(null)
+  const lastIdRef = useRef<number>(0)
 
   useEffect(() => {
     const token = getToken()
@@ -68,14 +69,16 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       .then(data => { if (data.success) setUnreadCount(data.data.count) })
       .catch(() => {})
 
-    // SSE 실시간 연결 (토큰을 쿼리 파라미터로 전달 - EventSource는 헤더 설정 불가)
+    // SSE 실시간 연결 (토큰과 last_id를 쿼리 파라미터로 전달)
     const connect = () => {
-      const es = new EventSource(`${API}/api/admin/notifications/stream?token=${token}`)
+      const url = `${API}/api/admin/notifications/stream?token=${token}&last_id=${lastIdRef.current}`
+      const es = new EventSource(url)
       esRef.current = es
 
       es.addEventListener('notification', (e) => {
         try {
           const notification: Notification = JSON.parse(e.data)
+          lastIdRef.current = Math.max(lastIdRef.current, notification.id)
           setNotifications(prev => [notification, ...prev].slice(0, 100))
           setUnreadCount(prev => prev + 1)
         } catch {}
@@ -83,7 +86,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
       es.onerror = () => {
         es.close()
-        // 5초 후 재연결
+        // 5초 후 재연결 (last_id를 유지한 채 재연결)
         setTimeout(connect, 5000)
       }
     }
