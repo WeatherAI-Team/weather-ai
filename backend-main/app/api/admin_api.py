@@ -19,10 +19,4 @@ def get_stats():
     ).group_by(EventLog.risk_level).all()
     return jsonify(dict(stats))
 
-# 3. 과거 알림 내역 확인
-@admin_bp.route('/notifications', methods=['GET'])
-def get_notifications():
-    logs = EventLog.query.order_by(EventLog.created_at.desc()).all()
-    return jsonify([{
-        "id": l.id, "level": l.risk_level, "msg": l.message, "time": l.created_at.strftime('%Y-%m-%d %H:%M:%S')
-    } for l in logs])
+# /notifications 라우트는 notification_api.py (notification_bp)로 이전됨
