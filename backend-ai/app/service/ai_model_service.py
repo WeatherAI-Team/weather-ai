@@ -22,10 +22,17 @@ STATIC_DIR = os.getenv('STATIC_DIR', 'static')
 class AIModelService:
 
     def __init__(self):
-        print("[AI] 모델 로딩 중...")
-        self.keras_model = keras.models.load_model('weather_danger_finetuned_model.keras')
-        self.yolo_model = YOLO('best.pt')
-        print("[AI] 모든 모델 로딩 완료!")
+        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        keras_path = os.path.join(base_dir, 'weather_classifier_model.keras')
+        yolo_path = os.path.join(base_dir, 'best.pt')
+
+        print(f"[AI] 케라스 모델 경로: {keras_path}")
+        print(f"[AI] YOLO 모델 경로: {yolo_path}")
+
+        self.keras_model = keras.models.load_model(keras_path)
+        self.yolo_model = YOLO(yolo_path)
+        print(f"[AI] 케라스 출력 shape: {self.keras_model.output_shape}")
+        print("[AI] 모델 로드 완료")
 
         self.is_analyzing = False
         self.stop_requested = False
@@ -68,13 +75,16 @@ class AIModelService:
         img = img / 255.0
         img = np.expand_dims(img, axis=0)
 
-        pred_weather, pred_danger = self.keras_model.predict(img, verbose=0)
+        output = self.keras_model.predict(img, verbose=0)
+        print(f"[AI] 모델 출력 shape: {output.shape}, 값: {output}")
 
-        class_idx = np.argmax(pred_weather[0])
+        # 출력이 1개인 경우: (None, 4) → 앞 3개 날씨, 마지막 1개 위험차량
+        pred_weather = output[0][:3]
+        danger_score = float(output[0][3])
+
+        class_idx = np.argmax(pred_weather)
         class_name = CLASS_NAMES[class_idx]
-        weather_confidence = float(pred_weather[0][class_idx])
-
-        danger_score = float(pred_danger[0][0])
+        weather_confidence = float(pred_weather[class_idx])
         has_danger_car = danger_score >= 0.5
 
         result = {
@@ -144,7 +154,6 @@ class AIModelService:
         keras_result = self._predict_weather(frame)
         yolo_boxes = self._run_yolo(frame, keras_result)
 
-        # 이미지에서 신뢰도 가장 높은 차종 하나
         if yolo_boxes:
             best_box = max(yolo_boxes, key=lambda x: x['confidence'])
             dominant_vehicle = f"{best_box['class_name']} ({best_box['confidence']}%)"
@@ -229,24 +238,22 @@ class AIModelService:
             read_path = converted_path
 
             cap = cv2.VideoCapture(read_path)
-
             if not cap.isOpened():
                 raise ValueError("영상 파일을 열 수 없습니다.")
 
             total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
             fps = cap.get(cv2.CAP_PROP_FPS)
             print(f"[AI] 영상 총 프레임 수: {total_frames} | FPS: {fps}")
-
             cap.release()
-            cap = cv2.VideoCapture(read_path)
 
+            cap = cv2.VideoCapture(read_path)
             weather_counts = {c: 0 for c in CLASS_NAMES}
             confidence_sum = {c: 0.0 for c in CLASS_NAMES}
             danger_car_frames = 0
             analyzed_frame_count = 0
             frame_count = 0
             vehicle_counter = Counter()
-            vehicle_confidence = {}  # 차종별 신뢰도 리스트
+            vehicle_confidence = {}
 
             while True:
                 if self.stop_requested:
@@ -299,7 +306,6 @@ class AIModelService:
             dominant_count = weather_counts[dominant_weather]
             avg_confidence = round(confidence_sum[dominant_weather] / max(1, dominant_count), 1)
 
-            # 가장 많이 나온 차종 + 평균 신뢰도
             if vehicle_counter:
                 dominant_vehicle_name = vehicle_counter.most_common(1)[0][0]
                 avg_vehicle_conf = round(
