@@ -1,11 +1,14 @@
 # app/controller/ai_model_controller.py
-from fastapi import APIRouter, UploadFile, File, Form
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 from fastapi.responses import StreamingResponse
 from app.service.ai_model_service import AIModelService
+from pydantic import BaseModel
+import cv2
 
 router = APIRouter(prefix="/api/ai", tags=["AI"])
 ai_model_service = AIModelService()
-
+class ImagePathRequest(BaseModel):
+    image_path: str
 
 # ════════════════════════════════════════
 # 이미지/영상 분석 (저장 없이 결과만)
@@ -104,3 +107,68 @@ async def get_status():
         "is_analyzing": ai_model_service.is_analyzing,
         "stop_requested": ai_model_service.stop_requested
     }
+
+# ════════════════════════════════════════
+# Keras 1차 탐지 - 이미지 경로 기반
+# backend-main에서 HTTP 요청으로 호출
+# ═══════════════════════════════════════
+@router.post("/detect/keras")
+async def detect_keras_by_path(body: ImagePathRequest):
+    try:
+        frame = cv2.imread(body.image_path)
+
+        if frame is None:
+            raise HTTPException(
+                status_code=400,
+                detail="이미지를 읽을 수 없습니다."
+            )
+
+        result = ai_model_service._predict_weather(frame)
+
+        return {
+            "success": True,
+            **result,
+        }
+
+    except HTTPException:
+        raise
+
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+        }
+
+# ════════════════════════════════════════
+# YOLO 2차 정밀 탐지 - 이미지 경로 기반
+# backend-main에서 HTTP 요청으로 호출
+# ════════════════════════════════════════
+@router.post("/detect/yolo")
+async def detect_yolo_by_path(body: ImagePathRequest):
+    try:
+        frame = cv2.imread(body.image_path)
+
+        if frame is None:
+            raise HTTPException(
+                status_code=400,
+                detail="이미지를 읽을 수 없습니다."
+            )
+
+        keras_result = ai_model_service._predict_weather(frame)
+        yolo_boxes = ai_model_service._run_yolo(frame, keras_result)
+
+        return {
+            "success": True,
+            "keras_result": keras_result,
+            "yolo_boxes": yolo_boxes,
+            "yolo_detected": len(yolo_boxes) > 0,
+        }
+
+    except HTTPException:
+        raise
+
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+        }

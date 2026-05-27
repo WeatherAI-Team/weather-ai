@@ -3,7 +3,6 @@
 # f-026 AI chatbot
 from ..repositories.detection_repo import DetectionRepository
 
-
 class ChatbotService:
     # 이 클래스는 챗봇 답변을 만드는 곳이야.
     # 쉽게 말하면 "사용자 질문을 보고 어떤 답을 할지 정하는 곳"이야.
@@ -58,6 +57,18 @@ class ChatbotService:
         # 사용자가 탐지 날씨 조건을 물어본 경우야.
         if intent == "weather_help":
             return self._handle_weather_help()
+
+        # 사용자가 기상청 API나 악천후 판단 방식을 물어본 경우야.
+        if intent == "weather_api_help":
+            return self._handle_weather_api_help()
+
+        # 사용자가 YOLO나 차량 탐지 방식을 물어본 경우야.
+        if intent == "yolo_help":
+            return self._handle_yolo_help()
+
+        # 사용자가 위험 이벤트 게시판을 물어본 경우야.
+        if intent == "board_help":
+            return self._handle_board_help()
 
         # 사용자가 위험 상태를 물어본 경우야.
         if intent == "risk_status":
@@ -160,6 +171,11 @@ class ChatbotService:
             "weather ai",
             "날씨의아이",
             "날씨의 아이",
+            "weatherai",
+            "weather ai 챗봇",
+            "weather-ai 챗봇",
+            "ai 상담 챗봇",
+            "상담 챗봇",
 
             # 서비스 설명 관련
             "뭐하는 서비스",
@@ -265,6 +281,14 @@ class ChatbotService:
             "관리 화면",
             "관리자 페이지",
             "관리 페이지",
+            "관리자는 뭐 봐",
+            "관리자는 뭘 봐",
+            "관리자는 뭐 볼 수",
+            "관리자가 확인",
+            "관리자가 보는",
+            "화면에서 뭐",
+            "뭘 확인",
+            "뭐 확인",
 
             # 대시보드 관련
             "대시보드",
@@ -387,6 +411,83 @@ class ChatbotService:
         if any(keyword in lower_message for keyword in weather_keywords):
             return "weather_help"
 
+        # 기상청 API와 악천후 판단 질문을 확인해.
+        # 예: "기상청 API는 왜 사용해?", "날씨 정보는 어디서 가져와?"
+        weather_api_keywords = [
+            # 기상청 API 관련
+            "기상청",
+            "기상청 api",
+            "날씨 api",
+            "날씨 정보",
+            "날씨 데이터",
+            "날씨는 어디서",
+            "기상 정보",
+            "기상 데이터",
+            "날씨 어디서",
+            "날씨 가져와",
+            "날씨 받아와",
+
+            # 악천후 판단 관련
+            "악천후 판단",
+            "악천후 심각도",
+            "감시 활성화",
+            "감시 on",
+            "감시 켜",
+            "감시 시작",
+            "날씨 판단"
+        ]
+
+        # 질문 안에 기상청 API나 악천후 판단 관련 단어가 있으면 weather_api_help로 판단해.
+        if any(keyword in lower_message for keyword in weather_api_keywords):
+            return "weather_api_help"
+
+        # YOLO와 차량 탐지 방식 질문을 확인해.
+        # 예: "YOLO는 뭐 하는 거야?", "차량 탐지는 어떻게 해?"
+        yolo_keywords = [
+            "yolo",
+            "욜로",
+            "차량 탐지 방식",
+            "차량은 어떻게 탐지",
+            "차량을 어떻게 탐지",
+            "탐지 방식",
+            "탐지 모델",
+            "객체 탐지",
+            "object detection",
+            "바운딩박스",
+            "바운딩 박스",
+            "신뢰도",
+            "탐지 신뢰도",
+            "ai 탐지",
+            "ai는 어떻게",
+            "ai가 어떻게",
+            "모델이 어떻게"
+        ]
+
+        # 질문 안에 YOLO나 차량 탐지 방식 관련 단어가 있으면 yolo_help로 판단해.
+        if any(keyword in lower_message for keyword in yolo_keywords):
+            return "yolo_help"
+
+        # 위험 이벤트 게시판과 자동 등록 질문을 확인해.
+        # 예: "위험 이벤트 게시판은 뭐야?", "알림이 오면 게시판에도 등록돼?"
+        board_keywords = [
+            "게시판",
+            "위험 이벤트 게시판",
+            "이벤트 게시판",
+            "게시판 등록",
+            "자동 등록",
+            "자동으로 등록",
+            "알림 등록",
+            "llm 제목",
+            "llm 본문",
+            "제목 생성",
+            "본문 생성",
+            "처리 상태",
+            "추가 조치",
+        ]
+
+        # 질문 안에 게시판이나 자동 등록 관련 단어가 있으면 board_help로 판단해.
+        if any(keyword in lower_message for keyword in board_keywords):
+            return "board_help"
         # CCTV 관련 질문을 확인해.
         # 예: "CCTV는 어디서 볼 수 있어?", "카메라 영상은 어디 있어?"
         cctv_keywords = [
@@ -447,7 +548,23 @@ class ChatbotService:
             "지도에서 카메라",
             "지도에서 영상",
             "지도에서 확인",
-            "지도에서 봐"
+            "지도에서 봐",
+
+            # 알림 클릭 후 지도 위치 확인 관련
+            "알림 누르면",
+            "알림 클릭",
+            "알림 클릭하면",
+            "알림을 누르면",
+            "알림을 클릭하면",
+            "지도에 위치",
+            "지도에 표시",
+            "지도 위치",
+            "위치가 나와",
+            "위치 나와",
+            "발생 위치",
+            "이벤트 위치",
+            "위험 위치",
+            "알림 위치",
         ]
 
         # 질문 안에 CCTV 관련 단어가 있으면 cctv_help로 판단해.
@@ -485,6 +602,13 @@ class ChatbotService:
             "알림 받",
             "알림 받을 수",
             "알림 받는 방법",
+            "언제 울려",
+            "언제 뜨",
+            "경고 뜨",
+            "알림 뜨",
+            "알림 생겨",
+            "위험하면 알려",
+            "관리자한테 가",
 
             # 알림 확인/조회 관련
             "알림 확인",
@@ -521,8 +645,17 @@ class ChatbotService:
             "관리자 알림 내역",
             "관리자 알림 목록",
             "관리자 알림 확인",
-            "관리자 알림 조회"
+            "관리자 알림 조회",
+
+            # 알림 관련 추가 항목
+            "위험하면 뜨는",
+            "위험할 때 뜨는",
+            "알림이 뜨는 기준",
+            "알림 보내는 기준",
+            "누구한테 알림",
+            "관리자에게 가는"
         ]
+
         # 질문 안에 알림 관련 단어가 있으면 notification_help로 판단해.
         if any(keyword in lower_message for keyword in notification_keywords):
             return "notification_help"
@@ -611,16 +744,32 @@ class ChatbotService:
 
             # 어떻게 사용하는지 묻는 표현
             "어떻게 써",
+            "어떻게 쓰는",
             "어떻게 사용",
             "어떻게 이용",
             "서비스 어떻게 써",
             "서비스 어떻게 사용",
             "서비스 어떻게 이용",
 
+            # 처음에 무엇을 보면 되는지 묻는 표현
+            "뭐부터 봐",
+            "뭐부터 보면",
+            "뭐부터 보면 돼",
+            "뭐부터 보면 되",
+            "어디부터 봐",
+            "어디부터 보면",
+            "어디부터 보면 돼",
+            "어디부터 보면 되",
+            "처음엔 뭐",
+            "처음에는 뭐",
+            "처음에 뭐",
+            "처음이면 뭐",
+
             # 기능 전체 안내 관련
             "뭐 할 수",
             "무엇을 할 수",
             "어떤 기능",
+            "무슨 기능",
             "사용 가능한 기능",
             "이용 가능한 기능",
             "서비스 기능",
@@ -638,7 +787,9 @@ class ChatbotService:
             "처음 사용하는",
             "처음 이용",
             "처음 시작",
-            "처음 쓰는"
+            "처음 쓰는",
+            "처음인데",
+            "처음 써"
         ]
 
         # 질문 안에 사용법 관련 단어가 있으면 service_help로 판단해.
@@ -653,16 +804,34 @@ class ChatbotService:
 
         return {
             "intent": "project_help",
-            "answer": "Weather-AI는 폭우·폭설 같은 악천후와 주간·야간 도로 환경에서 CCTV 영상을 AI로 분석해 위험 차량과 도로 위험 이벤트를 탐지하고, 관리자에게 알림을 제공하는 교통 안전 관제 시스템입니다.",
+            "answer": (
+                "Weather-AI는 폭우·폭설 같은 악천후와 주간·야간 도로 환경에서 "
+                "CCTV 영상을 AI로 분석해 위험 차량과 도로 위험 이벤트를 탐지하는 "
+                "교통 안전 관제 시스템입니다.\n\n"
+                "쉽게 말하면, 도로 CCTV 영상에서 위험 차량을 찾고, "
+                "날씨와 도로 상황까지 함께 고려해서 사고 위험이 높아 보이는 상황을 "
+                "관리자에게 알려주는 서비스입니다.\n\n"
+                "주요 흐름은 CCTV 영상 분석 → 차량 탐지 → 위험도 점수 계산 → "
+                "LLM 검증 → 관리자 알림 순서로 진행됩니다."
+            ),
             "data": None
         }
 
     def _handle_vehicle_help(self):
         # 이 함수는 위험 차량과 탐지 차량 기준을 설명하는 곳이야.
-
         return {
             "intent": "vehicle_help",
-            "answer": "Weather-AI는 레미콘, 카고트럭, 25톤 이상의 화물차량, 탱크로리 등 위험 차량을 탐지합니다. 프로젝트 기준에서 25톤 이상의 화물차량은 heavy truck으로 분류하며, 레미콘·카고트럭·탱크로리는 heavy truck 클래스에 포함하지 않고 별도 차량 클래스로 구분합니다.",
+            "answer": (
+                "Weather-AI는 사고 발생 시 피해가 커질 수 있는 위험 차량을 중심으로 탐지합니다.\n\n"
+                "주요 탐지 대상은 다음과 같습니다.\n"
+                "1. 레미콘\n"
+                "2. 카고트럭\n"
+                "3. 탱크로리\n"
+                "4. 25톤 이상의 대형 화물차량\n\n"
+                "프로젝트 기준에서 25톤 이상의 차량은 heavy truck으로 분류합니다. "
+                "다만 레미콘, 카고트럭, 탱크로리는 heavy truck에 포함하지 않고 "
+                "각각 별도의 차량 클래스로 구분합니다."
+            ),
             "data": None
         }
 
@@ -671,34 +840,110 @@ class ChatbotService:
 
         return {
             "intent": "risk_score_help",
-            "answer": "위험도 점수는 탐지된 차량 유형, 날씨 상황, 도로 환경, 알림 필요 여부 등을 기준으로 위험 가능성을 수치화한 값입니다. Weather-AI는 1차로 위험도 점수를 계산하고, 2차로 LLM 검증을 통해 실제 위험 가능성이 높은 이벤트를 선별합니다.",
+            "answer": (
+                "위험도 점수는 탐지된 이벤트가 실제로 얼마나 위험한지 판단하기 위한 점수입니다.\n\n"
+                "Weather-AI는 먼저 차량 유형, 날씨 상황, 도로 환경, 탐지 신뢰도, "
+                "알림 필요 여부 등을 바탕으로 1차 위험도 점수를 계산합니다.\n\n"
+                "그다음 LLM 검증을 통해 단순 오탐인지, 실제로 관리자 확인이 필요한 위험 상황인지 "
+                "한 번 더 판단합니다. 즉, 위험도 점수는 1차 필터링 역할을 하고, "
+                "LLM 검증은 오탐을 줄이기 위한 2차 확인 과정이라고 보면 됩니다."
+            ),
             "data": None
         }
-
+## 새로 추가한 항목 
     def _handle_admin_help(self):
-        # 이 함수는 관리자가 확인할 수 있는 기능을 설명하는 곳이야.
+            # 이 함수는 관리자가 확인할 수 있는 기능을 설명하는 곳이야.
 
-        return {
-            "intent": "admin_help",
-            "answer": "관리자는 대시보드에서 탐지 이벤트 현황, 지역별 알림, 위험도 통계, 사용자 정보, 과거 알림 내역을 확인할 수 있습니다. 또한 지도에서 CCTV 위치와 위험 이벤트 발생 위치를 확인할 수 있습니다.",
-            "data": None
-        }
-
+            return {
+                "intent": "admin_help",
+                "answer": (
+                    "관리자는 대시보드에서 Weather-AI가 탐지한 위험 이벤트를 한눈에 확인할 수 있습니다.\n\n"
+                    "확인할 수 있는 주요 정보는 다음과 같습니다.\n"
+                    "1. 탐지 이벤트 현황\n"
+                    "2. 지역별 위험 알림 현황\n"
+                    "3. 위험도 통계\n"
+                    "4. 사용자 정보\n"
+                    "5. 과거 알림 내역\n"
+                    "6. CCTV 위치와 이벤트 발생 위치\n\n"
+                    "즉, 관리자는 어느 지역에서 어떤 차량이 탐지되었고, "
+                    "위험도가 어느 정도인지 대시보드와 지도 화면에서 빠르게 확인할 수 있습니다."
+                ),
+                "data": None
+            }
+##
     def _handle_weather_help(self):
         # 이 함수는 Weather-AI가 다루는 날씨와 도로 환경 조건을 설명하는 곳이야.
 
         return {
             "intent": "weather_help",
-            "answer": "현재 Weather-AI의 MVP 범위는 폭우와 폭설 상황을 중심으로 하며, 주간과 야간 도로 환경을 함께 고려합니다. 안개와 복원 탐지는 MVP 범위에서 제외했습니다.",
+            "answer": (
+                "현재 Weather-AI의 MVP 범위는 폭우와 폭설 상황을 중심으로 합니다.\n\n"
+                "또한 같은 날씨라도 낮과 밤에 따라 도로 위험도가 달라질 수 있기 때문에 "
+                "주간·야간 도로 환경도 함께 고려합니다.\n\n"
+                "안개와 영상 복원 탐지는 하드웨어 성능과 실시간 처리 문제 때문에 "
+                "현재 MVP 범위에서는 제외했습니다."
+            ),
+            "data": None
+        }
+    
+    def _handle_weather_api_help(self):
+        # 이 함수는 기상청 API와 악천후 판단 방식을 설명하는 곳이야.
+
+        return {
+            "intent": "weather_api_help",
+            "answer": (
+                "Weather-AI는 기상청 API를 통해 도로 주변의 날씨 정보를 확인합니다.\n\n"
+                "이 날씨 정보를 바탕으로 현재 상황이 폭우나 폭설 같은 악천후에 해당하는지 판단하고, "
+                "필요한 경우 감시를 활성화합니다.\n\n"
+                "이후 CCTV 탐지 결과와 날씨 정보를 함께 사용해서 위험도 점수를 계산하고, "
+                "관리자에게 알림을 보낼지 결정합니다."
+            ),
+            "data": None
+        }
+    
+    def _handle_yolo_help(self):
+        # 이 함수는 YOLO와 차량 탐지 방식을 설명하는 곳이야.
+
+        return {
+            "intent": "yolo_help",
+            "answer": (
+                "YOLO는 CCTV 영상 속에서 차량을 찾아내는 객체 탐지 모델입니다.\n\n"
+                "Weather-AI에서는 YOLO를 사용해 차량의 위치, 차량 유형, 탐지 신뢰도 정보를 얻습니다. "
+                "예를 들어 영상 속에서 탱크로리나 레미콘 같은 차량이 보이면 "
+                "YOLO가 해당 차량의 위치를 바운딩 박스로 표시하고, 어떤 차량인지 예측합니다.\n\n"
+                "그 결과를 바탕으로 Weather-AI는 위험 차량 여부와 위험도 점수를 계산합니다."
+            ),
             "data": None
         }
 
+    def _handle_board_help(self):
+        # 이 함수는 위험 이벤트 게시판과 자동 등록 기능을 설명하는 곳이야.
+
+        return {
+            "intent": "board_help",
+            "answer": (
+                "위험 이벤트 게시판은 관리자가 위험 상황을 확인하고 처리할 수 있는 공간입니다.\n\n"
+                "위험도 기준 이상 이벤트가 발생하면 관리자에게 알림이 전달되고, "
+                "LLM이 생성한 제목과 본문을 바탕으로 위험 이벤트 게시판에 자동 등록됩니다.\n\n"
+                "관리자는 게시판에서 이벤트 내용을 확인한 뒤 처리 상태를 변경하거나, "
+                "추가 조치 내용을 기록할 수 있습니다."
+            ),
+            "data": None
+        }
+
+    
     def _handle_notification_help(self):
         # 이 함수는 알림 기준이나 알림 방식에 대한 질문에 답하는 곳이야.
 
         return {
             "intent": "notification_help",
-            "answer": "위험도 기준 이상으로 판단된 이벤트가 발생하면 관리자에게 알림이 전달됩니다. 알림은 위험도 점수와 LLM 검증 결과를 기준으로 선별됩니다.",
+            "answer": (
+                "관리자 알림은 위험도 기준 이상으로 판단된 이벤트가 발생했을 때 전달됩니다.\n\n"
+                "단순히 차량이 탐지됐다고 바로 알림을 보내는 것이 아니라, "
+                "차량 유형, 날씨 상황, 위험도 점수, LLM 검증 결과를 함께 확인한 뒤 "
+                "실제로 위험 가능성이 높은 이벤트를 선별합니다.\n\n"
+                "알림이 발생하면 관리자는 알림 내역과 지도 화면에서 이벤트 위치를 확인할 수 있습니다."
+            ),
             "data": None
         }
 
@@ -708,15 +953,25 @@ class ChatbotService:
 
         return {
             "intent": "unknown",
-            "answer": "질문을 정확히 이해하지 못했습니다. 아래 예시처럼 질문해 보세요.",
+            "answer": (
+                "질문을 정확히 이해하지 못했습니다.\n\n"
+                "Weather-AI 챗봇은 현재 아래와 같은 질문에 답할 수 있습니다.\n"
+                "- Weather-AI가 어떤 시스템인지\n"
+                "- 어떤 차량을 탐지하는지\n"
+                "- 위험도 점수와 LLM 검증 방식\n"
+                "- 관리자 대시보드에서 확인할 수 있는 내용\n"
+                "- CCTV와 알림 확인 방법\n"
+                "- 특정 지역이나 도로의 위험 상태\n\n"
+                "예를 들어 '대시보드에서 뭘 볼 수 있어?' 또는 "
+                "'강남대로 위험해?'처럼 질문해 주세요."
+            ),
             "data": {
                 "suggestions": [
                     "Weather-AI가 뭐야?",
                     "어떤 차량을 탐지해?",
                     "위험도 점수는 뭐야?",
                     "LLM 검증은 뭐야?",
-                    "관리자는 뭘 확인할 수 있어?",
-                    "어떤 날씨를 탐지해?",
+                    "대시보드에서 뭘 볼 수 있어?",
                     "CCTV는 어디서 볼 수 있어?",
                     "알림은 언제 와?",
                     "강남대로 위험해?"
@@ -796,6 +1051,7 @@ class ChatbotService:
             "쪽",
             "?"
         ]
+
         # 필요 없는 표현을 제거해.
         for word in remove_words:
             location_name = location_name.replace(word, "")
@@ -839,15 +1095,24 @@ class ChatbotService:
 
         # 위험도가 high이면 강한 주의 문구를 만들어.
         if risk_level == "high":
-            return f"{location_name}에서 고위험 알림이 {matched_count}건 확인되었습니다. 주의가 필요합니다. {score_text}"
+            return (
+                f"{location_name}에서 고위험 알림이 {matched_count}건 확인되었습니다. "
+                f"현재 주의가 필요한 상황입니다. {score_text}"
+            )
 
         # 위험도가 medium이면 주의 단계 문구를 만들어.
         if risk_level == "medium":
-            return f"{location_name}에서 주의 단계의 위험 알림이 {matched_count}건 확인되었습니다. {score_text}"
+            return (
+                f"{location_name}에서 주의 단계의 위험 알림이 {matched_count}건 확인되었습니다. "
+                f"상황을 확인하고 필요하면 운행에 주의해 주세요. {score_text}"
+            )
 
         # 위험도가 low이면 낮은 위험도 문구를 만들어.
         if risk_level == "low":
-            return f"{location_name}에서 낮은 위험도의 알림이 {matched_count}건 확인되었습니다. {score_text}"
+            return (
+                f"{location_name}에서 낮은 위험도의 알림이 {matched_count}건 확인되었습니다. "
+                f"큰 위험으로 판단되지는 않지만, 도로 상황은 계속 확인하는 것이 좋습니다. {score_text}"
+            )
 
         # 위험도 값이 high, medium, low 중 하나가 아니면 기본 문구를 만들어.
         return f"{location_name}에서 위험 알림이 {matched_count}건 확인되었습니다. {score_text}"
@@ -867,27 +1132,46 @@ class ChatbotService:
                 "answer": "확인할 지역명이나 도로명을 함께 입력해 주세요. 예: '강남대로 위험해?'",
                 "data": None
             }
+        
+        try:
+            # detection_events 테이블에서 해당 위치의 알림 필요 이벤트를 찾아.
+            # alert_required=True는 실제 알림이 필요한 이벤트만 보겠다는 뜻이야.
+            detections = self.detection_repo.find_all(
+                page=1,
+                per_page=5,
+                location_name=location_name,
+                alert_required=True
+            )
 
-        # detection_events 테이블에서 해당 위치의 알림 필요 이벤트를 찾아.
-        # alert_required=True는 실제 알림이 필요한 이벤트만 보겠다는 뜻이야.
-        detections = self.detection_repo.find_all(
-            page=1,
-            per_page=5,
-            location_name=location_name,
-            alert_required=True
-        )
-
+        except Exception:
+            # DB 조회 중 문제가 생겨도 챗봇이 멈추지 않게 안내 답변을 보내.
+            # 예: DB 서버가 꺼져 있거나, 테이블 문제가 있을 때 여기로 와.
+            return {
+                "intent": "risk_status",
+                "location_name": location_name,
+                "answer": (
+                    "현재 위험 알림 정보를 조회하는 중 문제가 발생했습니다.\n\n"
+                    "잠시 후 다시 시도해 주세요. 문제가 계속되면 관리자에게 문의해 주세요."
+                ),
+                "data": None
+            }
+        
         # 해당 위치에 위험 알림이 없으면 안내해.
         if detections.total == 0:
             return {
                 "intent": "risk_status",
                 "location_name": location_name,
-                "answer": f"현재 {location_name} 관련 위험 알림은 확인되지 않았습니다.",
+                "answer": (
+                    f"현재 {location_name} 관련 위험 알림은 확인되지 않았습니다.\n\n"
+                    "다만 실제 도로 상황은 계속 변할 수 있으니, "
+                    "운행 전에는 최신 교통 정보와 기상 상황도 함께 확인해 주세요."
+                ),
                 "data": {
                     "matched_count": 0,
                     "events": []
                 }
             }
+
 
         # 위험 알림이 있으면 프론트가 보기 쉽게 정리해.
         events = []
@@ -989,15 +1273,26 @@ class ChatbotService:
 
         return {
             "intent": "service_help",
-            "answer": "Weather-AI는 악천후 상황에서 CCTV 기반 탐지 결과를 확인하고, 위험 차량 이벤트와 관리자 알림을 조회할 수 있는 서비스입니다.",
+            "answer": (
+                "Weather-AI는 악천후 상황에서 도로 위험 이벤트를 확인하기 위한 서비스입니다.\n\n"
+                "사용자는 챗봇을 통해 서비스 사용법이나 위험 차량 기준을 물어볼 수 있고, "
+                "관리자는 대시보드에서 탐지 이벤트, 위험도 통계, 알림 내역, CCTV 위치를 확인할 수 있습니다.\n\n"
+                "특정 지역이나 도로의 위험 상태가 궁금하다면 "
+                "'강남대로 위험해?'처럼 지역명이나 도로명을 함께 입력하면 됩니다."
+            ),
             "data": None
         }
 
     def _handle_cctv_help(self):
-        # 이 함수는 CCTV 확인 방법 질문에 답하는 곳이야.
+        # 이 함수는 CCTV와 지도 위치 확인 방법 질문에 답하는 곳이야.
 
         return {
             "intent": "cctv_help",
-            "answer": "CCTV 정보는 지도 화면 또는 CCTV 목록 화면에서 확인할 수 있습니다. 지역이나 도로명을 기준으로 관련 이벤트 위치도 함께 확인할 수 있습니다.",
+            "answer": (
+                "네, 알림을 클릭하면 해당 위험 이벤트가 발생한 위치를 지도에서 확인할 수 있습니다.\n\n"
+                "관리자는 지도 화면에서 CCTV 위치와 위험 이벤트 발생 위치를 함께 볼 수 있고, "
+                "알림 목록에서 특정 알림을 선택하면 해당 위치로 이동하거나 위치 정보를 확인할 수 있습니다.\n\n"
+                "즉, 알림은 단순한 안내 메시지가 아니라 실제 위험 발생 위치를 지도와 연결해서 확인할 수 있도록 돕는 기능입니다."
+            ),
             "data": None
         }

@@ -13,7 +13,7 @@ client = OpenAI(
 
 def _call_gemma(messages, max_tokens=500, temperature=0.2) -> str:
     completion = client.chat.completions.create(
-        model="google/gemma-4-31B-it:together",
+        model=os.getenv("GEMMA_MODEL", "google/gemma-3n-E4B-it"),
         messages=messages,
         max_tokens=max_tokens,
         temperature=temperature,
@@ -54,6 +54,31 @@ def _safe_json_loads(text: str) -> dict:
         "raw_message": text
     }
 
+def _normalize_final_alert_result(result: dict) -> dict:
+    """
+    Gemma가 {"alerts": [{...}]} 형태로 감싸서 응답해도
+    서비스와 DB 저장에서 쓰는 단일 dict 형태로 보정한다.
+    """
+
+    if not isinstance(result, dict):
+        result = {}
+
+    if (
+        isinstance(result.get("alerts"), list)
+        and len(result["alerts"]) > 0
+        and isinstance(result["alerts"][0], dict)
+    ):
+        result = result["alerts"][0]
+
+    result.setdefault("risk_level", "CAUTION")
+    result.setdefault("title", "위험 차량 감지 알림")
+    result.setdefault("admin_message", "관제센터 확인 필요")
+    result.setdefault("driver_message", "감속하고 안전거리를 확보하세요.")
+    result.setdefault("reason", "기상 및 차량 탐지 결과 기반 알림")
+    result.setdefault("alert_required", True)
+    result.setdefault("false_positive_suspected", False)
+
+    return result
 
 def generate_alert_message(weather_data: str) -> str:
     """
@@ -124,12 +149,17 @@ def generate_final_alert(weather_data: dict, detection_result: dict) -> dict:
                 "The first character must be { and the last character must be }. "
                 "Do not use markdown. "
                 "Do not explain. "
+                "Return exactly one JSON object. Do not wrap the response in an alerts array. "
                 "Create Korean alerts for a severe-weather hazardous vehicle monitoring system. "
-                "JSON keys: risk_level, admin_message, driver_message, reason. "
+                "JSON keys: risk_level, title, admin_message, driver_message, reason, alert_required, false_positive_suspected. "
                 "risk_level must be LOW, NORMAL, CAUTION, or DANGER. "
                 "admin_message is for control center operators. "
                 "driver_message is a short warning for drivers. "
-                "All values except risk_level must be Korean."
+                "All values except risk_level must be Korean. "
+                "title is a short Korean event title. "
+                "alert_required must be boolean. "
+                "false_positive_suspected must be boolean. "
+                "driver_message must include a concrete driving action such as 감속, 안전거리 확보, 차선 변경 자제. "
             ),
         },
         {
@@ -139,4 +169,7 @@ def generate_final_alert(weather_data: dict, detection_result: dict) -> dict:
     ]
 
     result_text = _call_gemma(messages, max_tokens=1000, temperature=0.1)
-    return _safe_json_loads(result_text)
+    result = _safe_json_loads(result_text)
+
+    return _normalize_final_alert_result(result)
+
