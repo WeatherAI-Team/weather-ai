@@ -358,6 +358,16 @@ export default function AiPage() {
             <div className={styles.cctvTabGrid}>
               <div className={styles.panel}>
                 <h2>{selected ? selected.cctvname : 'CCTV 실시간 화면'}</h2>
+              {selected && detectInfo && (
+                <div className={styles.cctvDetectBar}>
+                  <span style={{ color: detectInfo.is_danger ? '#e74c3c' : '#20436d' }}>
+                    날씨: {detectInfo.weather} ({detectInfo.confidence}%)
+                  </span>
+                  <span style={{ color: detectInfo.hasDangerVehicle ? '#e74c3c' : '#20436d' }}>
+                    {detectInfo.hasDangerVehicle ? '⚠️ 위험차량: 감지됨' : '✅ 위험차량: 없음'}
+                  </span>
+                </div>
+              )}
                 <div className={styles.cctvBox}>
                   {selected ? (
                     <HlsPlayer
@@ -373,16 +383,6 @@ export default function AiPage() {
                     </div>
                   )}
                 </div>
-              {selected && detectInfo && (
-                <div className={styles.cctvDetectBar}>
-                  <span style={{ color: detectInfo.is_danger ? '#e74c3c' : '#2ecc71' }}>
-                    날씨: {detectInfo.weather} ({detectInfo.confidence}%)
-                  </span>
-                  <span style={{ color: detectInfo.hasDangerVehicle ? '#e74c3c' : '#2ecc71' }}>
-                    {detectInfo.hasDangerVehicle ? '⚠️ 위험차량: 감지됨' : '✅ 위험차량: 없음'}
-                  </span>
-                </div>
-              )}
               </div>
 
               <div className={styles.panel}>
