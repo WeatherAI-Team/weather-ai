@@ -1,25 +1,18 @@
-# app/models/detection_object.py
+# app/models/event_status_log.py
 
 from datetime import datetime
 from app import db
 
 
-class DetectionObject(db.Model):
-    __tablename__ = "detection_objects"
+class EventStatusLog(db.Model):
+    __tablename__ = "event_status_logs"
 
     id = db.Column(db.BigInteger, primary_key=True)
     event_id = db.Column(db.BigInteger, nullable=False)
-    vehicle_type = db.Column(db.String, nullable=False)
-    confidence = db.Column(db.Numeric, nullable=False)
+    changed_by = db.Column(db.Integer, nullable=True)
 
-    bbox_x = db.Column(db.Numeric, nullable=True)
-    bbox_y = db.Column(db.Numeric, nullable=True)
-    bbox_width = db.Column(db.Numeric, nullable=True)
-    bbox_height = db.Column(db.Numeric, nullable=True)
+    previous_status = db.Column(db.String, nullable=True)
+    new_status = db.Column(db.String, nullable=False)
+    memo = db.Column(db.Text, nullable=True)
 
-    frame_index = db.Column(db.Integer, nullable=True)
-    image_url = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-
-    model_name = db.Column(db.String, nullable=True)
-    is_risk_vehicle = db.Column(db.Boolean, nullable=False, default=False)

@@ -6,7 +6,7 @@ from app.repositories.detection_repo import DetectionRepository
 from app.repositories.detection_object_repo import DetectionObjectRepository
 from app.repositories.weather_log_repo import WeatherLogRepository
 from app.services.llm_event_payload_service import build_detection_event_payload
-
+from app.repositories.event_status_log_repo import EventStatusLogRepository
 
 def _get_bbox_values(obj: dict):
     bbox = obj.get("bbox")
@@ -56,7 +56,8 @@ def save_detection_event_result(
     detection_repo = DetectionRepository()
     detection_object_repo = DetectionObjectRepository()
     weather_log_repo = WeatherLogRepository()
-
+    event_status_log_repo = EventStatusLogRepository()
+    
     weather_log = weather_log_repo.create_weather_log({
         "cctv_source_id": cctv_source_id,
         "weather_type": weather_type or "UNKNOWN",
@@ -82,6 +83,11 @@ def save_detection_event_result(
     )
 
     event = detection_repo.create_detection_event(event_payload)
+    event_status_log_repo.create_initial_status_log(
+    event_id=event.id,
+    new_status=event_payload.get("event_status", "DETECTED"),
+    memo="AI 탐지 이벤트 자동 생성",
+)
 
     object_payloads = _build_detection_object_payloads(
         event_id=event.id,
