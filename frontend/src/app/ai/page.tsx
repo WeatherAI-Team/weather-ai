@@ -115,14 +115,24 @@ function BoundingBoxOverlay({ src, detections }: { src: string; detections: Dete
 }
 
 // ── HLS 플레이어 + AI 바운딩박스 컴포넌트 ──
-function HlsPlayer({ src, className, onDetect }: { src: string; className?: string; onDetect?: (info: DetectInfo | null) => void }) {
+function HlsPlayer({
+  src,
+  className,
+  onDetect,
+  onUrlExpired,
+}: {
+  src: string
+  className?: string
+  onDetect?: (info: DetectInfo | null) => void
+  onUrlExpired?: () => void  // ✅ URL 만료 감지 콜백
+}) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const overlayRef = useRef<HTMLCanvasElement>(null)
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
-  const isAnalyzingRef = useRef(false)  // 분석 중 중복 요청 방지
+  const isAnalyzingRef = useRef(false)
 
-  // HLS 스트리밍 연결
+  // ── HLS 스트리밍 연결 ──
   useEffect(() => {
     const video = videoRef.current
     if (!video || !src) return
@@ -136,39 +146,52 @@ function HlsPlayer({ src, className, onDetect }: { src: string; className?: stri
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
         video.play().catch(() => {})
       })
+      // ✅ URL 만료(403) 감지
+      hls.on(Hls.Events.ERROR, (_event, data) => {
+        if (data.fatal && data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+          onUrlExpired?.()
+        }
+      })
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
       video.src = src
       video.play().catch(() => {})
     }
 
-    return () => { hls?.destroy() }
+    return () => {
+      hls?.destroy()
+    }
   }, [src])
 
-  // 프레임 캡처 → AI 서버 전송 → 바운딩박스 그리기
+  // ── 프레임 캡처 → AI 서버 전송 → 바운딩박스 그리기 ──
   useEffect(() => {
     const video = videoRef.current
     const captureCanvas = canvasRef.current
     const overlay = overlayRef.current
     if (!video || !captureCanvas || !overlay) return
 
+    // ✅ AbortController: CCTV 전환 시 진행 중인 fetch 중단
+    const abortController = new AbortController()
+
     const analyzeFrame = async () => {
-      // 이전 분석 중이면 스킵
       if (isAnalyzingRef.current) return
       if (video.readyState < 2 || video.paused) return
 
       isAnalyzingRef.current = true
 
       try {
-        // 프레임 캡처
         captureCanvas.width = 640
         captureCanvas.height = 360
         const ctx = captureCanvas.getContext('2d')
         if (!ctx) { isAnalyzingRef.current = false; return }
         ctx.drawImage(video, 0, 0, captureCanvas.width, captureCanvas.height)
 
-        // blob 변환 후 AI 서버로 전송
         captureCanvas.toBlob(async (blob) => {
-          if (!blob) { isAnalyzingRef.current = false; return }
+          // ✅ abort됐거나 blob 없으면 즉시 종료
+          if (!blob || abortController.signal.aborted) {
+            isAnalyzingRef.current = false
+            return
+          }
+
           try {
             const formData = new FormData()
             formData.append('file', blob, 'frame.jpg')
@@ -176,10 +199,17 @@ function HlsPlayer({ src, className, onDetect }: { src: string; className?: stri
             const res = await fetch(`${API_URL}/api/ai/detect`, {
               method: 'POST',
               body: formData,
+              signal: abortController.signal,  // ✅ fetch에 signal 연결
             })
+
+            // ✅ 응답 왔어도 이미 전환됐으면 무시
+            if (abortController.signal.aborted) {
+              isAnalyzingRef.current = false
+              return
+            }
+
             const data = await res.json()
 
-            // 오버레이 초기화
             overlay.width = video.offsetWidth
             overlay.height = video.offsetHeight
             const octx = overlay.getContext('2d')
@@ -188,9 +218,13 @@ function HlsPlayer({ src, className, onDetect }: { src: string; className?: stri
 
             if (data.success) {
               const hasDangerVehicle = !!(data.yolo_boxes && data.yolo_boxes.length > 0)
-              onDetect?.({ weather: data.weather, confidence: data.confidence, hasDangerVehicle, is_danger: data.is_danger })
+              onDetect?.({
+                weather: data.weather,
+                confidence: data.confidence,
+                hasDangerVehicle,
+                is_danger: data.is_danger,
+              })
 
-              // YOLO 바운딩박스 그리기
               if (data.yolo_boxes && data.yolo_boxes.length > 0) {
                 data.yolo_boxes.forEach((box: any) => {
                   const [x1, y1, x2, y2] = box.box_coords
@@ -219,10 +253,13 @@ function HlsPlayer({ src, className, onDetect }: { src: string; className?: stri
                 })
               }
             }
-          } catch (e) {
-            console.error('AI 분석 실패:', e)
+          } catch (e: any) {
+            // ✅ AbortError는 정상 동작이므로 로그 생략
+            if (e.name !== 'AbortError') {
+              console.error('AI 분석 실패:', e)
+            }
           } finally {
-            isAnalyzingRef.current = false  // 분석 완료
+            isAnalyzingRef.current = false
           }
         }, 'image/jpeg', 0.8)
       } catch (e) {
@@ -231,20 +268,20 @@ function HlsPlayer({ src, className, onDetect }: { src: string; className?: stri
       }
     }
 
-    // 500ms마다 프레임 분석 시도 (분석 중이면 자동 스킵)
     intervalRef.current = setInterval(analyzeFrame, 500)
 
     return () => {
+      // ✅ CCTV 전환 시 정리
       if (intervalRef.current) clearInterval(intervalRef.current)
+      abortController.abort()          // 진행 중인 fetch 중단
+      isAnalyzingRef.current = false   // 분석 플래그 초기화
     }
   }, [src])
 
   return (
     <div style={{ position: 'relative', width: '100%' }}>
       <video ref={videoRef} className={className} autoPlay muted playsInline controls />
-      {/* 캡처용 숨김 캔버스 */}
       <canvas ref={canvasRef} style={{ display: 'none' }} />
-      {/* 바운딩박스 오버레이 캔버스 */}
       <canvas
         ref={overlayRef}
         style={{
@@ -276,18 +313,32 @@ export default function AiPage() {
 
   useEffect(() => { setDetectInfo(null) }, [selectedCctv])
 
+  // ── CCTV 목록 불러오기 ──
+  const fetchCctvList = useCallback(async () => {
+    setCctvLoading(true)
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/cctv`)
+      const data = await res.json()
+      const items: CctvItem[] = data?.response?.data ?? []
+      setCctvList(items)
+    } catch (err) {
+      console.error('CCTV 목록 불러오기 실패:', err)
+    } finally {
+      setCctvLoading(false)
+    }
+  }, [])
+
   useEffect(() => {
     if (tab !== 'cctv') return
-    setCctvLoading(true)
-    fetch(`${BACKEND_URL}/api/cctv`)
-      .then(res => res.json())
-      .then(data => {
-        const items: CctvItem[] = data?.response?.data ?? []
-        setCctvList(items)
-      })
-      .catch(err => console.error('CCTV 목록 불러오기 실패:', err))
-      .finally(() => setCctvLoading(false))
+    fetchCctvList()
   }, [tab])
+
+  // ✅ URL 만료 시 목록 갱신 (실패할 때만 1번 호출 → API 절약)
+  const handleUrlExpired = useCallback(() => {
+    if (cctvLoading) return
+    console.log('[CCTV] URL 만료 감지 → 목록 갱신')
+    fetchCctvList()
+  }, [cctvLoading, fetchCctvList])
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -358,16 +409,16 @@ export default function AiPage() {
             <div className={styles.cctvTabGrid}>
               <div className={styles.panel}>
                 <h2>{selected ? selected.cctvname : 'CCTV 실시간 화면'}</h2>
-              {selected && detectInfo && (
-                <div className={styles.cctvDetectBar}>
-                  <span style={{ color: detectInfo.is_danger ? '#e74c3c' : '#20436d' }}>
-                    날씨: {detectInfo.weather} ({detectInfo.confidence}%)
-                  </span>
-                  <span style={{ color: detectInfo.hasDangerVehicle ? '#e74c3c' : '#20436d' }}>
-                    {detectInfo.hasDangerVehicle ? '⚠️ 위험차량: 감지됨' : '✅ 위험차량: 없음'}
-                  </span>
-                </div>
-              )}
+                {selected && detectInfo && (
+                  <div className={styles.cctvDetectBar}>
+                    <span style={{ color: detectInfo.is_danger ? '#e74c3c' : '#20436d' }}>
+                      날씨: {detectInfo.weather} ({detectInfo.confidence}%)
+                    </span>
+                    <span style={{ color: detectInfo.hasDangerVehicle ? '#e74c3c' : '#20436d' }}>
+                      {detectInfo.hasDangerVehicle ? '⚠️ 위험차량: 감지됨' : '✅ 위험차량: 없음'}
+                    </span>
+                  </div>
+                )}
                 <div className={styles.cctvBox}>
                   {selected ? (
                     <HlsPlayer
@@ -375,6 +426,7 @@ export default function AiPage() {
                       src={`${BACKEND_URL}/api/cctv/stream?url=${encodeURIComponent(selected.cctvurl)}`}
                       className={styles.cctvStream}
                       onDetect={setDetectInfo}
+                      onUrlExpired={handleUrlExpired}
                     />
                   ) : (
                     <div className={styles.cctvEmpty}>
@@ -519,7 +571,6 @@ export default function AiPage() {
               </div>
             </div>
           )}
-
 
         </div>
       </section>
