@@ -1,12 +1,15 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import styles from './ChatBot.module.css'
+
+const API = process.env.NEXT_PUBLIC_API_URL ?? ''
 
 type Message = {
   id: number
   sender: 'bot' | 'user'
   text: string
+  suggestions?: string[]
 }
 
 const quickQuestions = [
@@ -19,6 +22,7 @@ const quickQuestions = [
 export default function ChatBot() {
   const [open, setOpen] = useState(false)
   const [input, setInput] = useState('')
+  const [loading, setLoading] = useState(false)
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 1,
@@ -26,45 +30,44 @@ export default function ChatBot() {
       text: '안녕하세요. WeatherAI 상담 챗봇입니다. 궁금한 내용을 선택하거나 직접 입력해주세요.',
     },
   ])
+  const bottomRef = useRef<HTMLDivElement>(null)
 
-  const getBotAnswer = (question: string) => {
-    if (question.includes('AI') || question.includes('탐지')) {
-      return 'WeatherAI는 CCTV 영상을 기반으로 위험물질 차량을 탐지하고, 악천후 상황에서 사고 위험이 높다고 판단되면 관제센터에 알림을 전달하는 시스템입니다.'
-    }
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages, loading])
 
-    if (question.includes('위험물질') || question.includes('차량')) {
-      return '위험물질 차량은 탱크로리, 화학물질 운반차량, 대형 화물차 등 사고 발생 시 피해가 커질 수 있는 차량을 의미합니다.'
-    }
-
-    if (question.includes('관제') || question.includes('알림')) {
-      return '관제센터 알림은 위험물질 차량이 감지되고, 동시에 비·눈·흐림 등 위험 기상 조건이 확인될 때 발생하도록 설계할 수 있습니다.'
-    }
-
-    if (question.includes('악천후') || question.includes('날씨')) {
-      return '악천후는 비, 눈, 흐림, 시야 저하 등 도로 주행 위험을 높이는 기상 조건을 기준으로 판단합니다.'
-    }
-
-    return '현재는 기본 안내 챗봇입니다. 추후 백엔드 API와 연결하면 실제 사용자 질문에 맞는 답변을 DB나 AI 서버에서 받아올 수 있습니다.'
-  }
-
-  const sendMessage = (text?: string) => {
+  const sendMessage = async (text?: string) => {
     const value = text ?? input.trim()
-    if (!value) return
+    if (!value || loading) return
 
-    const userMessage: Message = {
-      id: Date.now(),
-      sender: 'user',
-      text: value,
-    }
-
-    const botMessage: Message = {
-      id: Date.now() + 1,
-      sender: 'bot',
-      text: getBotAnswer(value),
-    }
-
-    setMessages(prev => [...prev, userMessage, botMessage])
+    const userMessage: Message = { id: Date.now(), sender: 'user', text: value }
+    setMessages(prev => [...prev, userMessage])
     setInput('')
+    setLoading(true)
+
+    try {
+      const res = await fetch(`${API}/api/chatbot/message`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: value }),
+      })
+      const json = await res.json()
+
+      const answer: string = json.data?.answer ?? json.message ?? '답변을 가져오지 못했습니다.'
+      const suggestions: string[] | undefined = json.data?.data?.suggestions
+
+      setMessages(prev => [
+        ...prev,
+        { id: Date.now() + 1, sender: 'bot', text: answer, suggestions },
+      ])
+    } catch {
+      setMessages(prev => [
+        ...prev,
+        { id: Date.now() + 1, sender: 'bot', text: '서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.' },
+      ])
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -105,15 +108,35 @@ export default function ChatBot() {
                   <div className={styles.botAvatar}>AI</div>
                 )}
 
-                <div
-                  className={`${styles.messageBubble} ${
-                    message.sender === 'user' ? styles.userBubble : styles.botBubble
-                  }`}
-                >
-                  {message.text}
+                <div className={styles.botColumn}>
+                  <div
+                    className={`${styles.messageBubble} ${
+                      message.sender === 'user' ? styles.userBubble : styles.botBubble
+                    }`}
+                  >
+                    {message.text}
+                  </div>
+                  {message.suggestions && (
+                    <div className={styles.suggestions}>
+                      {message.suggestions.map(s => (
+                        <button key={s} className={styles.suggestionBtn} onClick={() => sendMessage(s)}>
+                          {s}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
+            {loading && (
+              <div className={`${styles.messageRow} ${styles.botRow}`}>
+                <div className={styles.botAvatar}>AI</div>
+                <div className={`${styles.messageBubble} ${styles.botBubble} ${styles.typingBubble}`}>
+                  <span className={styles.dot} /><span className={styles.dot} /><span className={styles.dot} />
+                </div>
+              </div>
+            )}
+            <div ref={bottomRef} />
           </div>
 
           <div className={styles.quickArea}>
@@ -132,14 +155,13 @@ export default function ChatBot() {
             <input
               value={input}
               onChange={e => setInput(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === 'Enter') sendMessage()
-              }}
+              onKeyDown={e => { if (e.key === 'Enter') sendMessage() }}
               placeholder="궁금한 내용을 입력하세요"
               className={styles.input}
+              disabled={loading}
             />
-            <button className={styles.sendButton} onClick={() => sendMessage()}>
-              전송
+            <button className={styles.sendButton} onClick={() => sendMessage()} disabled={loading}>
+              {loading ? '...' : '전송'}
             </button>
           </div>
         </div>

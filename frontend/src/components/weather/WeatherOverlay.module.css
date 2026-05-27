@@ -27,7 +27,7 @@
 }
 
 /* 맑음 - 태양 */
-.sun {
+.sunContainer {
   position: absolute;
   top: 8%;
   right: 12%;

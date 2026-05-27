@@ -1,7 +1,11 @@
 # DetectionEvent 모델을 가져와.
 # DetectionEvent는 Supabase의 detection_events 테이블과 연결돼.
 # f-022 관리자 대시보드
+from datetime import datetime, timedelta
+from sqlalchemy import func, cast, Date
 from ..models.detection_event import DetectionEvent
+
+DAY_LABELS = ['월', '화', '수', '목', '금', '토', '일']
 
 class DashboardService:
     # 이 클래스는 관리자 대시보드에 필요한 통계를 만들어주는 곳이야.
@@ -34,9 +38,11 @@ class DashboardService:
         # 예: high 몇 개, medium 몇 개, low 몇 개
         risk_level_counts = self._count_by_field(DetectionEvent.risk_level)
 
-        # 날씨별 개수를 계산해.
-        # 예: rain 몇 개, snow 몇 개
-        weather_type_counts = self._count_by_field(DetectionEvent.weather_type)
+        # 날씨별 개수를 계산해 (4개 유형 고정 표시, 없으면 0).
+        _WEATHER_KEYS = ["clear", "fog", "heavy_rain", "heavy_snow"]
+        all_weather = self._count_by_field(DetectionEvent.weather_type)
+        normalized = {(k.lower() if k else "unknown"): v for k, v in all_weather.items()}
+        weather_type_counts = {k: normalized.get(k, 0) for k in _WEATHER_KEYS}
 
         # 주요 차량 유형별 개수를 계산해.
         # 예: heavy_truck 몇 개, bus 몇 개
@@ -129,3 +135,29 @@ class DashboardService:
             # 탐지 발생 시간이야.
             "detected_at": event.detected_at.isoformat() if event.detected_at else None
         }
+
+    def get_weekly_counts(self):
+        today = datetime.utcnow().date()
+        # 이번 주 월요일 (weekday: 0=월 ~ 6=일)
+        monday = today - timedelta(days=today.weekday())
+
+        rows = (DetectionEvent.query
+                .with_entities(
+                    cast(DetectionEvent.detected_at, Date).label('date'),
+                    func.count(DetectionEvent.id).label('count')
+                )
+                .filter(DetectionEvent.detected_at >= monday)
+                .group_by(cast(DetectionEvent.detected_at, Date))
+                .all())
+
+        count_by_date = {row.date: row.count for row in rows}
+
+        result = []
+        for i in range(7):
+            d = monday + timedelta(days=i)
+            result.append({
+                "date":  d.isoformat(),
+                "day":   DAY_LABELS[d.weekday()],
+                "count": count_by_date.get(d, 0),
+            })
+        return result
