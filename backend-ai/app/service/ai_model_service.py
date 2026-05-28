@@ -23,7 +23,7 @@ class AIModelService:
 
     def __init__(self):
         print("[AI] 모델 로딩 중...")
-        self.keras_model = keras.models.load_model('weather_danger_finetuned_model.keras')
+        self.keras_model = keras.models.load_model('weather_classifier_model.keras')
         self.yolo_model = YOLO('best.pt')
         print("[AI] 모든 모델 로딩 완료!")
 
