@@ -95,27 +95,113 @@ def get_detections():
 @detection_bp.route("/analyze", methods=["POST"])
 def analyze_detection():
     try:
-        data = request.get_json() or {}
+        from app.services.weather_service import is_dangerous
+        from app.services.weather_alert_service import _to_weather_type
+        from app.services.gemma_service import judge_weather_gate, generate_final_alert
+        from app.services.weather_log_service import create_weather_log_from_alerts
+        from app.services.alert_save_service import save_alert_to_db
 
-        result = run_hybrid_detection_flow(
-            image_path=data.get("image_path"),
-            cctv_source_id=data.get("cctv_source_id"),
-            weather_log_id=data.get("weather_log_id"),
+        # 1단계: 더미 날씨로 Gemma Gate 판단
+        dangerous, alerts = is_dangerous()
+
+        if not dangerous:
+            return jsonify({
+                "success": False,
+                "message": "현재 악천후 없음, 탐지 중단",
+            }), 200
+
+        weather_summary = f"{alerts[0]['wrn_name']} {alerts[0]['level']} 발령"
+        gate_result = judge_weather_gate(weather_summary)
+        monitoring_required = gate_result.get("monitoring_required", False)
+
+        if isinstance(monitoring_required, str):
+            monitoring_required = monitoring_required.lower() == "true"
+
+        if not monitoring_required:
+            return jsonify({
+                "success": False,
+                "message": "Gemma Gate: 모니터링 불필요 판단",
+                "gate_result": gate_result,
+            }), 200
+
+        # 2단계: 영상 파일 받아서 FastAPI로 전달
+        if "file" not in request.files:
+            return jsonify({
+                "success": False,
+                "message": "영상 파일이 필요합니다.",
+            }), 400
+
+        file = request.files["file"]
+        ai_server_url = current_app.config.get("AI_SERVER_URL", "http://127.0.0.1:8000")
+
+        import requests as req
+        ai_response = req.post(
+            f"{ai_server_url}/api/ai/analyze_and_save_video",
+            files={"file": (file.filename, file.stream, file.mimetype)},
+            data={"user_id": 1, "original_filename": file.filename},
+            timeout=300,
+        )
+        ai_response.raise_for_status()
+        ai_result = ai_response.json()
+
+        # 3단계: weather_log DB 저장
+        weather_type = _to_weather_type(alerts[0]["wrn_code"])
+        weather_log = create_weather_log_from_alerts(
+            cctv_source_id=None,
+            weather_type=weather_type,
+            weather_alerts=alerts,
+            weather_risk_score=8 if alerts[0]["level"] == "경보" else 6,
+        )
+
+        # 4단계: Gemma 최종 알림 생성
+        weather_data = {
+            "type": alerts[0]["wrn_name"],
+            "level": alerts[0]["level"],
+            "summary": weather_summary,
+            "gate_result": gate_result,
+        }
+        detection_result = {
+            "vehicle_detected": ai_result.get("has_danger_car", False),
+            "vehicle_type": ai_result.get("detected_vehicle"),
+            "confidence": ai_result.get("confidence"),
+            "weather": ai_result.get("weather"),
+            "danger_confidence": ai_result.get("danger_confidence"),
+            "weather_counts": ai_result.get("weather_counts"),
+            "risk_vehicle_count": len(ai_result.get("yolo_boxes", [])) if ai_result.get("yolo_boxes") else 0,
+        }
+
+        final_alert = generate_final_alert(
+            weather_data=weather_data,
+            detection_result=detection_result,
+        )
+
+        # 5단계: admin_boards + notifications DB 저장
+        alert_save_result = save_alert_to_db(
+            event_id=ai_result.get("event_id"),
+            final_alert=final_alert,
+            weather_type=weather_type,
+            risk_score=8 if alerts[0]["level"] == "경보" else 6,
         )
 
         return jsonify({
             "success": True,
-            "message": "하이브리드 탐지 분석 완료",
-            "data": result,
+            "message": "탐지 분석 완료",
+            "data": {
+                "gate_result": gate_result,
+                "ai_result": ai_result,
+                "final_alert": final_alert,
+                "weather_log_id": weather_log.id,
+                "alert_save_result": alert_save_result,
+            },
         }), 200
 
     except Exception:
-        current_app.logger.exception("하이브리드 탐지 분석 중 오류 발생")
-
+        current_app.logger.exception("탐지 분석 중 오류 발생")
         return jsonify({
             "success": False,
             "message": "탐지 분석 처리 중 오류가 발생했습니다.",
         }), 500
+
 @detection_bp.route("/save-result", methods=["POST"])
 def save_detection_result():
     try:
@@ -133,11 +219,11 @@ def save_detection_result():
         db.session.rollback()
         current_app.logger.exception("AI 탐지 결과 저장 중 오류 발생")
 
-    return jsonify({
-        "success": False,
-        "message": "AI 탐지 결과 저장 중 오류가 발생했습니다.",
-    }), 500
-    
+        return jsonify({
+            "success": False,
+            "message": "AI 탐지 결과 저장 중 오류가 발생했습니다.",
+        }), 500
+        
 @detection_bp.route("/<int:detection_id>", methods=["GET"])
 def get_detection_detail(detection_id):
     # 이 함수는 GET /api/detections/<id> 요청이 들어오면 실행돼.

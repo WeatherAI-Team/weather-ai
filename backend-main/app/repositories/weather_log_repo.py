@@ -8,7 +8,7 @@ class WeatherLogRepository:
     def create_weather_log(self, data: dict):
         weather_log = WeatherLog(**data)
         db.session.add(weather_log)
-        db.session.flush()
+        db.session.commit()
 
         return weather_log
 

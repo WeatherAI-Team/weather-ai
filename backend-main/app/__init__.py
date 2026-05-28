@@ -70,7 +70,6 @@ def create_app():
     app.register_blueprint(cctv_bp, url_prefix='/api')
     
     from .api.weather_alert_api import weather_alert_bp
-    from .api.hybrid_detection_api import hybrid_detection_bp
 
     from .api.auth.kakao_auth_api import kakao_auth_bp
     from .api.auth.naver_auth_api import naver_auth_bp
@@ -92,7 +91,6 @@ def create_app():
     app.register_blueprint(chatbot_bp)
     app.register_blueprint(weather_alert_bp)
     app.register_blueprint(board_bp)
-    app.register_blueprint(hybrid_detection_bp)
 
     # 관리자 라우트 (dev에서 가져옴)
     from .api.admin_api import admin_bp
