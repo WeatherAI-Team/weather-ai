@@ -1,8 +1,15 @@
 # app/service/ai_model_service.py
+from dotenv import load_dotenv
+load_dotenv()
+
 import os
 import asyncio
 import subprocess
+import time
 from collections import Counter
+import psycopg2
+from psycopg2.extras import RealDictCursor
+
 os.environ['KERAS_BACKEND'] = 'torch'
 
 import cv2
@@ -17,6 +24,18 @@ CLASS_NAMES = ['fog', 'heavy_rain', 'heavy_snow', 'sun']
 DANGER_CLASSES = ['fog', 'heavy_rain', 'heavy_snow']
 
 STATIC_DIR = os.getenv('STATIC_DIR', 'static')
+DATABASE_URL = os.getenv('DATABASE_URL')
+print(f"[DB] DATABASE_URL: {DATABASE_URL}")
+
+# ════════════════════════════════════════
+# 차종명 매핑 (YOLO → DB enum)
+# ════════════════════════════════════════
+VEHICLE_TYPE_MAP = {
+    'Gas_Trcuk': 'TANK_LORRY',
+    'RMC': 'CONCRETE_MIXER',
+    'cargo_truck': 'HEAVY_TRUCK',
+    '25t_truck': 'HEAVY_TRUCK',
+}
 
 
 class AIModelService:
@@ -29,6 +48,8 @@ class AIModelService:
 
         self.is_analyzing = False
         self.stop_requested = False
+        self.last_save_time = None      # 마지막 DB 저장 시간
+        self.save_interval = 5          # 5초에 한 번만 저장 (CCTV용)
 
     def stop_analysis(self):
         self.stop_requested = True
@@ -38,6 +59,121 @@ class AIModelService:
     def _reset_state(self):
         self.is_analyzing = True
         self.stop_requested = False
+
+    # ════════════════════════════════════════
+    # DB 연결
+    # ════════════════════════════════════════
+    def _get_db(self):
+        return psycopg2.connect(DATABASE_URL)
+
+    # ════════════════════════════════════════
+    # detection_events 저장
+    # ════════════════════════════════════════
+    def _save_detection_event(self, keras_result: dict, yolo_boxes: list, cctv_source_id: int = None) -> int:
+        try:
+            conn = self._get_db()
+            cur = conn.cursor()
+
+            risk_vehicle_count = len(yolo_boxes)
+            detection_confidence = keras_result['confidence'] / 100.0
+
+            if detection_confidence >= 0.9 and risk_vehicle_count >= 3:
+                risk_level = 'EMERGENCY'
+            elif detection_confidence >= 0.8 and risk_vehicle_count >= 2:
+                risk_level = 'SERIOUS'
+            elif detection_confidence >= 0.7 and risk_vehicle_count >= 1:
+                risk_level = 'WARNING'
+            elif detection_confidence >= 0.6:
+                risk_level = 'CAUTION'
+            else:
+                risk_level = 'INTEREST'
+
+            if yolo_boxes:
+                best_box = max(yolo_boxes, key=lambda x: x['confidence'])
+                main_vehicle_type = VEHICLE_TYPE_MAP.get(best_box['class_name'], 'SPECIAL_VEHICLE')
+            else:
+                main_vehicle_type = None
+
+            cur.execute("""
+                INSERT INTO detection_events (
+                    cctv_source_id,
+                    weather_type,
+                    model_name,
+                    detected_at,
+                    risk_vehicle_count,
+                    total_vehicle_count,
+                    main_vehicle_type,
+                    detection_confidence,
+                    risk_level,
+                    alert_required,
+                    event_status,
+                    created_at,
+                    updated_at
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
+                RETURNING id
+            """, (
+                cctv_source_id,
+                keras_result['weather'].upper(),
+                'YOLO11m',
+                datetime.datetime.now(),
+                risk_vehicle_count,
+                risk_vehicle_count,
+                main_vehicle_type,
+                detection_confidence,
+                risk_level,
+                keras_result['is_danger'] and risk_vehicle_count > 0,
+                'UNCONFIRMED',
+            ))
+
+            event_id = cur.fetchone()[0]
+            conn.commit()
+            cur.close()
+            conn.close()
+
+            print(f"[DB] ✅ detection_events 저장 완료 | event_id: {event_id}")
+            return event_id
+
+        except Exception as e:
+            print(f"[DB] ❌ detection_events 저장 실패: {e}")
+            return None
+
+    # ════════════════════════════════════════
+    # detection_objects 저장
+    # ════════════════════════════════════════
+    def _save_detection_objects(self, event_id: int, yolo_boxes: list):
+        if not event_id or not yolo_boxes:
+            return
+        try:
+            conn = self._get_db()
+            cur = conn.cursor()
+
+            for box in yolo_boxes:
+                vehicle_type = VEHICLE_TYPE_MAP.get(box['class_name'], 'SPECIAL_VEHICLE')
+
+                cur.execute("""
+                    INSERT INTO detection_objects (
+                        event_id,
+                        is_risk_vehicle,
+                        vehicle_type,
+                        model_name,
+                        confidence,
+                        created_at
+                    ) VALUES (%s, %s, %s, %s, %s, NOW())
+                """, (
+                    event_id,
+                    True,
+                    vehicle_type,
+                    'YOLO11m',
+                    box['confidence'] / 100.0,
+                ))
+
+            conn.commit()
+            cur.close()
+            conn.close()
+            print(f"[DB] ✅ detection_objects 저장 완료 | {len(yolo_boxes)}개")
+
+        except Exception as e:
+            print(f"[DB] ❌ detection_objects 저장 실패: {e}")
 
     def _convert_to_h264(self, input_path: str) -> str:
         output_path = os.path.splitext(input_path)[0] + '_converted.mp4'
@@ -84,7 +220,7 @@ class AIModelService:
         return result
 
     # ════════════════════════════════════════
-    # YOLO: 신뢰도 60% 이상일 때만 실행 (테스트용 - 날씨 무관)
+    # YOLO: 신뢰도 60% 이상일 때만 실행 (테스트용)
     # 배포 시: if keras_result['is_danger'] and keras_result['confidence'] >= 60.0 으로 변경
     # ════════════════════════════════════════
     def _run_yolo(self, frame: np.ndarray, keras_result: dict) -> list:
@@ -92,7 +228,7 @@ class AIModelService:
 
         if keras_result['confidence'] >= 60.0:
             print(f"[AI] 🚨 신뢰도 {keras_result['confidence']}% → YOLO 위험차량 탐지 시작")
-            yolo_results = self.yolo_model(frame, verbose=False, conf=0.4)  # 40% 이상만 탐지
+            yolo_results = self.yolo_model(frame, verbose=False, conf=0.4)
 
             for box in yolo_results[0].boxes:
                 coords = box.xyxy[0].tolist()
@@ -125,7 +261,7 @@ class AIModelService:
         return yolo_boxes
 
     # ════════════════════════════════════════
-    # 이미지 분석
+    # 이미지 분석 (DB 저장 포함)
     # ════════════════════════════════════════
     async def detect_image(self, file: UploadFile) -> dict:
         print(f"[AI] 이미지 분석 요청: {file.filename}")
@@ -145,18 +281,30 @@ class AIModelService:
         else:
             dominant_vehicle = None
 
+        # DB 저장 (5초 인터벌 체크)
+        event_id = None
+        now = time.time()
+        if not self.last_save_time or (now - self.last_save_time) >= self.save_interval:
+            self.last_save_time = now
+            event_id = self._save_detection_event(keras_result, yolo_boxes)
+            if event_id:
+                self._save_detection_objects(event_id, yolo_boxes)
+        else:
+            print(f"[DB] 스킵 (마지막 저장 후 {int(now - self.last_save_time)}초 경과)")
+
         result = {
             **keras_result,
             'has_danger_car': len(yolo_boxes) > 0,
             'yolo_boxes': yolo_boxes,
             'detected_vehicle': dominant_vehicle,
-            'yolo_detected': len(yolo_boxes) > 0
+            'yolo_detected': len(yolo_boxes) > 0,
+            'event_id': event_id
         }
         print(f"[AI] 이미지 분석 완료: {result}")
         return result
 
     # ════════════════════════════════════════
-    # 이미지 분석 + 저장
+    # 이미지 분석 + 저장 (DB 연동)
     # ════════════════════════════════════════
     async def detect_and_save_image(self, user_id: int, file: UploadFile, original_filename: str) -> dict:
         print(f"[AI] 이미지 분석+저장 요청: {original_filename}")
@@ -190,6 +338,10 @@ class AIModelService:
         local_path = os.path.join(results_dir, f"weather_{now_str}.jpg")
         cv2.imwrite(local_path, frame)
 
+        event_id = self._save_detection_event(keras_result, yolo_boxes)
+        if event_id:
+            self._save_detection_objects(event_id, yolo_boxes)
+
         print(f"[AI] 이미지 저장 완료: {local_path}")
         return {
             **keras_result,
@@ -197,11 +349,12 @@ class AIModelService:
             'yolo_boxes': yolo_boxes,
             'detected_vehicle': dominant_vehicle,
             'yolo_detected': len(yolo_boxes) > 0,
-            'local_path': local_path
+            'local_path': local_path,
+            'event_id': event_id
         }
 
     # ════════════════════════════════════════
-    # 영상 분석 + 저장
+    # 영상 분석 + 저장 (DB 연동)
     # ════════════════════════════════════════
     async def analyze_and_save_video(self, user_id: int, file: UploadFile, original_filename: str) -> dict:
         print(f"[AI] 영상 분석 요청: {file.filename}")
@@ -243,6 +396,7 @@ class AIModelService:
             frame_count = 0
             vehicle_counter = Counter()
             vehicle_confidence = {}
+            all_yolo_boxes = []
 
             while True:
                 if self.stop_requested:
@@ -265,6 +419,7 @@ class AIModelService:
                     yolo_boxes = self._run_yolo(frame, keras_result)
                     if len(yolo_boxes) > 0:
                         danger_car_frames += 1
+                        all_yolo_boxes.extend(yolo_boxes)
 
                     for box in yolo_boxes:
                         vehicle_counter[box['class_name']] += 1
@@ -304,6 +459,15 @@ class AIModelService:
             else:
                 dominant_vehicle = None
 
+            final_keras_result = {
+                'weather': dominant_weather,
+                'confidence': avg_confidence,
+                'is_danger': is_danger,
+            }
+            event_id = self._save_detection_event(final_keras_result, all_yolo_boxes)
+            if event_id:
+                self._save_detection_objects(event_id, all_yolo_boxes)
+
             print(f"[AI] 영상 분석 완료 | 최종 기상: {dominant_weather} ({avg_confidence}%) | 위험차량: {has_danger_car} | 대표 차종: {dominant_vehicle}")
 
             return {
@@ -314,6 +478,7 @@ class AIModelService:
                 'danger_confidence': round(danger_car_frames / max(1, analyzed_frame_count) * 100, 1),
                 'detected_vehicle': dominant_vehicle,
                 'weather_counts': weather_counts,
+                'event_id': event_id,
                 'message': '중지됨' if self.stop_requested else '분석 완료'
             }
 
@@ -364,6 +529,17 @@ class AIModelService:
                     has_danger = len(yolo_boxes) > 0
                     danger_label = "⚠️ 위험차량 감지됨" if has_danger else "✅ 위험차량 없음"
                     danger_color = (0, 0, 255) if has_danger else (0, 255, 0)
+
+                    # 5초 인터벌 체크 후 DB 저장
+                    if has_danger:
+                        now = time.time()
+                        if not self.last_save_time or (now - self.last_save_time) >= self.save_interval:
+                            self.last_save_time = now
+                            event_id = self._save_detection_event(keras_result, yolo_boxes)
+                            if event_id:
+                                self._save_detection_objects(event_id, yolo_boxes)
+                        else:
+                            print(f"[DB] 스킵 (마지막 저장 후 {int(now - self.last_save_time)}초 경과)")
 
                 cv2.putText(frame, weather_label, (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 1.2, weather_color, 2)
                 cv2.putText(frame, danger_label, (10, 80), cv2.FONT_HERSHEY_SIMPLEX, 1.2, danger_color, 2)
