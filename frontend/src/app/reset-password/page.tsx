@@ -1,5 +1,5 @@
 'use client'
-import { useState, Suspense } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useSearchParams, useRouter } from 'next/navigation'
@@ -8,6 +8,7 @@ import styles from '../find-pw/page.module.css'
 const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'
 
 function ResetForm() {
+  useEffect(() => { document.title = 'Weather AI - 비밀번호 재설정' }, [])
   const searchParams = useSearchParams()
   const router = useRouter()
   const token = searchParams.get('token')

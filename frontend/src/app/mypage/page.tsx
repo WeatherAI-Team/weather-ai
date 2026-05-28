@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import styles from './page.module.css'
+import { useModalKeyboard } from '@/hooks/useModalKeyboard'
 
 const API = process.env.NEXT_PUBLIC_API_URL
 
@@ -32,6 +33,7 @@ const roleToGrade = (role: string) => {
 }
 
 export default function MyPage() {
+  useEffect(() => { document.title = 'Weather AI - 마이페이지' }, [])
   const router = useRouter()
 
   const [nickname, setNickname]     = useState('')
@@ -57,6 +59,12 @@ export default function MyPage() {
   const [commentCount, setCommentCount] = useState(0)
   const [withdrawModal, setWithdrawModal] = useState(false)
   const [withdrawing, setWithdrawing]     = useState(false)
+
+  useModalKeyboard(nameModal, () => setNameModal(false))
+  useModalKeyboard(pwModal, () => setPwModal(false))
+  useModalKeyboard(notiModal, () => setNotiModal(false))
+  useModalKeyboard(permModal, () => setPermModal(false))
+  useModalKeyboard(withdrawModal, () => setWithdrawModal(false))
 
   const getToken = () => {
     try {

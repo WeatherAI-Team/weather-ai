@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import styles from '../suggest/page.module.css'
+import { useModalKeyboard } from '@/hooks/useModalKeyboard'
 
 const API = process.env.NEXT_PUBLIC_API_URL
 
@@ -33,12 +34,15 @@ const getToken = (): string => {
 }
 
 export default function InfoBoardPage() {
+  useEffect(() => { document.title = 'Weather AI - 정보게시판' }, [])
   const pathname = usePathname()
   const [boardOpen, setBoardOpen] = useState(true)
   const [posts, setPosts] = useState<Post[]>([])
   const [search, setSearch] = useState('')
   const [selectedPost, setSelectedPost] = useState<Post | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
+
+  useModalKeyboard(modalOpen, () => setModalOpen(false))
 
   const fetchPosts = async () => {
     try {

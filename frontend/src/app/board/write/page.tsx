@@ -21,6 +21,7 @@ const TAB_LABEL: Record<string, string> = {
 }
 
 function WriteForm() {
+  useEffect(() => { document.title = 'Weather AI - 글쓰기' }, [])
   const router       = useRouter()
   const searchParams = useSearchParams()
   const tab          = (searchParams.get('tab') || 'suggest') as 'info' | 'suggest'
