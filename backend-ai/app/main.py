@@ -2,6 +2,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.controller.ai_model_controller import router
+from dotenv import load_dotenv
+import os
+
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '.env'))
 
 app = FastAPI()
 
