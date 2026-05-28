@@ -81,7 +81,7 @@ type NotificationDetail = ApiNotification & {
 
 type Filters = {
   is_urgent: '' | 'true' | 'false'
-  status: '' | 'PENDING' | 'SENT' | 'FAILED' | 'READ'
+  status: '' | 'PENDING' | 'SENT' | 'FAILED' | 'READ' | 'UNRESOLVED'
 }
 
 // ── 상세 모달 ─────────────────────────────────────────────────────────────────
@@ -309,7 +309,15 @@ export default function NotificationsPage() {
   const [boardOpen, setBoardOpen]     = useState(false)
   const [apiItems, setApiItems]       = useState<ApiNotification[]>([])
   const [loading, setLoading]         = useState(true)
-  const [filters, setFilters]         = useState<Filters>({ is_urgent: '', status: '' })
+  const [filters, setFilters]         = useState<Filters>(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search)
+      const status = params.get('status') as Filters['status'] | null
+      const is_urgent = params.get('is_urgent') as Filters['is_urgent'] | null
+      return { is_urgent: is_urgent ?? '', status: status ?? '' }
+    }
+    return { is_urgent: '', status: '' }
+  })
   const [page, setPage]               = useState(1)
   const [total, setTotal]             = useState(0)
   const [modalOpen, setModalOpen]     = useState(false)
@@ -326,7 +334,7 @@ export default function NotificationsPage() {
     setLoading(true)
     const q = new URLSearchParams({ page: String(p), per_page: String(PER_PAGE) })
     if (f.is_urgent) q.set('is_urgent', f.is_urgent)
-    if (f.status)    q.set('status',    f.status)
+    if (f.status && f.status !== 'UNRESOLVED') q.set('status', f.status)
     try {
       const res  = await fetch(`${API}/api/admin/notifications?${q}`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -352,6 +360,7 @@ export default function NotificationsPage() {
         return true
       })
       .filter(n => {
+        if (filters.status === 'UNRESOLVED') return n.status !== 'READ'
         if (filters.status) return n.status === filters.status
         return true
       })
@@ -483,6 +492,7 @@ export default function NotificationsPage() {
             onChange={e => setFilters(f => ({ ...f, status: e.target.value as Filters['status'] }))}
           >
             <option value="">전체</option>
+            <option value="UNRESOLVED">미처리</option>
             <option value="PENDING">미확인</option>
             <option value="SENT">발송됨</option>
             <option value="READ">확인완료</option>
