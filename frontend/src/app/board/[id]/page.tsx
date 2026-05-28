@@ -64,6 +64,7 @@ const getCatClass = (board_type: string) => {
 // 컴포넌트
 // ─────────────────────────────────────────
 function PostDetail() {
+  useEffect(() => { document.title = 'Weather AI - 게시글' }, [])
   const router   = useRouter()
   const params   = useParams()
   const postId   = Number(params.id)

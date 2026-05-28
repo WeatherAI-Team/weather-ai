@@ -299,6 +299,7 @@ function HlsPlayer({
 
 // ── 메인 페이지 ──
 export default function AiPage() {
+  useEffect(() => { document.title = 'Weather AI - AI 탐지' }, [])
   const [tab, setTab] = useState<TabType>('cctv')
   const [selectedCctv, setSelectedCctv] = useState<number | null>(null)
   const [cctvList, setCctvList] = useState<CctvItem[]>([])

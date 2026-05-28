@@ -52,6 +52,7 @@ const MOCK_SUGGEST: Post[] = [
 const PAGE_SIZE = 10
 
 export default function BoardPage() {
+  useEffect(() => { document.title = 'Weather AI - 자유게시판' }, [])
   const router = useRouter()
   const [tab, setTab]               = useState<'info' | 'suggest'>('info')
   const [searchType, setSearchType] = useState('title')

@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import { useRouter } from 'next/navigation'
 import styles from './page.module.css'
 import { useNotification } from '@/contexts/NotificationContext'
+import { useModalKeyboard } from '@/hooks/useModalKeyboard'
 
 const sideMenus = [
   { label: '대시보드',  href: '/admin',                icon: '📊' },
@@ -302,6 +303,7 @@ function NotificationModal({
 
 // ── 메인 페이지 ───────────────────────────────────────────────────────────────
 export default function NotificationsPage() {
+  useEffect(() => { document.title = 'Weather AI - 알림 이력' }, [])
   const pathname = usePathname()
   const router   = useRouter()
   const { unreadCount, notifications: sseNotifications, markAllRead, resolveNotification } = useNotification()
@@ -322,6 +324,8 @@ export default function NotificationsPage() {
   const [total, setTotal]             = useState(0)
   const [modalOpen, setModalOpen]     = useState(false)
   const [detail, setDetail]           = useState<NotificationDetail | null>(null)
+
+  useModalKeyboard(modalOpen, () => setModalOpen(false))
   const [detailLoading, setDetailLoading] = useState(false)
 
   const PER_PAGE = 20
