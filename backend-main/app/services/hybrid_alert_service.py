@@ -6,6 +6,8 @@ from app.services.keras_detection_service import run_keras_first_detection
 from app.services.yolo_detection_service import run_yolo_detection
 from app.services.risk_score_service import calculate_risk_score, _gate_monitoring_required
 from app.services.detection_event_save_service import save_detection_event_result
+from app.services.weather_log_service import get_weather_context_from_db
+from app.services.weather_log_service import create_weather_log_from_alerts
 
 def _build_weather_summary(alerts: list[dict]) -> str:
     unique = []
@@ -41,18 +43,32 @@ def run_hybrid_alert_flow(
     5. Gemma 최종 알림 생성
     """
 
-    dangerous, alerts = is_dangerous()
+    weather_context = None
 
-    if not dangerous:
-        return {
-            "alert_required": False,
-            "reason": "현재 위험 기상 특보 없음",
-            "cctv_source_id": cctv_source_id,
-            "weather_log_id": weather_log_id,
-            "weather_alerts": [],
-        }
+    if weather_log_id is not None:
+        weather_context = get_weather_context_from_db(
+            weather_log_id=weather_log_id,
+            cctv_source_id=None,
+        )
+        
+    if weather_context:
+        weather_log_id = weather_context["weather_log_id"]
+        cctv_source_id = weather_context["cctv_source_id"]
+        alerts = weather_context["alerts"]
+        weather_summary = weather_context["summary"]
+    else:
+        dangerous, alerts = is_dangerous()
 
-    weather_summary = _build_weather_summary(alerts)
+        if not dangerous:
+            return {
+                "alert_required": False,
+                "reason": "현재 위험 기상 특보 없음",
+                "cctv_source_id": cctv_source_id,
+                "weather_log_id": weather_log_id,
+                "weather_alerts": [],
+            }
+
+        weather_summary = _build_weather_summary(alerts)
 
     # 1단계: LLM Gate
     gate_result = judge_weather_gate(weather_summary)
@@ -103,6 +119,16 @@ def run_hybrid_alert_flow(
         yolo_result=yolo_result,
     )
 
+    if weather_log_id is None:
+        saved_weather_log = create_weather_log_from_alerts(
+            cctv_source_id=cctv_source_id,
+            weather_type=alerts[0]["wrn_name"] if alerts else "UNKNOWN",
+            weather_alerts=alerts,
+            weather_risk_score=risk_result.get("risk_score", 0),
+        )
+
+        weather_log_id = saved_weather_log.id
+
     if not risk_result["alert_required"]:
         return {
             "alert_required": False,
@@ -123,7 +149,7 @@ def run_hybrid_alert_flow(
         "keras_result": keras_result,
         "yolo_result": yolo_result,
         "risk_result": risk_result,
-        }
+    }
 
     weather_data = {
         "weather_log_id": weather_log_id,
@@ -131,7 +157,7 @@ def run_hybrid_alert_flow(
         "alerts": alerts,
         "gate_result": gate_result,
     }
-    
+
     # 4단계: Gemma 최종 알림 생성
     final_alert = generate_final_alert(
         weather_data=weather_data,
@@ -146,6 +172,7 @@ def run_hybrid_alert_flow(
         risk_result=risk_result,
         final_alert=final_alert,
         image_url=image_path,
+        weather_log_id=weather_log_id,
     )
 
     return {
