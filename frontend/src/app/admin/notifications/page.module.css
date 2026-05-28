@@ -21,9 +21,8 @@
   overflow-y: auto;
 }
 .sideLogoWrap {
-  padding: 0 20px 24px;
-  border-bottom: 1px solid rgba(255,255,255,0.1);
-  margin-bottom: 16px;
+  padding: 0 20px 15px;
+  margin-bottom: 15px;
   display: flex;
   align-items: center;
 }
@@ -152,6 +151,7 @@
   cursor: pointer;
   outline: none;
   transition: border-color 0.2s;
+  text-align-last: center;
 }
 .filterSelect:focus { border-color: var(--primary); }
 .totalCount {
@@ -304,6 +304,18 @@
 }
 .resolveBtn:hover { background: #1b9bd1; }
 
+.resolveBtnDisabled {
+  padding: 5px 12px;
+  background: #e8e8e8;
+  color: #aaa;
+  border: none;
+  border-radius: 7px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: not-allowed;
+  white-space: nowrap;
+}
+
 .cancelBtn {
   padding: 5px 12px;
   background: #f0f4f8;
@@ -396,6 +408,19 @@
   white-space: nowrap;
 }
 .readBtnModal:hover { background: #1b9bd1; }
+
+.readBtnModalDisabled {
+  padding: 7px 16px;
+  background: #e8e8e8;
+  color: #aaa;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: not-allowed;
+  white-space: nowrap;
+}
+
 .closeBtn {
   width: 32px;
   height: 32px;

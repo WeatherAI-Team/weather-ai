@@ -76,8 +76,6 @@ def get_post_detail(post_id: int) -> tuple[dict | None, str]:
     if not post:
         return None, "게시글을 찾을 수 없습니다."
 
-    board_repo.increment_view_count(post)
-
     parent_comments = board_repo.get_comments_by_post(post_id)
     comments_data   = []
     for c in parent_comments:
@@ -89,6 +87,14 @@ def get_post_detail(post_id: int) -> tuple[dict | None, str]:
     data             = _serialize_post(post)
     data["comments"] = comments_data
     return data, ""
+
+
+def increment_post_view(post_id: int) -> tuple[bool, str]:
+    post = board_repo.get_post_by_id(post_id)
+    if not post:
+        return False, "게시글을 찾을 수 없습니다."
+    board_repo.increment_view_count(post)
+    return True, ""
 
 
 def create_post(member_id: str, title: str, content: str, board_type: str, pinned: bool, user_role: str) -> tuple[dict | None, str, int]:
