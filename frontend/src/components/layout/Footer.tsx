@@ -12,6 +12,7 @@ const teamMembers = {
     { name: '안건우' },
     { name: '여민엽' },
     { name: '유진설' },
+    { name: '김소현' },
     { name: '조정화' },
   ],
   ai: [

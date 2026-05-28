@@ -145,6 +145,14 @@
   border: 1.5px solid var(--border);
   box-shadow: var(--shadow-sm);
 }
+.statCardLink {
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color 0.18s, box-shadow 0.18s;
+}
+.statCardLink:hover {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+}
 .statLabel {
   font-size: 0.8rem;
   color: var(--text-muted);

@@ -168,18 +168,27 @@ export default function ControlPage() {
         {/* 통계 카드 4개 */}
         <div className={styles.statsRow}>
           {[
-            { label: '총 탐지 건수',      value: summary?.total_event_count?.toLocaleString() ?? '-',  unit: '건', color: '#07559d' },
-            { label: '알림 필요 이벤트',   value: summary?.alert_required_count ?? '-',                unit: '건', color: '#e43b3b' },
-            { label: '고위험 이벤트',      value: summary?.high_risk_count ?? '-',                     unit: '건', color: '#f39c12' },
-            { label: '전체 회원 수',       value: memberCount?.toLocaleString() ?? '-',                unit: '명', color: '#1b9bd1' },
-          ].map(s => (
-            <div key={s.label} className={styles.statCard}>
-              <p className={styles.statLabel}>{s.label}</p>
-              <p className={styles.statValue} style={{ color: s.color }}>
-                {s.value} <span className={styles.statUnit}>{s.unit}</span>
-              </p>
-            </div>
-          ))}
+            { label: '총 탐지 건수',      value: summary?.total_event_count?.toLocaleString() ?? '-',  unit: '건', color: '#07559d', href: undefined },
+            { label: '알림 필요 이벤트',   value: summary?.alert_required_count ?? '-',                unit: '건', color: '#e43b3b', href: '/admin/notifications' },
+            { label: '미처리 이벤트',      value: summary?.high_risk_count ?? '-',                     unit: '건', color: '#f39c12', href: '/admin/notifications?status=UNRESOLVED' },
+            { label: '전체 회원 수',       value: memberCount?.toLocaleString() ?? '-',                unit: '명', color: '#1b9bd1', href: undefined },
+          ].map(s => {
+            const inner = (
+              <>
+                <p className={styles.statLabel}>{s.label}</p>
+                <p className={styles.statValue} style={{ color: s.color }}>
+                  {s.value} <span className={styles.statUnit}>{s.unit}</span>
+                </p>
+              </>
+            )
+            return s.href ? (
+              <Link key={s.label} href={s.href} className={`${styles.statCard} ${styles.statCardLink}`}>
+                {inner}
+              </Link>
+            ) : (
+              <div key={s.label} className={styles.statCard}>{inner}</div>
+            )
+          })}
         </div>
 
         {/* 중간 패널 (실시간 이벤트 피드 + 날씨 통계) */}
