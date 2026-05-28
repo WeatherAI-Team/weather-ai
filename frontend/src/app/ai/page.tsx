@@ -500,7 +500,7 @@ export default function AiPage() {
 
     const endpoint = fileIsImage
       ? "/api/ai/detect"
-      : "/api/ai/analyze_and_save_video";
+      : "/api/detections/analyze";
 
     try {
       const res = await fetch(`${BACKEND_URL}${endpoint}`, {
@@ -508,13 +508,32 @@ export default function AiPage() {
         body: formData,
       });
       const data = await res.json();
-      if (data.success) {
-        setResult({
-          detected: data.is_danger,
-          confidence: data.confidence,
-          label: data.weather,
-          detections: data.detections ?? [],
-        });
+
+      if (fileIsImage) {
+        // 이미지: FastAPI 직접 응답
+        if (data.success) {
+          setResult({
+            detected: data.is_danger,
+            confidence: data.confidence,
+            label: data.weather,
+            detections: data.detections ?? [],
+          });
+        }
+      } else {
+        // 영상: Flask → FastAPI 경유 응답
+        const aiResult = data?.data?.ai_result;
+        if (data.success && aiResult) {
+          setResult({
+            detected: aiResult.has_danger_car,
+            confidence: aiResult.confidence,
+            label: aiResult.weather,
+            detections: aiResult.yolo_boxes?.map((box: any) => ({
+              bbox: box.box_coords,
+              label: box.class_name,
+              confidence: box.confidence / 100,
+            })) ?? [],
+          });
+        }
       }
     } catch {
       setResult({

@@ -3,18 +3,17 @@ import { createContext, useContext, useEffect, useState, useCallback, useRef, Re
 
 export type Notification = {
   id: number
-  target_type: string       // 'ADMIN' | 'MEMBER'
+  target_type: string
   member_id: number | null
   event_id: number | null
-  title: string             // 알림 제목 (주 표시 텍스트)
-  content: string           // 알림 상세 내용
-  risk_level: string        // 'HIGH' | 'MEDIUM' | 'LOW'
-  status: string            // 'PENDING' | 'SENT' | 'FAILED' | 'READ'
+  title: string
+  content: string
+  risk_level: string
+  status: string
   is_confirmed: boolean
   sent_at: string | null
   read_at: string | null
   created_at: string
-  // detection_events JOIN으로 API가 추가 제공하는 필드
   location_name: string
   weather_type: string
 }
@@ -52,7 +51,8 @@ function isAdmin(): boolean {
 export function NotificationProvider({ children }: { children: ReactNode }) {
   const [unreadCount, setUnreadCount] = useState(0)
   const [notifications, setNotifications] = useState<Notification[]>([])
-  const esRef    = useRef<EventSource | null>(null)
+  const [popups, setPopups] = useState<Notification[]>([])
+  const esRef = useRef<EventSource | null>(null)
   const lastIdRef = useRef<number>(0)
 
   useEffect(() => {
@@ -61,7 +61,6 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
     const API = process.env.NEXT_PUBLIC_API_URL ?? ''
 
-    // 초기 unread count 로드
     fetch(`${API}/api/admin/notifications/unread-count`, {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -69,9 +68,8 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       .then(data => { if (data.success) setUnreadCount(data.data.count) })
       .catch(() => {})
 
-    // SSE 실시간 연결 (토큰과 last_id를 쿼리 파라미터로 전달)
-    const connect = () => {
-      const url = `${API}/api/admin/notifications/stream?token=${token}&last_id=${lastIdRef.current}`
+    const connect = (startId: number) => {
+      const url = `${API}/api/admin/notifications/stream?token=${token}&last_id=${startId}`
       const es = new EventSource(url)
       esRef.current = es
 
@@ -81,17 +79,31 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
           lastIdRef.current = Math.max(lastIdRef.current, notification.id)
           setNotifications(prev => [notification, ...prev].slice(0, 100))
           setUnreadCount(prev => prev + 1)
+
+          setPopups(prev => [...prev, notification].slice(-3))
+          setTimeout(() => {
+            setPopups(prev => prev.filter(p => p.id !== notification.id))
+          }, 5000)
         } catch {}
       })
 
       es.onerror = () => {
         es.close()
-        // 5초 후 재연결 (last_id를 유지한 채 재연결)
-        setTimeout(connect, 5000)
+        setTimeout(() => connect(lastIdRef.current), 5000)
       }
     }
 
-    connect()
+    // 최신 id 가져온 후 SSE 연결
+    fetch(`${API}/api/admin/notifications?per_page=1`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => r.json())
+      .then(data => {
+        const latestId = data?.data?.items?.[0]?.id ?? 0
+        lastIdRef.current = latestId
+        connect(latestId)
+      })
+      .catch(() => connect(0))
 
     return () => {
       esRef.current?.close()
@@ -116,6 +128,31 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   return (
     <NotificationContext.Provider value={{ unreadCount, notifications, markAllRead, resolveNotification }}>
       {children}
+
+      {/* 팝업 */}
+      <div style={{
+        position: 'fixed', top: '20px', right: '20px',
+        zIndex: 9999, display: 'flex', flexDirection: 'column', gap: '10px',
+      }}>
+        {popups.map(popup => (
+          <div key={popup.id} style={{
+            background: popup.risk_level === 'DANGER' ? '#e74c3c' : '#e67e22',
+            color: '#fff', borderRadius: '8px', padding: '16px 20px',
+            minWidth: '300px', boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+          }}>
+            <div style={{ fontWeight: 'bold', marginBottom: '6px' }}>⚠️ {popup.title}</div>
+            <div style={{ fontSize: '13px', opacity: 0.9 }}>{popup.content}</div>
+            <button
+              onClick={() => setPopups(prev => prev.filter(p => p.id !== popup.id))}
+              style={{
+                marginTop: '8px', background: 'rgba(255,255,255,0.2)',
+                border: 'none', color: '#fff', borderRadius: '4px',
+                padding: '4px 10px', cursor: 'pointer', fontSize: '12px',
+              }}
+            >닫기</button>
+          </div>
+        ))}
+      </div>
     </NotificationContext.Provider>
   )
 }
