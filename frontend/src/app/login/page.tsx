@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 
@@ -10,6 +10,7 @@ import NaverLoginButton from "@/components/auth/NaverLoginButton";
 import GoogleLoginButton from "@/components/auth/GoogleLoginButton";
 
 export default function LoginPage() {
+  useEffect(() => { document.title = 'Weather AI - 로그인' }, [])
   const [loginId, setLoginId] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");

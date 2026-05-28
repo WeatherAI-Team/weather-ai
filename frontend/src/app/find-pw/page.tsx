@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import styles from './page.module.css'
@@ -7,6 +7,7 @@ import styles from './page.module.css'
 const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'
 
 export default function FindPasswordPage() {
+  useEffect(() => { document.title = 'Weather AI - 비밀번호 찾기' }, [])
   const [sent, setSent] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')

@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import styles from "./page.module.css";
 
 export default function RegisterPage() {
+  useEffect(() => { document.title = 'Weather AI - 회원가입' }, [])
   const router = useRouter();
 
   const [loginId, setLoginId] = useState("");

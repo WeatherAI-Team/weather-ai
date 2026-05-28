@@ -67,6 +67,7 @@ type Summary = {
 }
 
 export default function ControlPage() {
+  useEffect(() => { document.title = 'Weather AI - 대시보드' }, [])
   const pathname  = usePathname()
   const router    = useRouter()
   const { unreadCount } = useNotification()

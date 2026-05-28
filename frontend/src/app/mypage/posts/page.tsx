@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import styles from './page.module.css'
+import { useModalKeyboard } from '@/hooks/useModalKeyboard'
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? ''
 
@@ -39,6 +40,7 @@ function getToken(): string | null {
 }
 
 export default function MyPostsPage() {
+  useEffect(() => { document.title = 'Weather AI - 내 게시글' }, [])
   const router = useRouter()
   const [posts, setPosts]           = useState<Post[]>([])
   const [total, setTotal]           = useState(0)
@@ -49,6 +51,8 @@ export default function MyPostsPage() {
   const [boardFilter, setBoardFilter] = useState('전체')
   const [detailPost, setDetailPost]   = useState<Post | null>(null)
   const [loading, setLoading]         = useState(true)
+
+  useModalKeyboard(!!detailPost, () => setDetailPost(null))
 
   const PER_PAGE = 10
 

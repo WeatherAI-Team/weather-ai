@@ -7,6 +7,7 @@ import { usePathname } from 'next/navigation'
 import styles from './page.module.css'
 import KakaoMap, { type RegionData } from '@/components/map/KakaoMap'
 import { useNotification } from '@/contexts/NotificationContext'
+import { useModalKeyboard } from '@/hooks/useModalKeyboard'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL
 
@@ -119,6 +120,7 @@ function HlsPlayer({ src, className }: { src: string; className?: string }) {
 }
 
 export default function MonitorPage() {
+  useEffect(() => { document.title = 'Weather AI - 관제센터' }, [])
   const pathname = usePathname()
   const { unreadCount } = useNotification()
   const [boardOpen, setBoardOpen] = useState(false)
@@ -129,6 +131,8 @@ export default function MonitorPage() {
   const [loading, setLoading] = useState(true)
   const [popupOpen, setPopupOpen] = useState(false)
   const [popupData, setPopupData] = useState<{ name: string; events: EventItem[] } | null>(null)
+
+  useModalKeyboard(popupOpen, () => setPopupOpen(false))
   const [llmTarget, setLlmTarget] = useState<LLMTarget | null>(null)
 
   const [cctvList, setCctvList] = useState<CctvItem[]>([])
