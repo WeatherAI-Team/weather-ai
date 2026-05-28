@@ -48,9 +48,10 @@ function WriteForm() {
 
   // 권한 확인 완료 후 리다이렉트 판단
   useEffect(() => {
-    if (!ready) return  // 아직 로딩 중이면 판단하지 않음
+    if (!ready) return
+    if (!localUser) { router.replace('/login'); return }
     if (tab === 'info' && !isPrivileged) router.replace('/board')
-  }, [ready, tab, isPrivileged, router])
+  }, [ready, localUser, tab, isPrivileged, router])
 
   // 수정 모드: 기존 게시글 불러오기
   useEffect(() => {

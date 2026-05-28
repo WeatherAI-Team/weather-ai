@@ -30,8 +30,23 @@ const WEATHER_COLOR: Record<string, string> = {
   heavy_rain: '#1b9bd1',
   heavy_snow: '#81c4e2',
 }
-function weatherLabel(key: string) { return WEATHER_LABEL[key] ?? key }
-function weatherColor(key: string) { return WEATHER_COLOR[key] ?? '#aaa' }
+function weatherLabel(key: string) { const k = (key ?? '').toLowerCase(); return WEATHER_LABEL[k] ?? k }
+function weatherColor(key: string) { const k = (key ?? '').toLowerCase(); return WEATHER_COLOR[k] ?? '#aaa' }
+
+const VEHICLE_LABEL: Record<string, string> = {
+  concrete_mixer: '래미콘',
+  gas_truck:      '탱크로리',
+  cargo_truck:    '카고트럭',
+  '25t_truck':    '25톤 이상 차량',
+}
+function vehicleLabel(key: string | null) {
+  if (!key) return '차량'
+  return VEHICLE_LABEL[(key).toLowerCase()] ?? key
+}
+function eventTitle(e: Event) {
+  return e.llm_title || e.event_title || `${vehicleLabel(e.main_vehicle_type)} 탐지 이벤트`
+}
+function isHighRisk(level: string | null) { return (level ?? '').toLowerCase() === 'high' }
 
 function getToken(): string | null {
   try {
@@ -75,6 +90,7 @@ export default function ControlPage() {
   const [summary, setSummary]       = useState<Summary | null>(null)
   const [memberCount, setMemberCount] = useState<number | null>(null)
   const [weeklyData, setWeeklyData] = useState<{ day: string; count: number }[]>([])
+  const [unresolvedCount, setUnresolvedCount] = useState<number | null>(null)
   const [loading, setLoading]       = useState(true)
 
   useEffect(() => {
@@ -87,10 +103,15 @@ export default function ControlPage() {
       fetch(`${API}/api/admin/dashboard/summary`, { headers }).then(r => r.json()),
       fetch(`${API}/api/admin/members?per_page=1`, { headers }).then(r => r.json()),
       fetch(`${API}/api/admin/dashboard/weekly`,   { headers }).then(r => r.json()),
-    ]).then(([dash, members, weekly]) => {
+      fetch(`${API}/api/admin/notifications?per_page=1`, { headers }).then(r => r.json()),
+      fetch(`${API}/api/admin/notifications?per_page=1&status=READ`, { headers }).then(r => r.json()),
+    ]).then(([dash, members, weekly, allNotifs, readNotifs]) => {
       if (dash.success)    setSummary(dash.data)
       if (members.success) setMemberCount(members.data?.pagination?.total ?? null)
       if (weekly.success)  setWeeklyData(weekly.data)
+      if (allNotifs.success && readNotifs.success) {
+        setUnresolvedCount((allNotifs.data?.total ?? 0) - (readNotifs.data?.total ?? 0))
+      }
     }).catch(console.error).finally(() => setLoading(false))
   }, [router])
 
@@ -171,7 +192,7 @@ export default function ControlPage() {
           {[
             { label: '총 탐지 건수',      value: summary?.total_event_count?.toLocaleString() ?? '-',  unit: '건', color: '#07559d', href: undefined },
             { label: '알림 필요 이벤트',   value: summary?.alert_required_count ?? '-',                unit: '건', color: '#e43b3b', href: '/admin/notifications' },
-            { label: '미처리 이벤트',      value: summary?.high_risk_count ?? '-',                     unit: '건', color: '#f39c12', href: '/admin/notifications?status=UNRESOLVED' },
+            { label: '미처리 이벤트',      value: unresolvedCount ?? '-',                              unit: '건', color: '#f39c12', href: '/admin/notifications?status=UNRESOLVED' },
             { label: '전체 회원 수',       value: memberCount?.toLocaleString() ?? '-',                unit: '명', color: '#1b9bd1', href: undefined },
           ].map(s => {
             const inner = (
@@ -204,10 +225,10 @@ export default function ControlPage() {
               )}
               {(summary?.recent_events ?? []).map(e => (
                 <div key={e.id} className={styles.eventItem}>
-                  <span className={`${styles.eventDot} ${e.risk_level === 'high' ? styles.dotDanger : styles.dotWarn}`} />
+                  <span className={`${styles.eventDot} ${isHighRisk(e.risk_level) ? styles.dotDanger : styles.dotWarn}`} />
                   <div className={styles.eventInfo}>
-                    <p className={styles.eventType}>{e.llm_title || e.event_title}</p>
-                    <p className={styles.eventLoc}>{e.location_name}</p>
+                    <p className={styles.eventType}>{eventTitle(e)}</p>
+                    <p className={styles.eventLoc}>{e.location_name ?? '-'}</p>
                   </div>
                   <div className={styles.eventRight}>
                     <span className={styles.eventBadge}>
@@ -233,10 +254,10 @@ export default function ControlPage() {
               )}
               {(summary?.recent_events ?? []).filter(e => e.alert_required).slice(0, 5).map(e => (
                 <Link key={e.id} href="/admin/notifications" className={styles.alertItem}>
-                  <span className={`${styles.alertIcon} ${e.risk_level === 'high' ? styles.alertDanger : styles.alertWarn}`}>
-                    {e.risk_level === 'high' ? '🚨' : '⚠️'}
+                  <span className={`${styles.alertIcon} ${isHighRisk(e.risk_level) ? styles.alertDanger : styles.alertWarn}`}>
+                    {isHighRisk(e.risk_level) ? '🚨' : '⚠️'}
                   </span>
-                  <span className={styles.alertMsg}>{e.llm_title || e.event_title}</span>
+                  <span className={styles.alertMsg}>{eventTitle(e)}</span>
                   <span className={styles.alertTime}>
                     {e.detected_at ? new Date(e.detected_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }) : '-'}
                   </span>

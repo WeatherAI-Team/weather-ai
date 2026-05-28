@@ -64,6 +64,7 @@ export default function BoardPage() {
   const [totalPages, setTotalPages] = useState(1)
   const [loading, setLoading]       = useState(false)
   const [userRole, setUserRole]     = useState<string>('')
+  const [loginAlert, setLoginAlert] = useState(false)
 
   useEffect(() => {
     const saved = localStorage.getItem('user')
@@ -191,7 +192,13 @@ export default function BoardPage() {
               <button onClick={handleSearch} className={styles.searchBtn}>검색</button>
             </div>
             {(tab === 'suggest' || userRole === 'admin' || userRole === 'manager') && (
-              <button className={styles.writeBtn} onClick={() => router.push(`/board/write?tab=${tab}`)}>
+              <button
+                className={styles.writeBtn}
+                onClick={() => {
+                  if (!userRole) { setLoginAlert(true); return }
+                  router.push(`/board/write?tab=${tab}`)
+                }}
+              >
                 ✏️ 글쓰기
               </button>
             )}
@@ -199,6 +206,7 @@ export default function BoardPage() {
 
           <div className={styles.postList}>
             <div className={styles.listHeader}>
+              <span>번호</span>
               <span>카테고리</span>
               <span>제목</span>
               <span>작성자</span>
@@ -210,6 +218,7 @@ export default function BoardPage() {
             {/* 공지 고정 행 */}
             {notices.map(post => (
               <Link key={`n-${post.id}`} href={`/board/${post.id}`} className={`${styles.postRow} ${styles.pinned}`}>
+                <span className={styles.postNum}>{post.id}</span>
                 <span className={getCatClass('공지')}>공지</span>
                 <span className={styles.postTitle}>
                   <span className={styles.pin}>📌</span>
@@ -230,6 +239,7 @@ export default function BoardPage() {
               <div className={styles.empty}>게시글이 없습니다.</div>
             ) : posts.map(post => (
               <Link key={post.id} href={`/board/${post.id}`} className={styles.postRow}>
+                <span className={styles.postNum}>{post.id}</span>
                 <span className={getCatClass(post.category)}>{post.category}</span>
                 <span className={styles.postTitle}>
                   {post.title}
@@ -256,6 +266,18 @@ export default function BoardPage() {
           </div>
         </div>
       </section>
+
+      {loginAlert && (
+        <div className={styles.modalOverlay} onClick={() => setLoginAlert(false)}>
+          <div className={styles.modalBox} onClick={e => e.stopPropagation()}>
+            <p className={styles.modalMsg}>로그인 후 이용해주세요.</p>
+            <div className={styles.modalBtns}>
+              <button className={styles.modalLogin} onClick={() => router.push('/login')}>로그인하기</button>
+              <button className={styles.modalCancel} onClick={() => setLoginAlert(false)}>취소</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

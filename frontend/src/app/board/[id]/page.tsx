@@ -104,6 +104,16 @@ function PostDetail() {
     load()
   }, [postId])
 
+  // 조회수 증가 (AbortController로 Strict Mode 이중 호출 방지)
+  useEffect(() => {
+    const controller = new AbortController()
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/board/posts/${postId}/view`, {
+      method: 'POST',
+      signal: controller.signal,
+    }).catch(() => {})
+    return () => controller.abort()
+  }, [postId])
+
   useEffect(() => {
     if (replyTargetId !== null) replyRef.current?.focus()
   }, [replyTargetId])

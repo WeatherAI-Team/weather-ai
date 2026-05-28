@@ -30,7 +30,7 @@
 .logo { display:flex; align-items:center; gap:10px; flex-shrink:0; }
 .logoIcon { display:flex; align-items:center; margin-left: 20px; }
 /* Nav */
-.nav { display:flex; align-items:center; gap:4px; margin-left: auto; }
+.nav { display:flex; align-items:center; gap:12px; margin-left: auto; margin-right: 5px; }
 .navLink {
   position: relative;
   padding: 6px 16px;
@@ -86,7 +86,28 @@
 }
 
 /* 프로필 영역 */
-.profileArea { position:relative; }
+.profileArea { position:relative; display:flex; align-items:center; gap:8px; }
+.nicknameText {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--primary);
+  background: rgba(7, 85, 157, 0.08);
+  border: 1.5px solid rgba(7, 85, 157, 0.18);
+  border-radius: 999px;
+  padding: 4px 14px;
+  white-space: nowrap;
+}
+.roleLabel {
+  font-weight: 700;
+  color: var(--secondary);
+}
+.nicknameDivider {
+  color: rgba(7, 85, 157, 0.3);
+  font-weight: 400;
+}
 .profileBtn {
   position: relative;
   display: flex;

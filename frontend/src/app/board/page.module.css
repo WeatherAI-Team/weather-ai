@@ -101,7 +101,7 @@
 }
 .listHeader {
   display: grid;
-  grid-template-columns: 80px 1fr 90px 100px 60px 70px;
+  grid-template-columns: 50px 80px 1fr 90px 100px 60px 70px;
   gap: 16px;
   padding: 10px 20px;
   background: #f5f9ff;
@@ -109,12 +109,12 @@
   font-size: 0.78rem; font-weight: 700;
   color: #5a85a8; text-align: center;
 }
-.listHeader span:nth-child(2) { text-align: left; }
+.listHeader span:nth-child(3) { text-align: left; }
 .listHeader span:last-child { text-align: right; }
 
 .postRow {
   display: grid;
-  grid-template-columns: 80px 1fr 90px 100px 60px 70px;
+  grid-template-columns: 50px 80px 1fr 90px 100px 60px 70px;
   gap: 16px; align-items: center;
   padding: 14px 20px;
   border-bottom: 1px solid rgba(7,85,157,0.08);
@@ -140,6 +140,7 @@
   word-break: keep-all;
 }
 .pin { font-size: 0.8rem; }
+.postNum    { font-size: 0.8rem;  color: #8aadcc; text-align: center; }
 .author     { font-size: 0.82rem; color: #5a85a8; text-align: center; }
 .date       { font-size: 0.8rem;  color: #5a85a8; text-align: center; }
 .commentCol { font-size: 0.8rem;  color: #5a85a8; text-align: center; }
@@ -174,8 +175,67 @@
 .pageNav:disabled { opacity: 0.35; cursor: not-allowed; }
 
 @media (max-width: 600px) {
-  .postRow, .listHeader { grid-template-columns: 60px 1fr; }
-  .author, .date, .commentCol, .views, .listHeader span:nth-child(3),
-  .listHeader span:nth-child(4), .listHeader span:nth-child(5) { display: none; }
+  .postRow, .listHeader { grid-template-columns: 80px 1fr; }
+  .postNum, .author, .date, .commentCol, .views,
+  .listHeader span:nth-child(1),
+  .listHeader span:nth-child(4),
+  .listHeader span:nth-child(5),
+  .listHeader span:nth-child(6),
+  .listHeader span:nth-child(7) { display: none; }
   .search { width: 140px; }
+}
+
+/* 로그인 안내 모달 */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 500;
+}
+.modalBox {
+  background: white;
+  border-radius: 16px;
+  padding: 32px 28px 24px;
+  width: 300px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+.modalMsg {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--dark-navy);
+  text-align: center;
+}
+.modalBtns {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+}
+.modalLogin {
+  flex: 1;
+  padding: 10px 0;
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  color: white;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+}
+.modalCancel {
+  flex: 1;
+  padding: 10px 0;
+  background: #f0f4f8;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  font-weight: 500;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
 }

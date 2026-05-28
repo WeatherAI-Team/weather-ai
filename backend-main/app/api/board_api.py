@@ -85,6 +85,18 @@ def get_post(post_id):
 
 
 # ──────────────────────────────────────────────────────────────
+# 조회수 증가
+# POST /api/board/posts/<post_id>/view
+# ──────────────────────────────────────────────────────────────
+@board_bp.route("/posts/<int:post_id>/view", methods=["POST"])
+def increment_view(post_id):
+    ok, error = board_service.increment_post_view(post_id)
+    if not ok:
+        return jsonify({"success": False, "message": error}), 404
+    return jsonify({"success": True})
+
+
+# ──────────────────────────────────────────────────────────────
 # 게시글 작성
 # POST /api/board/posts
 # Body: { title, content, board_type, pinned }
