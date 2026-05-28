@@ -9,8 +9,8 @@
   margin: 0 auto;
   padding: 40px 24px 40px;
   display: grid;
-  grid-template-columns: 1.1fr 1fr 1fr 1fr;
-  gap: 48px;
+  grid-template-columns: 1fr 1.6fr 0.8fr 1fr;
+  gap: 32px;
 }
 
 /* 브랜드 */

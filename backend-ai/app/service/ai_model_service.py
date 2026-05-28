@@ -13,8 +13,8 @@ from fastapi import UploadFile
 import keras
 from ultralytics import YOLO
 
-CLASS_NAMES = ['heavy_rain', 'heavy_snow', 'sun']
-DANGER_CLASSES = ['heavy_rain', 'heavy_snow', 'fog']
+CLASS_NAMES = ['fog', 'heavy_rain', 'heavy_snow', 'sun']
+DANGER_CLASSES = ['fog', 'heavy_rain', 'heavy_snow']
 
 STATIC_DIR = os.getenv('STATIC_DIR', 'static')
 
@@ -61,42 +61,38 @@ class AIModelService:
             return input_path
 
     # ════════════════════════════════════════
-    # 케라스: 기상 + 위험차량 1차 분류
+    # 케라스: 날씨 분류만
     # ════════════════════════════════════════
     def _predict_weather(self, frame: np.ndarray) -> dict:
         img = cv2.resize(frame, (224, 224))
         img = img / 255.0
         img = np.expand_dims(img, axis=0)
 
-        pred_weather, pred_danger = self.keras_model.predict(img, verbose=0)
+        pred_weather = self.keras_model.predict(img, verbose=0)
 
         class_idx = np.argmax(pred_weather[0])
         class_name = CLASS_NAMES[class_idx]
         weather_confidence = float(pred_weather[0][class_idx])
 
-        danger_score = float(pred_danger[0][0])
-        has_danger_car = danger_score >= 0.5
-
         result = {
             'weather': class_name,
             'confidence': round(weather_confidence * 100, 1),
             'is_danger': class_name in DANGER_CLASSES,
-            'has_danger_car': has_danger_car,
-            'danger_confidence': round(danger_score * 100, 1)
         }
 
-        print(f"[AI] 케라스 기상: {class_name} | 신뢰도: {round(weather_confidence*100,1)}% | 위험차량: {has_danger_car}")
+        print(f"[AI] 케라스 기상: {class_name} | 신뢰도: {round(weather_confidence*100,1)}%")
         return result
 
     # ════════════════════════════════════════
-    # YOLO: 악천후 + 위험차량 감지 시에만 실행
+    # YOLO: 신뢰도 60% 이상일 때만 실행 (테스트용 - 날씨 무관)
+    # 배포 시: if keras_result['is_danger'] and keras_result['confidence'] >= 60.0 으로 변경
     # ════════════════════════════════════════
     def _run_yolo(self, frame: np.ndarray, keras_result: dict) -> list:
         yolo_boxes = []
 
-        if keras_result['is_danger']:
-            print(f"[AI] 🚨 악천후 + 위험차량 감지 → YOLO 정밀 분석 시작")
-            yolo_results = self.yolo_model(frame, verbose=False)
+        if keras_result['confidence'] >= 60.0:
+            print(f"[AI] 🚨 신뢰도 {keras_result['confidence']}% → YOLO 위험차량 탐지 시작")
+            yolo_results = self.yolo_model(frame, verbose=False, conf=0.4)  # 40% 이상만 탐지
 
             for box in yolo_results[0].boxes:
                 coords = box.xyxy[0].tolist()
@@ -122,10 +118,9 @@ class AIModelService:
             if yolo_boxes:
                 best_box = max(yolo_boxes, key=lambda x: x['confidence'])
                 print(f"[AI] YOLO 대표 차종: {best_box['class_name']} ({best_box['confidence']}%)")
-
             print(f"[AI] YOLO 탐지 결과: {[b['class_name'] for b in yolo_boxes]}")
         else:
-            print(f"[AI] YOLO 스킵 (악천후: {keras_result['is_danger']}, 위험차량: {keras_result['has_danger_car']})")
+            print(f"[AI] YOLO 스킵 (신뢰도 {keras_result['confidence']}% < 60%)")
 
         return yolo_boxes
 
@@ -144,7 +139,6 @@ class AIModelService:
         keras_result = self._predict_weather(frame)
         yolo_boxes = self._run_yolo(frame, keras_result)
 
-        # 이미지에서 신뢰도 가장 높은 차종 하나
         if yolo_boxes:
             best_box = max(yolo_boxes, key=lambda x: x['confidence'])
             dominant_vehicle = f"{best_box['class_name']} ({best_box['confidence']}%)"
@@ -153,6 +147,7 @@ class AIModelService:
 
         result = {
             **keras_result,
+            'has_danger_car': len(yolo_boxes) > 0,
             'yolo_boxes': yolo_boxes,
             'detected_vehicle': dominant_vehicle,
             'yolo_detected': len(yolo_boxes) > 0
@@ -182,9 +177,9 @@ class AIModelService:
             dominant_vehicle = None
 
         weather_label = f"{keras_result['weather']} ({keras_result['confidence']}%)"
-        danger_label = f"Danger Car: DETECTED ({keras_result['danger_confidence']}%)" if keras_result['has_danger_car'] else "Danger Car: None"
+        danger_label = f"Danger Car: DETECTED" if len(yolo_boxes) > 0 else "Danger Car: None"
         weather_color = (0, 0, 255) if keras_result['is_danger'] else (0, 255, 0)
-        danger_color = (0, 0, 255) if keras_result['has_danger_car'] else (0, 255, 0)
+        danger_color = (0, 0, 255) if len(yolo_boxes) > 0 else (0, 255, 0)
 
         cv2.putText(frame, weather_label, (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 1.2, weather_color, 2)
         cv2.putText(frame, danger_label, (10, 80), cv2.FONT_HERSHEY_SIMPLEX, 1.2, danger_color, 2)
@@ -198,6 +193,7 @@ class AIModelService:
         print(f"[AI] 이미지 저장 완료: {local_path}")
         return {
             **keras_result,
+            'has_danger_car': len(yolo_boxes) > 0,
             'yolo_boxes': yolo_boxes,
             'detected_vehicle': dominant_vehicle,
             'yolo_detected': len(yolo_boxes) > 0,
@@ -246,7 +242,7 @@ class AIModelService:
             analyzed_frame_count = 0
             frame_count = 0
             vehicle_counter = Counter()
-            vehicle_confidence = {}  # 차종별 신뢰도 리스트
+            vehicle_confidence = {}
 
             while True:
                 if self.stop_requested:
@@ -266,10 +262,10 @@ class AIModelService:
                     weather_counts[keras_result['weather']] += 1
                     confidence_sum[keras_result['weather']] += keras_result['confidence']
 
-                    if keras_result['has_danger_car']:
+                    yolo_boxes = self._run_yolo(frame, keras_result)
+                    if len(yolo_boxes) > 0:
                         danger_car_frames += 1
 
-                    yolo_boxes = self._run_yolo(frame, keras_result)
                     for box in yolo_boxes:
                         vehicle_counter[box['class_name']] += 1
                         if box['class_name'] not in vehicle_confidence:
@@ -299,7 +295,6 @@ class AIModelService:
             dominant_count = weather_counts[dominant_weather]
             avg_confidence = round(confidence_sum[dominant_weather] / max(1, dominant_count), 1)
 
-            # 가장 많이 나온 차종 + 평균 신뢰도
             if vehicle_counter:
                 dominant_vehicle_name = vehicle_counter.most_common(1)[0][0]
                 avg_vehicle_conf = round(
@@ -363,11 +358,12 @@ class AIModelService:
                 if frame_count % 5 == 0:
                     keras_result = self._predict_weather(frame)
                     weather_label = f"{keras_result['weather']} ({keras_result['confidence']}%)"
-                    danger_label = f"Danger Car: DETECTED ({keras_result['danger_confidence']}%)" if keras_result['has_danger_car'] else "Danger Car: None"
                     weather_color = (0, 0, 255) if keras_result['is_danger'] else (0, 255, 0)
-                    danger_color = (0, 0, 255) if keras_result['has_danger_car'] else (0, 255, 0)
 
-                    self._run_yolo(frame, keras_result)
+                    yolo_boxes = self._run_yolo(frame, keras_result)
+                    has_danger = len(yolo_boxes) > 0
+                    danger_label = "⚠️ 위험차량 감지됨" if has_danger else "✅ 위험차량 없음"
+                    danger_color = (0, 0, 255) if has_danger else (0, 255, 0)
 
                 cv2.putText(frame, weather_label, (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 1.2, weather_color, 2)
                 cv2.putText(frame, danger_label, (10, 80), cv2.FONT_HERSHEY_SIMPLEX, 1.2, danger_color, 2)

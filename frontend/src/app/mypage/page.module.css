@@ -223,6 +223,28 @@
 .permCheck { color: #27ae60; font-weight: 700; font-size: 0.9rem; }
 .permNote { font-size: 0.78rem; color: var(--text-muted); text-align: center; margin-top: 4px; }
 
+/* 회원 탈퇴 */
+.settingItemDanger:hover { background: rgba(231, 76, 60, 0.08) !important; }
+.settingNameDanger { color: #c0392b !important; }
+.settingItemDanger:hover .settingNameDanger { color: #e74c3c !important; }
+.withdrawWarning {
+  padding: 16px 18px;
+  background: rgba(231, 76, 60, 0.07);
+  border: 1.5px solid rgba(231, 76, 60, 0.3);
+  border-radius: 10px;
+}
+.withdrawWarningTitle { font-size: 0.95rem; font-weight: 700; color: #c0392b; margin-bottom: 6px; }
+.withdrawWarningDesc { font-size: 0.83rem; color: var(--text-muted); line-height: 1.5; }
+.withdrawBtn {
+  flex: 1; padding: 11px;
+  background: #e74c3c; color: white;
+  border: none; border-radius: 10px;
+  font-size: 0.88rem; font-weight: 600;
+  cursor: pointer; transition: background 0.2s;
+}
+.withdrawBtn:hover { background: #c0392b; }
+.withdrawBtn:disabled { opacity: 0.6; cursor: not-allowed; }
+
 @media (max-width: 768px) {
   .grid { grid-template-columns: 1fr; }
   .modal { max-width: calc(100vw - 32px); }

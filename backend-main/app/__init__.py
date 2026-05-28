@@ -98,19 +98,20 @@ def create_app():
     from .api.admin_api import admin_bp
     app.register_blueprint(admin_bp, url_prefix='/api/admin')
     # 관리자 사용자 조회 API
-    # f-006 사용자 목록/상세 조회
     from .api.admin_member_api import admin_member_bp
     app.register_blueprint(admin_member_bp, url_prefix="/api/admin/members")
+    # 알림 이력 API (notifications 테이블)
+    from .api.notification_api import notification_bp
+    app.register_blueprint(notification_bp)
 
     from . import socket_events
 
     with app.app_context():
         from .models.member import Member, EventLog
-        # 탐지 이벤트 모델을 가져와.
-        # Flask가 detection_events 테이블 구조를 알 수 있게 해.
         from .models.detection_event import DetectionEvent
         from .models.board import Board, BoardComment
-        
+        from .models.notification import Notification
+
         db.create_all()
 
     return app

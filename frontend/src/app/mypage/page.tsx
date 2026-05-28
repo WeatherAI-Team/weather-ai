@@ -55,6 +55,8 @@ export default function MyPage() {
   const [saving, setSaving]           = useState(false)
   const [postCount, setPostCount]     = useState(0)
   const [commentCount, setCommentCount] = useState(0)
+  const [withdrawModal, setWithdrawModal] = useState(false)
+  const [withdrawing, setWithdrawing]     = useState(false)
 
   const getToken = () => {
     try {
@@ -136,6 +138,24 @@ export default function MyPage() {
       setNameModal(false)
     } catch { alert('오류가 발생했습니다.') }
     finally { setSaving(false) }
+  }
+
+  // ── 회원 탈퇴
+  const handleWithdraw = async () => {
+    setWithdrawing(true)
+    const token = getToken()
+    try {
+      const res  = await fetch(`${API}/api/member/me/withdraw`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      const data = await res.json()
+      if (!data.success) { alert(data.message); return }
+      localStorage.removeItem('user')
+      localStorage.removeItem('access_token')
+      router.replace('/login')
+    } catch { alert('오류가 발생했습니다.') }
+    finally { setWithdrawing(false) }
   }
 
   // ── 비밀번호 변경
@@ -257,6 +277,14 @@ export default function MyPage() {
                     <span className={styles.settingArrow}>›</span>
                   </button>
 
+                  <button className={`${styles.settingItem} ${styles.settingItemDanger}`} onClick={() => setWithdrawModal(true)}>
+                    <div className={styles.settingLeft}>
+                      <span className={styles.settingIcon}>🚪</span>
+                      <span className={`${styles.settingName} ${styles.settingNameDanger}`}>회원 탈퇴</span>
+                    </div>
+                    <span className={styles.settingArrow}>›</span>
+                  </button>
+
                 </div>
               </div>
 
@@ -368,6 +396,30 @@ export default function MyPage() {
             </div>
             <div className={styles.modalActions}>
               <button className={styles.saveBtn} style={{ flex: 1 }} onClick={() => setNotiModal(false)}>저장</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 회원 탈퇴 확인 모달 */}
+      {withdrawModal && (
+        <div className={styles.overlay} onClick={() => setWithdrawModal(false)}>
+          <div className={styles.modal} onClick={e => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <h2>회원 탈퇴</h2>
+              <button className={styles.modalClose} onClick={() => setWithdrawModal(false)}>✕</button>
+            </div>
+            <div className={styles.modalBody}>
+              <div className={styles.withdrawWarning}>
+                <p className={styles.withdrawWarningTitle}>정말로 탈퇴하시겠습니까?</p>
+                <p className={styles.withdrawWarningDesc}>탈퇴 시 계정 및 모든 활동 내역이 비활성화되며, 이 작업은 되돌릴 수 없습니다.</p>
+              </div>
+            </div>
+            <div className={styles.modalActions}>
+              <button className={styles.cancelBtn} onClick={() => setWithdrawModal(false)}>취소</button>
+              <button className={styles.withdrawBtn} onClick={handleWithdraw} disabled={withdrawing}>
+                {withdrawing ? '처리 중...' : '탈퇴하기'}
+              </button>
             </div>
           </div>
         </div>
