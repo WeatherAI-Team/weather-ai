@@ -150,13 +150,10 @@ def run_yolo_detection(image_path: str | None = None) -> dict:
         # backend-ai FastAPI 서버에 YOLO 정밀 탐지 요청.
         # 실제 YOLO 모델 추론은 backend-ai에서 수행된다.
         response = requests.post(
-            f"{AI_SERVER_URL}/detect/yolo",
-            json={
-                "image_path": image_path,
-            },
-            timeout=AI_SERVER_TIMEOUT,
-        )
-
+        f"{AI_SERVER_URL}/api/ai/detect/yolo",
+        json={"image_path": image_path},
+        timeout=AI_SERVER_TIMEOUT,
+    )
         # 4xx/5xx 응답이면 예외 발생.
         # 예: AI 서버 다운, endpoint 없음, 이미지 경로 문제 등
         response.raise_for_status()

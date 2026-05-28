@@ -11,3 +11,20 @@ class WeatherLogRepository:
         db.session.flush()
 
         return weather_log
+
+    def find_by_id(self, weather_log_id: int):
+        return WeatherLog.query.filter(
+            WeatherLog.id == weather_log_id
+        ).first()
+
+    def find_latest_by_cctv_source_id(self, cctv_source_id: int):
+        return WeatherLog.query.filter(
+            WeatherLog.cctv_source_id == cctv_source_id
+        ).order_by(
+            WeatherLog.created_at.desc()
+        ).first()
+
+    def find_latest(self):
+        return WeatherLog.query.order_by(
+            WeatherLog.created_at.desc()
+        ).first()

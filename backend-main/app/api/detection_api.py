@@ -4,7 +4,10 @@
 # jsonify는 Python 데이터를 JSON으로 바꿔줘.
 # f-021 탐지 조회 결과 api 주소 담당 
 from flask import Blueprint, request, jsonify
-
+from flask import current_app
+from app.services.hybrid_alert_service import run_hybrid_detection_flow
+from app.services.ai_detection_save_service import save_ai_detection_result
+from app import db
 # 탐지 결과 기능을 처리하는 Service를 가져와.
 from ..services.detection_service import DetectionService
 
@@ -89,6 +92,52 @@ def get_detections():
         "data": result
     }), 200
 
+@detection_bp.route("/analyze", methods=["POST"])
+def analyze_detection():
+    try:
+        data = request.get_json() or {}
+
+        result = run_hybrid_detection_flow(
+            image_path=data.get("image_path"),
+            cctv_source_id=data.get("cctv_source_id"),
+            weather_log_id=data.get("weather_log_id"),
+        )
+
+        return jsonify({
+            "success": True,
+            "message": "하이브리드 탐지 분석 완료",
+            "data": result,
+        }), 200
+
+    except Exception:
+        current_app.logger.exception("하이브리드 탐지 분석 중 오류 발생")
+
+        return jsonify({
+            "success": False,
+            "message": "탐지 분석 처리 중 오류가 발생했습니다.",
+        }), 500
+@detection_bp.route("/save-result", methods=["POST"])
+def save_detection_result():
+    try:
+        data = request.get_json() or {}
+
+        result = save_ai_detection_result(data)
+
+        return jsonify({
+            "success": True,
+            "message": "AI 탐지 결과 저장 성공",
+            "data": result,
+        }), 200
+
+    except Exception:
+        db.session.rollback()
+        current_app.logger.exception("AI 탐지 결과 저장 중 오류 발생")
+
+    return jsonify({
+        "success": False,
+        "message": "AI 탐지 결과 저장 중 오류가 발생했습니다.",
+    }), 500
+    
 @detection_bp.route("/<int:detection_id>", methods=["GET"])
 def get_detection_detail(detection_id):
     # 이 함수는 GET /api/detections/<id> 요청이 들어오면 실행돼.
