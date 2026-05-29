@@ -11,7 +11,10 @@ load_dotenv()
 
 jwt = JWTManager()
 db = SQLAlchemy()
-socketio = SocketIO()
+socketio = SocketIO(
+    cors_allowed_origins="*",
+    async_mode="threading"
+)
 
 def create_app():
     
@@ -60,7 +63,11 @@ def create_app():
     )
 
     # SocketIO (dev에서 가져옴)
-    socketio.init_app(app, cors_allowed_origins="*")
+    socketio.init_app(
+    app,
+    cors_allowed_origins="*",
+    async_mode="threading"
+)
 
     # Blueprint 등록
     from .api.member_api import member_bp

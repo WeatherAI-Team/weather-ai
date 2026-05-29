@@ -5,7 +5,7 @@
 # current_app은 서버에서 에러 로그를 남길 때 써.
 # f-026 AI chatbot
 from flask import Blueprint, request, jsonify, current_app
-
+import time 
 # 챗봇 기능을 처리하는 ChatbotService를 가져와.
 from ..services.chatbot_service import ChatbotService
 
@@ -23,11 +23,14 @@ chatbot_service = ChatbotService()
 def send_message():
     # 이 함수는 POST /api/chatbot/message 요청이 들어오면 실행돼.
     # 쉽게 말하면 사용자가 챗봇에게 메시지를 보낼 때 실행되는 함수야.
-
+    
+    # 요청 처리 시간을 재기 시작해.
+    start_time = time.perf_counter()
+    print("[CHATBOT] 요청 들어옴", flush=True)
     # 사용자가 보낸 JSON 데이터를 가져와.
     # 예: {"message": "강남대로 위험해?"}
     data = request.get_json(silent=True) or {}
-
+    print("[CHATBOT] JSON 읽음", time.perf_counter() - start_time, flush=True)
     # message 값을 꺼내.
     message = data.get("message", "")
 
@@ -42,6 +45,7 @@ def send_message():
     
     # 앞뒤 공백을 제거해.
     message = message.strip()
+    print("[CHATBOT] message 정리 완료:", message, time.perf_counter() - start_time, flush=True)
 
     # 빈 메시지면 굳이 service까지 보내지 않고 바로 안내해.
     if not message:
@@ -60,19 +64,38 @@ def send_message():
         }), 400
     
     try:
+        print("[CHATBOT] create_response 시작", time.perf_counter() - start_time, flush=True)
         # Service에게 챗봇 답변을 만들어 달라고 부탁해.
         result = chatbot_service.create_response(message)
+        print("[CHATBOT] create_response 끝", time.perf_counter() - start_time, flush=True)
+    #     # 정상 응답
+    #     return jsonify({
+    #         "success": True,
+    #         "message": "챗봇 응답 생성 성공",
+    #         "data": result
+    #     }), 200
 
-        # 정상 응답
-        return jsonify({
+    # except Exception :
+    #     # 서버에서 어떤 에러가 났는지 터미널 로그에 남겨.
+    #     # 프론트에는 자세한 에러 내용을 숨기고, 서버 개발자만 확인할 수 있게 하는 거야.
+    #     current_app.logger.exception("챗봇 응답 생성 중 오류 발생")
+
+    #     return jsonify({
+    #         "success": False,
+    #         "message": "챗봇 응답 생성 중 오류가 발생했습니다.",
+    #         "data": None
+    #     }), 500
+        response = jsonify({
             "success": True,
             "message": "챗봇 응답 생성 성공",
             "data": result
-        }), 200
+        })
 
-    except Exception :
-        # 서버에서 어떤 에러가 났는지 터미널 로그에 남겨.
-        # 프론트에는 자세한 에러 내용을 숨기고, 서버 개발자만 확인할 수 있게 하는 거야.
+        print("[CHATBOT] jsonify 끝", time.perf_counter() - start_time, flush=True)
+
+        return response, 200
+
+    except Exception:
         current_app.logger.exception("챗봇 응답 생성 중 오류 발생")
 
         return jsonify({
