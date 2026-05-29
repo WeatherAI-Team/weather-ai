@@ -312,7 +312,7 @@ export default function NotificationsPage() {
   const pathname    = usePathname()
   const router      = useRouter()
   const searchParams = useSearchParams()
-  const { unreadCount, notifications: sseNotifications, markAllRead, resolveNotification } = useNotification()
+  const { unreadCount, notifications: sseNotifications, markAllRead, resolveNotification, updateNotificationConfirm, revertNotificationStatus } = useNotification()
 
   const [boardOpen, setBoardOpen]     = useState(false)
   const [apiItems, setApiItems]       = useState<ApiNotification[]>([])
@@ -404,42 +404,45 @@ export default function NotificationsPage() {
   }
 
   const handleRead = async (id: number) => {
-    await resolveNotification(id)
     setApiItems(prev => prev.map(n => n.id === id ? { ...n, status: 'READ' } : n))
     setDetail(prev => prev ? { ...prev, status: 'READ' } : prev)
+    resolveNotification(id)
   }
 
   const handleUnread = async (id: number) => {
     const token = getToken()
     if (!token) return
-    await fetch(`${API}/api/admin/notifications/${id}/unread`, {
+    setApiItems(prev => prev.map(n => n.id === id ? { ...n, status: 'SENT' } : n))
+    revertNotificationStatus(id)
+    setDetail(prev => prev ? { ...prev, status: 'SENT' } : prev)
+    fetch(`${API}/api/admin/notifications/${id}/unread`, {
       method: 'PATCH',
       headers: { Authorization: `Bearer ${token}` },
     })
-    setApiItems(prev => prev.map(n => n.id === id ? { ...n, status: 'SENT' } : n))
-    setDetail(prev => prev ? { ...prev, status: 'SENT' } : prev)
   }
 
   const handleConfirm = async (id: number) => {
     const token = getToken()
     if (!token) return
-    await fetch(`${API}/api/admin/notifications/${id}/confirm`, {
+    setApiItems(prev => prev.map(n => n.id === id ? { ...n, is_confirmed: true } : n))
+    updateNotificationConfirm(id, true)
+    setDetail(prev => prev ? { ...prev, is_confirmed: true } : prev)
+    fetch(`${API}/api/admin/notifications/${id}/confirm`, {
       method: 'PATCH',
       headers: { Authorization: `Bearer ${token}` },
     })
-    setApiItems(prev => prev.map(n => n.id === id ? { ...n, is_confirmed: true } : n))
-    setDetail(prev => prev ? { ...prev, is_confirmed: true } : prev)
   }
 
   const handleUnconfirm = async (id: number) => {
     const token = getToken()
     if (!token) return
-    await fetch(`${API}/api/admin/notifications/${id}/unconfirm`, {
+    setApiItems(prev => prev.map(n => n.id === id ? { ...n, is_confirmed: false } : n))
+    updateNotificationConfirm(id, false)
+    setDetail(prev => prev ? { ...prev, is_confirmed: false } : prev)
+    fetch(`${API}/api/admin/notifications/${id}/unconfirm`, {
       method: 'PATCH',
       headers: { Authorization: `Bearer ${token}` },
     })
-    setApiItems(prev => prev.map(n => n.id === id ? { ...n, is_confirmed: false } : n))
-    setDetail(prev => prev ? { ...prev, is_confirmed: false } : prev)
   }
 
   const totalPages = Math.ceil(total / PER_PAGE)

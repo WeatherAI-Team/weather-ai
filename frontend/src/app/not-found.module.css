@@ -1,0 +1,101 @@
+.page {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(160deg, var(--dark-navy) 0%, #0e2d4d 50%, #07559d 100%);
+  overflow: hidden;
+}
+
+/* 빗방울 */
+.rain {
+  position: absolute;
+  top: -20px;
+  width: 1.5px;
+  height: 60px;
+  background: linear-gradient(to bottom, transparent, rgba(129, 196, 226, 0.5));
+  border-radius: 2px;
+  animation: rainFall linear infinite;
+}
+
+@keyframes rainFall {
+  from { transform: translateY(-60px); opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  to   { transform: translateY(110vh); opacity: 0; }
+}
+
+/* 콘텐츠 */
+.content {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  animation: fadeUp 0.7s ease both;
+  padding: 40px 24px;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(28px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.weatherIcon {
+  font-size: 5rem;
+  margin-bottom: 16px;
+  animation: float 3s ease-in-out infinite;
+  display: block;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-10px); }
+}
+
+.code {
+  font-family: 'Exo 2', sans-serif;
+  font-size: clamp(6rem, 18vw, 10rem);
+  font-weight: 700;
+  line-height: 1;
+  background: linear-gradient(135deg, #ffffff 30%, var(--sky) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -4px;
+  margin-bottom: 12px;
+  text-shadow: none;
+}
+
+.title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #ffffff;
+  margin-bottom: 12px;
+  letter-spacing: 0.02em;
+}
+
+.desc {
+  font-size: 0.9rem;
+  color: rgba(181, 223, 243, 0.8);
+  line-height: 1.7;
+  margin-bottom: 36px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 13px 28px;
+  background: var(--secondary);
+  color: #ffffff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border-radius: 50px;
+  transition: background 0.2s, transform 0.2s;
+  box-shadow: 0 4px 20px rgba(27, 155, 209, 0.4);
+}
+
+.btn:hover {
+  background: var(--primary);
+  transform: translateY(-2px);
+}

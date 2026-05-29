@@ -40,19 +40,13 @@ def naver_callback():
     error = request.args.get("error")
 
     if error:
-        return jsonify({
-            "error": "네이버 로그인 실패",
-            "detail": error
-        }), 400
+        return redirect(f"{FRONTEND_URL}/auth/callback?error=login_cancelled")
 
     code = request.args.get("code")
     state = request.args.get("state")
 
-    if not code:
-        return jsonify({"error": "인가 코드가 없습니다."}), 400
-
-    if not state:
-        return jsonify({"error": "state 값이 없습니다."}), 400
+    if not code or not state:
+        return redirect(f"{FRONTEND_URL}/auth/callback?error=login_cancelled")
 
     saved_state = session.pop("naver_oauth_state", None)
 

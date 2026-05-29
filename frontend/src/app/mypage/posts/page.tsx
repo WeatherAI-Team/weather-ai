@@ -39,9 +39,21 @@ function getToken(): string | null {
   } catch { return null }
 }
 
+function getRole(): string {
+  try {
+    const raw = localStorage.getItem('user')
+    if (raw) {
+      const parsed = JSON.parse(raw)
+      if (parsed?.role) return parsed.role
+    }
+  } catch { /* ignore */ }
+  return 'user'
+}
+
 export default function MyPostsPage() {
   useEffect(() => { document.title = 'Weather AI - 내 게시글' }, [])
   const router = useRouter()
+  const [role, setRole]             = useState('user')
   const [posts, setPosts]           = useState<Post[]>([])
   const [total, setTotal]           = useState(0)
   const [page, setPage]             = useState(1)
@@ -51,6 +63,8 @@ export default function MyPostsPage() {
   const [boardFilter, setBoardFilter] = useState('전체')
   const [detailPost, setDetailPost]   = useState<Post | null>(null)
   const [loading, setLoading]         = useState(true)
+
+  useEffect(() => { setRole(getRole()) }, [])
 
   useModalKeyboard(!!detailPost, () => setDetailPost(null))
 
@@ -83,14 +97,18 @@ export default function MyPostsPage() {
     setSearch(searchInput)
   }
 
+  const isUser = role === 'user'
+
+  const visiblePosts = isUser ? posts.filter(p => p.board_type === 'FREE') : posts
+
   const filtered = boardFilter === '전체'
-    ? posts
-    : posts.filter(p => TYPE_LABEL[p.board_type] === boardFilter)
+    ? visiblePosts
+    : visiblePosts.filter(p => TYPE_LABEL[p.board_type] === boardFilter)
 
   const counts = {
-    total:   total,
-    suggest: posts.filter(p => p.board_type === 'FREE').length,
-    info:    posts.filter(p => p.board_type !== 'FREE').length,
+    total:   isUser ? visiblePosts.length : total,
+    suggest: visiblePosts.filter(p => p.board_type === 'FREE').length,
+    info:    visiblePosts.filter(p => p.board_type !== 'FREE').length,
   }
 
   return (
@@ -110,7 +128,7 @@ export default function MyPostsPage() {
             {[
               { label: '전체 게시글', value: counts.total,   key: '전체',      color: '#07559d' },
               { label: '건의게시판',  value: counts.suggest, key: '건의게시판', color: '#1b9bd1' },
-              { label: '정보게시판',  value: counts.info,    key: '정보게시판', color: '#2b8a3e' },
+              ...(!isUser ? [{ label: '정보게시판', value: counts.info, key: '정보게시판', color: '#2b8a3e' }] : []),
             ].map(s => (
               <button
                 key={s.key}
@@ -134,7 +152,7 @@ export default function MyPostsPage() {
             />
             <button className={styles.searchBtn} onClick={handleSearch}>검색</button>
             <div className={styles.filterGroup}>
-              {['전체', '건의게시판', '정보게시판'].map(f => (
+              {['전체', '건의게시판', ...(!isUser ? ['정보게시판'] : [])].map(f => (
                 <button
                   key={f}
                   className={`${styles.filterBtn} ${boardFilter === f ? styles.filterActive : ''}`}
