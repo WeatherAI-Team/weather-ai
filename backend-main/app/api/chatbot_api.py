@@ -68,23 +68,7 @@ def send_message():
         # Service에게 챗봇 답변을 만들어 달라고 부탁해.
         result = chatbot_service.create_response(message)
         print("[CHATBOT] create_response 끝", time.perf_counter() - start_time, flush=True)
-    #     # 정상 응답
-    #     return jsonify({
-    #         "success": True,
-    #         "message": "챗봇 응답 생성 성공",
-    #         "data": result
-    #     }), 200
 
-    # except Exception :
-    #     # 서버에서 어떤 에러가 났는지 터미널 로그에 남겨.
-    #     # 프론트에는 자세한 에러 내용을 숨기고, 서버 개발자만 확인할 수 있게 하는 거야.
-    #     current_app.logger.exception("챗봇 응답 생성 중 오류 발생")
-
-    #     return jsonify({
-    #         "success": False,
-    #         "message": "챗봇 응답 생성 중 오류가 발생했습니다.",
-    #         "data": None
-    #     }), 500
         response = jsonify({
             "success": True,
             "message": "챗봇 응답 생성 성공",
