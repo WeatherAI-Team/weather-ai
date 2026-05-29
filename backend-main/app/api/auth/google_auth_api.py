@@ -40,11 +40,13 @@ def google_login():
 
 @google_auth_bp.route("/callback")
 def google_callback():
-    """구글 인증 후 콜백 처리"""
+    if request.args.get("error"):
+        return redirect(f"{FRONTEND_URL}/auth/callback?error=login_cancelled")
+
     code = request.args.get("code")
 
     if not code:
-        return jsonify({"error": "인가 코드가 없습니다."}), 400
+        return redirect(f"{FRONTEND_URL}/auth/callback?error=login_cancelled")
 
     # 1. 인가 코드로 access_token 받기
     token_url = "https://oauth2.googleapis.com/token"

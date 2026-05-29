@@ -25,6 +25,11 @@ class Member(db.Model):
     role = db.Column(Enum('admin', 'manager', 'user', name='user_roles'), default='user')
     active = db.Column(db.Boolean, default=True)
 
+    # 4. 알림 설정
+    noti_email = db.Column(db.Boolean, default=True, nullable=False, server_default='1')
+    noti_sms   = db.Column(db.Boolean, default=False, nullable=False, server_default='0')
+    noti_app   = db.Column(db.Boolean, default=True, nullable=False, server_default='1')
+
     
     # 5. 시간 기록 (Audit)
     created_at = db.Column(db.DateTime, default=utc_now)

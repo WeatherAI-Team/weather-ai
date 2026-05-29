@@ -182,6 +182,21 @@ def change_my_password():
 
     return jsonify(result), 400
 
+@member_bp.route("/me/notifications", methods=["GET"])
+@login_required
+def get_my_noti_settings():
+    result = member_service.get_noti_settings(request.user_id)
+    return jsonify(result), 200 if result["success"] else 404
+
+@member_bp.route("/me/notifications", methods=["PUT"])
+@login_required
+def update_my_noti_settings():
+    data = request.get_json()
+    if not data:
+        return jsonify({"success": False, "message": "수정할 정보를 입력해주세요."}), 400
+    result = member_service.update_noti_settings(request.user_id, data)
+    return jsonify(result), 200 if result["success"] else 400
+
 @member_bp.route("/me/withdraw", methods=["PATCH"])
 @login_required
 def withdraw_my_account():

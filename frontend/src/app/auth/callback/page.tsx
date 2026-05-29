@@ -52,7 +52,7 @@ function AuthCallbackContent() {
         .finally(() => {
           setStatus('success')
           setMessage('로그인 성공! 메인 페이지로 이동합니다.')
-          setTimeout(() => router.push('/'), 1500)
+          setTimeout(() => { window.location.href = '/' }, 1500)
         })
     } catch {
       setStatus('error')

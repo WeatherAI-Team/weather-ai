@@ -132,6 +132,14 @@ class MemberRepository:
         return member
     
     
+    def update_noti_settings(self, member, noti_email, noti_sms, noti_app):
+        member.noti_email = noti_email
+        member.noti_sms   = noti_sms
+        member.noti_app   = noti_app
+        member.updated_at = datetime.now()
+        db.session.commit()
+        return member
+
      # 10. 회원 탈퇴 처리 - 실제 삭제 없이 비활성화
     def deactivate_member(self, member):
         member.active=False

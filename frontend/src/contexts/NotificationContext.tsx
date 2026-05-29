@@ -24,6 +24,8 @@ type NotificationContextType = {
   notifications: Notification[]
   markAllRead: () => void
   resolveNotification: (id: number) => Promise<void>
+  updateNotificationConfirm: (id: number, confirmed: boolean) => void
+  revertNotificationStatus: (id: number) => void
 }
 
 const NotificationContext = createContext<NotificationContextType>({
@@ -31,6 +33,8 @@ const NotificationContext = createContext<NotificationContextType>({
   notifications: [],
   markAllRead: () => {},
   resolveNotification: async () => {},
+  updateNotificationConfirm: () => {},
+  revertNotificationStatus: () => {},
 })
 
 function getToken(): string | null {
@@ -106,15 +110,23 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     const token = getToken()
     if (!token) return
     const API = process.env.NEXT_PUBLIC_API_URL ?? ''
-    await fetch(`${API}/api/admin/notifications/${id}/read`, {
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, status: 'READ', read_at: new Date().toISOString() } : n))
+    fetch(`${API}/api/admin/notifications/${id}/read`, {
       method: 'PATCH',
       headers: { Authorization: `Bearer ${token}` },
     })
-    setNotifications(prev => prev.map(n => n.id === id ? { ...n, status: 'READ', read_at: new Date().toISOString() } : n))
+  }, [])
+
+  const updateNotificationConfirm = useCallback((id: number, confirmed: boolean) => {
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_confirmed: confirmed } : n))
+  }, [])
+
+  const revertNotificationStatus = useCallback((id: number) => {
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, status: 'SENT', read_at: null } : n))
   }, [])
 
   return (
-    <NotificationContext.Provider value={{ unreadCount, notifications, markAllRead, resolveNotification }}>
+    <NotificationContext.Provider value={{ unreadCount, notifications, markAllRead, resolveNotification, updateNotificationConfirm, revertNotificationStatus }}>
       {children}
     </NotificationContext.Provider>
   )
