@@ -38,3 +38,12 @@ Thumbs.db
 **/models/*.weights
 **/data/*.zip
 **/data/*.csv
+
+# --- Keras 모델 파일 ---
+**/*.h5
+**/*.keras
+
+
+# --- 욜로 모델 파일 ---
+**/*.pt
+**/results.csv

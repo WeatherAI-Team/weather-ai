@@ -1,12 +1,17 @@
-from flask import Blueprint, request, jsonify, current_app, Response, stream_with_context
-from ..services.cctv_service import get_cctv_list
+from flask import Blueprint, request, jsonify, Response, stream_with_context, current_app
 
-import requests
-
+from ..services.cctv_service import (
+    get_cctv_list,
+    fetch_stream_m3u8,
+    fetch_segment,
+    rewrite_segment_m3u8,
+)
+from ..services.ai_service import detect_image, analyze_and_save_video
 
 cctv_bp = Blueprint("cctv", __name__)
 
-# app/api/cctv_api.py
+
+# ── CCTV 목록 조회 ───────────────────────────────────────────────
 @cctv_bp.route("/cctv", methods=["GET"])
 def cctv_list():
     params = {
@@ -18,28 +23,99 @@ def cctv_list():
         "maxY":     request.args.get("maxY",     "38.0"),
         "getType":  request.args.get("getType",  "json"),
     }
-    limit = int(request.args.get("limit", 20))  # 기본 20개
-
+    limit = int(request.args.get("limit", 20))
     try:
         data = get_cctv_list(params, limit)
         return jsonify(data), 200
     except Exception as e:
-        current_app.logger.error(f"CCTV API 오류: {e}")
+        current_app.logger.error(f"CCTV 목록 조회 실패: {e}")
         return jsonify({"error": str(e)}), 500
-    
+
+
+# ── HLS 스트림 m3u8 프록시 ───────────────────────────────────────
 @cctv_bp.route("/cctv/stream")
 def stream_proxy():
-    """
-    브라우저 → Flask → CCTV 서버
-    CORS 우회용 프록시
-    """
     url = request.args.get("url")
     if not url:
         return jsonify({"error": "url 파라미터 없음"}), 400
+    try:
+        rewritten = fetch_stream_m3u8(url)
+        return Response(rewritten, content_type="application/vnd.apple.mpegurl")
+    except Exception as e:
+        current_app.logger.error(f"스트림 프록시 실패: {e}")
+        return jsonify({"error": str(e)}), 504
 
-    req = requests.get(url, stream=True, timeout=10)
-    
-    return Response(
-        stream_with_context(req.iter_content(chunk_size=1024)),
-        content_type=req.headers.get("Content-Type", "video/mp2t"),
-    )
+
+# ── TS 세그먼트 프록시 ───────────────────────────────────────────
+@cctv_bp.route("/cctv-ts", methods=["GET"])
+def ts_proxy():
+    url = request.args.get("url")
+    if not url:
+        return jsonify({"error": "url 없음"}), 400
+    try:
+        content_type, is_m3u8, res = fetch_segment(url)
+
+        if is_m3u8:
+            rewritten = rewrite_segment_m3u8(res, url)
+            return Response(rewritten, content_type="application/vnd.apple.mpegurl")
+
+        return Response(
+            stream_with_context(res.iter_content(chunk_size=4096)),
+            content_type="video/mp2t",
+        )
+    except Exception as e:
+        current_app.logger.error(f"TS 프록시 실패: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+# ── 이미지 단건 탐지 ─────────────────────────────────────────────
+@cctv_bp.route("/ai/detect", methods=["POST"])
+def detect():
+    if 'file' not in request.files:
+        return jsonify({"error": "파일이 없습니다."}), 400
+    try:
+        result = detect_image(request.files['file'])
+        return jsonify(result), 200
+    except Exception as e:
+        current_app.logger.error(f"이미지 탐지 실패: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+# ── 영상 분석 및 저장 ────────────────────────────────────────────
+@cctv_bp.route("/ai/analyze_and_save_video", methods=["POST"])
+def analyze_video():
+    if 'file' not in request.files:
+        return jsonify({"error": "파일이 없습니다."}), 400
+    try:
+        result = analyze_and_save_video(
+            file_storage=request.files['file'],
+            user_id=request.form.get('user_id', '1'),
+            original_filename=request.form.get('original_filename', request.files['file'].filename),
+        )
+        return jsonify(result), 200
+    except Exception as e:
+        current_app.logger.error(f"영상 분석 실패: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+# ── 세그먼트 경로 프록시 (레거시 호환) ──────────────────────────
+@cctv_bp.route("/cctv/<path:segment_path>", methods=["GET"])
+def segment_proxy(segment_path):
+    query_string = request.query_string.decode()
+    segment_url = f"http://cctvsec.ktict.co.kr/{segment_path}"
+    if query_string:
+        segment_url += f"?{query_string}"
+    try:
+        content_type, is_m3u8, res = fetch_segment(segment_url)
+
+        if is_m3u8:
+            rewritten = rewrite_segment_m3u8(res, segment_url)
+            return Response(rewritten, content_type="application/vnd.apple.mpegurl")
+
+        return Response(
+            stream_with_context(res.iter_content(chunk_size=4096)),
+            content_type=content_type,
+        )
+    except Exception as e:
+        current_app.logger.error(f"세그먼트 프록시 실패: {e}")
+        return jsonify({"error": str(e)}), 500

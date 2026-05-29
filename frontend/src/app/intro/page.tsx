@@ -1,4 +1,7 @@
+import type { Metadata } from 'next'
 import styles from './page.module.css'
+
+export const metadata: Metadata = { title: '소개' }
 
 export default function IntroPage() {
   return (
@@ -11,6 +14,7 @@ export default function IntroPage() {
             악천후 기상 조건에서 일반 탐지 시스템이 놓치는<br/>
             위험물질 운반 차량을 AI로 실시간 탐지하여 대형 사고를 예방합니다.
           </p>
+        
         </div>
       </section>
 
@@ -35,7 +39,7 @@ export default function IntroPage() {
         </div>
       </section>
 
-      <section className={styles.techStack}>
+      {/* <section className={styles.techStack}>
         <div className="container">
           <p className={styles.eyebrow}>기술 스택</p>
           <h2 className={styles.sectionTitle}>사용 기술</h2>
@@ -53,7 +57,7 @@ export default function IntroPage() {
             ))}
           </div>
         </div>
-      </section>
+      </section> */}
     </div>
   )
 }

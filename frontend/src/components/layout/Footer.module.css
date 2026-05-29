@@ -1,0 +1,148 @@
+.footer {
+  background: var(--dark-navy);
+  color: rgba(255,255,255,0.7);
+  margin-top: auto;
+}
+
+.inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 40px 24px 40px;
+  display: grid;
+  grid-template-columns: 1.3fr 1.4fr 1fr 1fr;
+  gap: 32px;
+}
+
+/* 브랜드 */
+.brand { display:flex; flex-direction:column; gap:12px; }
+.logo { display:inline-flex; width:fit-content; }
+.projectName {
+  font-family: 'Exo 2', sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  color: white;
+  letter-spacing: -0.01em;
+}
+.projectDesc {
+  font-size: 0.82rem;
+  color: rgba(255,255,255,0.5);
+  line-height: 1.7;
+}
+.teamName {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--sky);
+  letter-spacing: 0.05em;
+}
+
+/* 공통 섹션 타이틀 */
+.sectionTitle {
+  font-family: 'Exo 2', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--sky);
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+/* 팀원 */
+.memberGroup { display:flex; flex-direction:column; gap:10px; }
+.memberRow { display:flex; align-items:flex-start; gap:10px; }
+.partLabel {
+  font-size: 0.7rem;
+  font-weight: 700;
+  background: rgba(27,155,209,0.25);
+  color: var(--sky);
+  padding: 2px 8px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  margin-top: 1px;
+  letter-spacing: 0.05em;
+}
+.members {
+  font-size: 0.85rem;
+  color: rgba(255,255,255,0.8);
+  line-height: 1.6;
+  white-space: nowrap;
+}
+.roleTag {
+  font-size: 0.68rem;
+  background: rgba(213,227,169,0.2);
+  color: #d5e3a9;
+  padding: 1px 6px;
+  border-radius: 4px;
+  margin-left: 4px;
+  font-weight: 600;
+}
+
+/* 링크 */
+.linkList { display:flex; flex-direction:column; gap:10px; }
+.linkItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: rgba(255,255,255,0.65);
+  text-decoration: none;
+  transition: color 0.2s;
+  padding: 4px 0;
+}
+.linkItem:hover { color: var(--sky); }
+.linkItem svg { flex-shrink: 0; opacity: 0.7; }
+.linkItem:hover svg { opacity: 1; }
+
+/* 기술 스택 */
+.stackGroups { display:flex; flex-direction:column; gap:12px; }
+.stackGroup { display:flex; flex-direction:column; gap:8px; }
+.stackLabel {
+  font-size: 0.68rem;
+  font-weight: 700;
+  background: rgba(27,155,209,0.25);
+  color: var(--sky);
+  padding: 2px 8px;
+  border-radius: 4px;
+  width: fit-content;
+  letter-spacing: 0.05em;
+}
+.stackTags { display:flex; flex-wrap:wrap; gap:6px; }
+.stackTag {
+  font-size: 0.72rem;
+  color: rgba(255,255,255,0.6);
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  padding: 3px 10px;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+.stackTag:hover {
+  background: rgba(27,155,209,0.2);
+  color: var(--sky);
+  border-color: rgba(27,155,209,0.3);
+}
+
+/* 하단 */
+.bottom {
+  border-top: 1px solid rgba(255,255,255,0.06);
+  padding: 20px 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.bottom p {
+  font-size: 0.78rem;
+  color: rgba(255,255,255,0.3);
+}
+.bottomSub { font-size: 0.72rem !important; }
+
+@media(max-width:1000px) {
+  .inner { grid-template-columns: 1fr 1fr; gap:32px; }
+  .brand { grid-column: 1 / -1; }
+}
+@media(max-width:600px) {
+  .inner { grid-template-columns: 1fr; gap:28px; }
+}

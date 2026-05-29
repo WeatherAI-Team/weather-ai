@@ -3,11 +3,13 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import WeatherOverlay from '@/components/weather/WeatherOverlay'
 import styles from './page.module.css'
+import ChatBot from '@/components/chatbot/ChatBot'
 
 const weatherLabels = ['☀️ 맑음', '☁️ 흐림', '🌧️ 비', '❄️ 눈']
-const DURATION = 2000
+const DURATION = 3000
 
 export default function HomePage() {
+  useEffect(() => { document.title = 'Weather AI' }, [])
   const [phaseIdx, setPhaseIdx] = useState(0)
   const [mounted, setMounted] = useState(false)
 
@@ -93,8 +95,8 @@ export default function HomePage() {
                   <path d="M14 8l4 4 4-4" stroke="white" strokeWidth="1.8" strokeLinecap="round"/>
                 </svg>
               </div>
-              <h3 style={{ color: '#ffffff' }}>AI 탐지</h3>
-              <p style={{ color: 'rgba(255,255,255,0.8)' }}>악천후 영상을 업로드하거나 실시간 스트림으로 위험 차량을 탐지합니다</p>
+              <h3 style={{ color: '#ffffff' }}>CCTV 실시간 분석</h3>
+              <p style={{ color: 'rgba(255,255,255,0.8)' }}>CCTV 실시간 스트림 기반의 악천후 위험 차량 탐지 시스템</p>
               <span className={styles.cardArrow}>→</span>
             </Link>
 
@@ -113,6 +115,7 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+      <ChatBot />
     </div>
   )
 }

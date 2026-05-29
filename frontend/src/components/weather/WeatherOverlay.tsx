@@ -4,7 +4,7 @@ import styles from './WeatherOverlay.module.css'
 
 type WeatherState = 'clear' | 'cloudy' | 'rain' | 'snow'
 const CYCLE: WeatherState[] = ['clear', 'cloudy', 'rain', 'snow']
-const DURATION = 2000
+const DURATION = 3000
 
 function generateRain(count: number) {
   return Array.from({ length: count }, (_, i) => ({
@@ -66,7 +66,7 @@ export default function WeatherOverlay() {
 
       {/* 맑음 - 태양 */}
       {weather === 'clear' && (
-        <div className={styles.sun}>
+        <div className={styles.sunContainer}>
           <div className={styles.sunCore} />
           <div className={styles.sunRay} />
         </div>
