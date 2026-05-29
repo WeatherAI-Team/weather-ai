@@ -18,3 +18,4 @@ class MemberSocialAccount(db.Model):
 
     created_at = db.Column(db.DateTime, default=datetime.now)
     updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+    deleted_at = db.Column(db.DateTime, nullable=True)

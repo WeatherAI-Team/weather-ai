@@ -3,7 +3,7 @@ from datetime import datetime
 from app import db
 from sqlalchemy import or_ 
 from ..models.member import Member
-
+from app.models.member import utc_now
 class MemberRepository:
     # 1. 새로운 멤버 저장
     def save(self, member):
@@ -134,8 +134,17 @@ class MemberRepository:
     
      # 10. 회원 탈퇴 처리 - 실제 삭제 없이 비활성화
     def deactivate_member(self, member):
-        member.active=False
-        member.updated_at = datetime.now()
+        # 회원을 실제로 삭제하지 않고 비활성화 처리해.
+        print("DEBUG 탈퇴 처리 함수 들어옴")
+        print("DEBUG 탈퇴 전 deleted_at:", member.deleted_at)
+        member.active = False
 
+        # 탈퇴한 시간을 deleted_at에 저장해.
+        # 이 값이 들어가야 DB에서 NULL이 아니라 시간이 보이게 돼.
+        member.deleted_at = utc_now()
+
+        # 변경된 내용을 DB에 저장해.
         db.session.commit()
+
+        # 탈퇴 처리된 회원 객체를 다시 돌려줘.
         return member

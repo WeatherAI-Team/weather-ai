@@ -38,6 +38,15 @@ class Member(db.Model):
     password_changed_at = db.Column(db.DateTime, nullable=True)
     def __repr__(self):
         return f'<Member {self.nickname}>'
+    
+    def soft_delete(self):
+        self.active = False
+        self.deleted_at = utc_now()
+
+    # 탈퇴한 회원인지 확인할 때 쓰는 메서드야.
+    # deleted_at에 값이 있으면 탈퇴한 회원이라고 볼 수 있어.
+    def is_deleted(self):
+        return self.deleted_at is not None
 
 # --- 여기서부터 새로 추가하는 코드 ---
 class EventLog(db.Model):
