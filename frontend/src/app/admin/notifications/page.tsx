@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, Suspense } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import styles from './page.module.css'
@@ -307,7 +307,7 @@ function NotificationModal({
 }
 
 // ── 메인 페이지 ───────────────────────────────────────────────────────────────
-export default function NotificationsPage() {
+function NotificationsContent() {
   useEffect(() => { document.title = 'Weather AI - 알림 이력' }, [])
   const pathname    = usePathname()
   const router      = useRouter()
@@ -630,5 +630,12 @@ export default function NotificationsPage() {
         />
       )}
     </div>
+  )
+}
+export default function NotificationsPage() {
+  return (
+    <Suspense fallback={<div>로딩 중...</div>}>
+      <NotificationsContent />
+    </Suspense>
   )
 }
