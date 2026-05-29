@@ -384,6 +384,7 @@ class MemberService:
                 "message": "이미 탈퇴 처리된 회원입니다."
             }
         self.member_repo.deactivate_member(member)
+        self.social_account_repo.deactivate_all_by_member_id(member.id)
 
         return{
                 "success": True,

@@ -45,6 +45,9 @@ def save_detection_event_result(
     final_alert,
     image_url=None,
     weather_log_id=None,
+    location_name=None,
+    latitude=None,
+    longitude=None,
     commit=True,
 ):
     detection_repo = DetectionRepository()
@@ -75,7 +78,7 @@ def save_detection_event_result(
             "weather_risk_score": risk_result.get("risk_score", 0),
             "source": "KMA",
             "raw_data": {
-                "alerts": weather_alerts,
+            "alerts": weather_alerts,
             },
             "created_at": datetime.utcnow(),
         })
@@ -87,6 +90,9 @@ def save_detection_event_result(
         yolo_result=yolo_result,
         risk_result=risk_result,
         final_alert=final_alert,
+        location_name=location_name,
+        latitude=latitude,
+        longitude=longitude,
     )
 
     event = detection_repo.create_detection_event(event_payload)

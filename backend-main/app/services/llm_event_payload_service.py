@@ -8,6 +8,9 @@ def build_detection_event_payload(
     yolo_result,
     risk_result,
     final_alert,
+    location_name=None,
+    latitude=None,
+    longitude=None,
 ):
     now = datetime.utcnow()
 
@@ -46,6 +49,9 @@ def build_detection_event_payload(
         "llm_summary": final_alert.get("admin_message"),
         "llm_decision": final_alert.get("risk_level"),
         "llm_reason": final_alert.get("reason"),
+        "location_name": location_name,
+        "latitude": latitude,
+        "longitude": longitude,
         "alert_required": final_alert.get("alert_required", False),
         "false_positive_suspected": final_alert.get("false_positive_suspected", False),
         "detection_confidence": yolo_result.get("max_confidence"),

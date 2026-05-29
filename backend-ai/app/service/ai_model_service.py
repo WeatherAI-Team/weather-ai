@@ -352,6 +352,161 @@ class AIModelService:
             'local_path': local_path,
             'event_id': event_id
         }
+    
+    # ════════════════════════════════════════
+    # 영상 분석 (저장 없이 결과만)
+    # ════════════════════════════════════════
+    async def analyze_video_only(self, file: UploadFile, original_filename: str = "video.mp4") -> dict:
+        print(f"[AI] 영상 분석 요청: {file.filename}")
+        self._reset_state()
+
+        temp_dir = os.path.join(STATIC_DIR, 'temp')
+        os.makedirs(temp_dir, exist_ok=True)
+        now_str = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        ext = os.path.splitext(file.filename)[1].lower() or '.mp4'
+
+        safe_filename = f"upload_{now_str}{ext}"
+        temp_input = os.path.join(temp_dir, safe_filename)
+
+        with open(temp_input, 'wb') as f:
+            f.write(await file.read())
+
+        converted_path = None
+
+        try:
+            converted_path = self._convert_to_h264(temp_input)
+            read_path = converted_path
+
+            cap = cv2.VideoCapture(read_path)
+
+            if not cap.isOpened():
+                raise ValueError("영상 파일을 열 수 없습니다.")
+
+            total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+            fps = cap.get(cv2.CAP_PROP_FPS)
+            print(f"[AI] 영상 총 프레임 수: {total_frames} | FPS: {fps}")
+
+            cap.release()
+            cap = cv2.VideoCapture(read_path)
+
+            weather_counts = {c: 0 for c in CLASS_NAMES}
+            confidence_sum = {c: 0.0 for c in CLASS_NAMES}
+            danger_car_frames = 0
+            analyzed_frame_count = 0
+            frame_count = 0
+            vehicle_counter = Counter()
+            vehicle_confidence = {}
+            all_yolo_boxes = []
+
+            while True:
+                if self.stop_requested:
+                    print("[AI] 분석 중지됨")
+                    break
+
+                ret, frame = cap.read()
+                if not ret:
+                    break
+
+                if frame is None:
+                    frame_count += 1
+                    continue
+
+                if frame_count % 5 == 0:
+                    keras_result = self._predict_weather(frame)
+
+                    weather_counts[keras_result['weather']] += 1
+                    confidence_sum[keras_result['weather']] += keras_result['confidence']
+
+                    yolo_boxes = self._run_yolo(frame, keras_result)
+
+                    if len(yolo_boxes) > 0:
+                        danger_car_frames += 1
+                        all_yolo_boxes.extend(yolo_boxes)
+
+                    for box in yolo_boxes:
+                        vehicle_counter[box['class_name']] += 1
+
+                        if box['class_name'] not in vehicle_confidence:
+                            vehicle_confidence[box['class_name']] = []
+
+                        vehicle_confidence[box['class_name']].append(box['confidence'])
+
+                    analyzed_frame_count += 1
+
+                frame_count += 1
+
+            cap.release()
+            self.is_analyzing = False
+
+            if analyzed_frame_count == 0:
+                return {
+                    'weather': 'unknown',
+                    'confidence': 0.0,
+                    'is_danger': False,
+                    'has_danger_car': False,
+                    'danger_confidence': 0.0,
+                    'detected_vehicle': None,
+                    'yolo_boxes': [],
+                    'weather_counts': weather_counts,
+                    'analyzed_frames': 0,
+                    'total_frames': total_frames,
+                    'fps': fps,
+                    'original_filename': original_filename,
+                    'message': '분석 실패: 영상에서 프레임을 읽을 수 없습니다.',
+                }
+
+            dominant_weather = max(weather_counts, key=weather_counts.get)
+            is_danger = dominant_weather in DANGER_CLASSES
+            has_danger_car = (danger_car_frames / max(1, analyzed_frame_count)) >= 0.2
+            dominant_count = weather_counts[dominant_weather]
+            avg_confidence = round(
+                confidence_sum[dominant_weather] / max(1, dominant_count),
+                1,
+            )
+
+            if vehicle_counter:
+                dominant_vehicle_name = vehicle_counter.most_common(1)[0][0]
+                avg_vehicle_conf = round(
+                    sum(vehicle_confidence[dominant_vehicle_name]) /
+                    len(vehicle_confidence[dominant_vehicle_name]),
+                    1,
+                )
+                dominant_vehicle = f"{dominant_vehicle_name} ({avg_vehicle_conf}%)"
+            else:
+                dominant_vehicle = None
+
+            print(
+                f"[AI] 영상 분석 완료 | 최종 기상: {dominant_weather} "
+                f"({avg_confidence}%) | 위험차량: {has_danger_car} | 대표 차종: {dominant_vehicle}"
+            )
+
+            return {
+                'weather': dominant_weather,
+                'confidence': avg_confidence,
+                'is_danger': is_danger,
+                'has_danger_car': has_danger_car,
+                'danger_confidence': round(
+                    danger_car_frames / max(1, analyzed_frame_count) * 100,
+                    1,
+                ),
+                'detected_vehicle': dominant_vehicle,
+                'yolo_boxes': all_yolo_boxes,
+                'yolo_detected': len(all_yolo_boxes) > 0,
+                'weather_counts': weather_counts,
+                'analyzed_frames': analyzed_frame_count,
+                'total_frames': total_frames,
+                'fps': fps,
+                'original_filename': original_filename,
+                'message': '중지됨' if self.stop_requested else '분석 완료',
+            }
+
+        finally:
+            for path in [temp_input, converted_path]:
+                if path and os.path.exists(path):
+                    try:
+                        os.remove(path)
+                    except:
+                        pass
 
     # ════════════════════════════════════════
     # 영상 분석 + 저장 (DB 연동)
@@ -489,7 +644,7 @@ class AIModelService:
                         os.remove(path)
                     except:
                         pass
-
+    
     # ════════════════════════════════════════
     # CCTV 실시간 스트리밍 (async generator)
     # ════════════════════════════════════════

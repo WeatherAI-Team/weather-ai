@@ -6,7 +6,11 @@ from ..services.cctv_service import (
     fetch_segment,
     rewrite_segment_m3u8,
 )
-from ..services.ai_service import detect_image, analyze_and_save_video
+from ..services.ai_service import (
+    detect_image,
+    analyze_and_save_video,
+    analyze_video as request_analyze_video,
+)
 
 cctv_bp = Blueprint("cctv", __name__)
 
@@ -118,4 +122,25 @@ def segment_proxy(segment_path):
         )
     except Exception as e:
         current_app.logger.error(f"세그먼트 프록시 실패: {e}")
+        return jsonify({"error": str(e)}), 500
+    
+# ── 영상 분석 (저장 없이 결과만) ─────────────────────────────────
+@cctv_bp.route("/ai/analyze_video", methods=["POST"])
+def analyze_video_only():
+    if 'file' not in request.files:
+        return jsonify({"error": "파일이 없습니다."}), 400
+
+    try:
+        result = request_analyze_video(
+            request.files['file'],
+            original_filename=request.form.get(
+                'original_filename',
+                request.files['file'].filename
+            ),
+        )
+
+        return jsonify(result), 200
+
+    except Exception as e:
+        current_app.logger.error(f"영상 분석 실패: {e}")
         return jsonify({"error": str(e)}), 500

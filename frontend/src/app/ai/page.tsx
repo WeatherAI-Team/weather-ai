@@ -498,9 +498,7 @@ export default function AiPage() {
     formData.append("user_id", "1");
     formData.append("original_filename", file.name);
 
-    const endpoint = fileIsImage
-      ? "/api/ai/detect"
-      : "/api/detections/analyze";
+    const endpoint = fileIsImage ? "/api/ai/detect" : "/api/ai/analyze_video";
 
     try {
       const res = await fetch(`${BACKEND_URL}${endpoint}`, {
@@ -509,30 +507,98 @@ export default function AiPage() {
       });
       const data = await res.json();
 
-      if (fileIsImage) {
-        // 이미지: FastAPI 직접 응답
-        if (data.success) {
-          setResult({
-            detected: data.is_danger,
-            confidence: data.confidence,
-            label: data.weather,
-            detections: data.detections ?? [],
-          });
-        }
-      } else {
-        // 영상: Flask → FastAPI 경유 응답
-        const aiResult = data?.data?.ai_result;
-        if (data.success && aiResult) {
-          setResult({
-            detected: aiResult.has_danger_car,
-            confidence: aiResult.confidence,
-            label: aiResult.weather,
-            detections: aiResult.yolo_boxes?.map((box: any) => ({
+      const aiResult = fileIsImage ? data : (data?.data?.ai_result ?? data);
+      const detectedVehicleName =
+        typeof aiResult.detected_vehicle === "string"
+          ? aiResult.detected_vehicle.split(" ")[0]
+          : null;
+
+      const detectedVehicleConfidenceMatch =
+        typeof aiResult.detected_vehicle === "string"
+          ? aiResult.detected_vehicle.match(/\(([\d.]+)%\)/)
+          : null;
+
+      const detectedVehicleConfidence = detectedVehicleConfidenceMatch
+        ? Number(detectedVehicleConfidenceMatch[1])
+        : (aiResult.danger_confidence ?? 0);
+
+      if (data.success && aiResult) {
+        const yoloBoxes =
+          aiResult.yolo_boxes ??
+          aiResult.detections?.map((det: any) => ({
+            class_name: det.label,
+            confidence:
+              det.confidence > 1
+                ? det.confidence
+                : Number((det.confidence * 100).toFixed(1)),
+            box_coords: det.bbox,
+          })) ??
+          (detectedVehicleName
+            ? [
+                {
+                  class_name: detectedVehicleName,
+                  confidence: detectedVehicleConfidence,
+                  box_coords: null,
+                },
+              ]
+            : []);
+        const uniqueYoloBoxes = Object.values(
+          yoloBoxes.reduce((acc: Record<string, any>, box: any) => {
+            const key = box.class_name;
+
+            if (!acc[key] || box.confidence > acc[key].confidence) {
+              acc[key] = box;
+            }
+
+            return acc;
+          }, {}),
+        );
+
+        setResult({
+          detected: Boolean(aiResult.is_danger || aiResult.has_danger_car),
+          confidence: aiResult.confidence ?? 0,
+          label: aiResult.weather ?? "UNKNOWN",
+          detections:
+            aiResult.detections ??
+            uniqueYoloBoxes.map((box: any) => ({
               bbox: box.box_coords,
               label: box.class_name,
-              confidence: box.confidence / 100,
-            })) ?? [],
-          });
+              confidence:
+                box.confidence > 1 ? box.confidence / 100 : box.confidence,
+            })),
+        });
+
+        const shouldSave =
+          aiResult.is_danger || aiResult.has_danger_car || yoloBoxes.length > 0;
+
+        if (shouldSave) {
+          const saveRes = await fetch(
+            `${BACKEND_URL}/api/detections/save-result`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                ai_result: {
+                  ...aiResult,
+                  yolo_boxes: uniqueYoloBoxes,
+                },
+                cctv_source_id: null,
+                cctv_name: fileIsImage ? "업로드 이미지" : "업로드 영상",
+                latitude: null,
+                longitude: null,
+                image_url:
+                  aiResult.file_url ??
+                  aiResult.video_url ??
+                  aiResult.local_path ??
+                  null,
+              }),
+            },
+          );
+
+          const saveResult = await saveRes.json();
+          console.log("[업로드 분석 DB 저장 결과]", saveResult);
         }
       }
     } catch {

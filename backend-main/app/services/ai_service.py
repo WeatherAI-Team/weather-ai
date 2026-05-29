@@ -1,8 +1,12 @@
 import os
 import requests
- 
- 
-AI_SERVER_URL = os.getenv("AI_SERVER_URL", "http://localhost:8000")
+from dotenv import load_dotenv
+
+load_dotenv()
+
+AI_SERVER_URL = os.getenv("AI_SERVER_URL", "http://127.0.0.1:8000").rstrip("/")
+AI_SERVER_TIMEOUT = int(os.getenv("AI_SERVER_TIMEOUT", "300")) 
+
  
  
 # ── 이미지 단건 탐지 ─────────────────────────────────────────────
@@ -21,7 +25,29 @@ def detect_image(file_storage) -> dict:
     response.raise_for_status()
     return response.json()
  
- 
+def analyze_video(file_storage, original_filename="video.mp4"):
+    files = {
+        "file": (
+            file_storage.filename,
+            file_storage.stream,
+            file_storage.content_type,
+        )
+    }
+
+    data = {
+        "original_filename": original_filename,
+    }
+
+    response = requests.post(
+        f"{AI_SERVER_URL}/api/ai/analyze_video",
+        files=files,
+        data=data,
+        timeout=AI_SERVER_TIMEOUT,
+    )
+
+    response.raise_for_status()
+    return response.json()
+
 # ── 영상 분석 및 저장 ────────────────────────────────────────────
 def analyze_and_save_video(file_storage, user_id: str, original_filename: str) -> dict:
     """

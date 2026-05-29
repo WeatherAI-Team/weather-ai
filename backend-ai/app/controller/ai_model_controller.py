@@ -64,7 +64,24 @@ async def analyze_and_save_video(
     except Exception as e:
         return {"success": False, "error": str(e)}
 
+# ════════════════════════════════════════
+# 영상 분석 (저장 없이 결과만)
+# ════════════════════════════════════════
 
+@router.post("/analyze_video")
+async def analyze_video(
+    file: UploadFile = File(...),
+    original_filename: str = Form("video.mp4")
+):
+    try:
+        result = await ai_model_service.analyze_video_only(
+            file=file,
+            original_filename=original_filename,
+        )
+        return {"success": True, **result}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+    
 # ════════════════════════════════════════
 # CCTV 실시간 스트리밍
 # ════════════════════════════════════════
@@ -172,3 +189,4 @@ async def detect_yolo_by_path(body: ImagePathRequest):
             "success": False,
             "error": str(e),
         }
+    
