@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, Suspense } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import styles from './page.module.css'
@@ -307,12 +307,12 @@ function NotificationModal({
 }
 
 // ── 메인 페이지 ───────────────────────────────────────────────────────────────
-export default function NotificationsPage() {
+function NotificationsContent() {
   useEffect(() => { document.title = 'Weather AI - 알림 이력' }, [])
   const pathname    = usePathname()
   const router      = useRouter()
   const searchParams = useSearchParams()
-  const { unreadCount, notifications: sseNotifications, markAllRead, resolveNotification, updateNotificationConfirm, revertNotificationStatus } = useNotification()
+  const { unreadCount, notifications: sseNotifications, markAllRead, resolveNotification } = useNotification()
 
   const [boardOpen, setBoardOpen]     = useState(false)
   const [apiItems, setApiItems]       = useState<ApiNotification[]>([])
@@ -404,45 +404,42 @@ export default function NotificationsPage() {
   }
 
   const handleRead = async (id: number) => {
+    await resolveNotification(id)
     setApiItems(prev => prev.map(n => n.id === id ? { ...n, status: 'READ' } : n))
     setDetail(prev => prev ? { ...prev, status: 'READ' } : prev)
-    resolveNotification(id)
   }
 
   const handleUnread = async (id: number) => {
     const token = getToken()
     if (!token) return
-    setApiItems(prev => prev.map(n => n.id === id ? { ...n, status: 'SENT' } : n))
-    revertNotificationStatus(id)
-    setDetail(prev => prev ? { ...prev, status: 'SENT' } : prev)
-    fetch(`${API}/api/admin/notifications/${id}/unread`, {
+    await fetch(`${API}/api/admin/notifications/${id}/unread`, {
       method: 'PATCH',
       headers: { Authorization: `Bearer ${token}` },
     })
+    setApiItems(prev => prev.map(n => n.id === id ? { ...n, status: 'SENT' } : n))
+    setDetail(prev => prev ? { ...prev, status: 'SENT' } : prev)
   }
 
   const handleConfirm = async (id: number) => {
     const token = getToken()
     if (!token) return
-    setApiItems(prev => prev.map(n => n.id === id ? { ...n, is_confirmed: true } : n))
-    updateNotificationConfirm(id, true)
-    setDetail(prev => prev ? { ...prev, is_confirmed: true } : prev)
-    fetch(`${API}/api/admin/notifications/${id}/confirm`, {
+    await fetch(`${API}/api/admin/notifications/${id}/confirm`, {
       method: 'PATCH',
       headers: { Authorization: `Bearer ${token}` },
     })
+    setApiItems(prev => prev.map(n => n.id === id ? { ...n, is_confirmed: true } : n))
+    setDetail(prev => prev ? { ...prev, is_confirmed: true } : prev)
   }
 
   const handleUnconfirm = async (id: number) => {
     const token = getToken()
     if (!token) return
-    setApiItems(prev => prev.map(n => n.id === id ? { ...n, is_confirmed: false } : n))
-    updateNotificationConfirm(id, false)
-    setDetail(prev => prev ? { ...prev, is_confirmed: false } : prev)
-    fetch(`${API}/api/admin/notifications/${id}/unconfirm`, {
+    await fetch(`${API}/api/admin/notifications/${id}/unconfirm`, {
       method: 'PATCH',
       headers: { Authorization: `Bearer ${token}` },
     })
+    setApiItems(prev => prev.map(n => n.id === id ? { ...n, is_confirmed: false } : n))
+    setDetail(prev => prev ? { ...prev, is_confirmed: false } : prev)
   }
 
   const totalPages = Math.ceil(total / PER_PAGE)
@@ -633,5 +630,12 @@ export default function NotificationsPage() {
         />
       )}
     </div>
+  )
+}
+export default function NotificationsPage() {
+  return (
+    <Suspense fallback={<div>로딩 중...</div>}>
+      <NotificationsContent />
+    </Suspense>
   )
 }
