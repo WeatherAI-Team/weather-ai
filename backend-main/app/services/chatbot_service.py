@@ -10,7 +10,7 @@ class ChatbotService:
     def __init__(self):
         # DetectionRepository를 만들어.
         # 이제 챗봇도 detection_events 테이블의 데이터를 볼 수 있어.
-        self.detection_repo = DetectionRepository()
+        self.detection_repo = None
 
     def create_response(self, message):
         # message는 사용자가 보낸 질문이야.
@@ -33,6 +33,27 @@ class ChatbotService:
                 "answer": "질문 내용을 입력해 주세요.",
                 "data": None
             }
+
+        number_question_map = {
+            "1": "Weather-AI가 어떤 시스템인지",
+            "2": "어떤 차량을 탐지하는지",
+            "3": "위험도 점수와 LLM 검증 방식",
+            "4": "관리자 대시보드에서 확인할 수 있는 내용",
+            "5": "팀원 소개와 담당 역할",
+            "6": "강사님 성함",
+        }
+
+        if message == "7":
+            return {
+                "intent": "risk_status",
+                "location_name": None,
+                "answer": "확인할 지역명이나 도로명을 함께 입력해 주세요. 예: '강남대로 위험해?'",
+                "data": None
+            }
+
+        if message in number_question_map:
+            message = number_question_map[message]
+
 
         # 질문의 의도를 간단하게 파악해.
         # 예: 위험 상태 질문인지, 사용법 질문인지 구분해.
@@ -85,6 +106,15 @@ class ChatbotService:
         # 사용자가 알림 기준이나 알림 방법을 물어본 경우야.
         if intent == "notification_help":
             return self._handle_notification_help()
+        ### 추가한 부분 ###
+        # 사용자가 인사를 한 경우야.
+        if intent == "greeting":
+            return self._handle_greeting()
+
+        # 사용자가 팀원 정보나 선생님 정보를 물어본 경우야.
+        if intent == "team_info_help":
+            return self._handle_team_info()
+        ### 추가한 부분 여기까지  #### 
 
         # 위 조건에 해당하지 않으면 추천 질문을 포함한 기본 답변을 해.
         return self._handle_unknown()
@@ -93,7 +123,46 @@ class ChatbotService:
         # 비교를 쉽게 하기 위해 소문자로 바꿔.
         # 영어 CCTV/cctv, Weather-AI/weather-ai, heavy truck/Heavy Truck 구분을 줄이기 위한 처리야.
         lower_message = message.lower()
+        # 사용자가 인사를 했는지 확인해.
+        # 예: "안녕하세요", "안녕", "반가워"
+        greeting_keywords = [
+            # 기본 인사
+            "안녕",
+            "안녕하세요",
+            "안녕하세용",
+            "안녕하십니까",
+            "안뇽",
+            "안뇽하세요",
 
+            # 가벼운 인사
+            "ㅎㅇ",
+            "하이",
+            "헬로",
+            "hello",
+            "hi",
+            "hey",
+
+            # 반가움 표현
+            "반가워",
+            "반갑다",
+            "반갑습니다",
+            "만나서 반가워",
+            "만나서 반갑습니다",
+
+            # 챗봇 부르는 표현
+            "챗봇아",
+            "봇아",
+            "웨더ai야",
+            "weather-ai야",
+            "weather ai야",
+            "날씨의아이야",
+            "날씨의 아이야"
+        ]
+
+        # 질문 안에 인사말이 있으면 greeting으로 판단해.
+        if any(keyword in lower_message for keyword in greeting_keywords):
+            return "greeting"
+        
         # 위험도 점수나 LLM 검증 질문을 먼저 확인해.
         # 예: "위험도 점수는 뭐야?", "LLM 검증은 뭐야?", "오탐은 어떻게 줄여?"
         # 이걸 먼저 확인해야 "위험도 점수는 뭐야?"가 risk_status나 project_help로 잘못 가지 않아.
@@ -796,6 +865,40 @@ class ChatbotService:
         if any(keyword in lower_message for keyword in help_keywords):
             return "service_help"
 
+       
+
+        # 사용자가 팀원, 담당자, 선생님 정보를 물어보는지 확인해.
+        # 예: "조원 소개해줘", "팀원 역할 알려줘", "선생님 이름이 뭐야?"
+        team_info_keywords = [
+            "조원",
+            "팀원",
+            "팀 소개",
+            "멤버 소개",
+            "구성원",
+            "담당자",
+            "담당자 소개",
+            "역할",
+            "누가 무슨 역할",
+            "누가 뭐 맡았",
+            "이름이 뭐야",
+            "팀원 이름",
+            "조원 이름",
+            "조원 역할",
+            "팀원 역할",
+            "담당 역할",
+            "파트",
+            "강사님",
+            "선생님",
+            "쌤",
+            "김기원",
+            "누가 만들었",
+            "개발자 소개"
+        ]
+
+        # 질문 안에 팀 정보 관련 단어가 있으면 team_info_help로 판단해.
+        if any(keyword in lower_message for keyword in team_info_keywords):
+            return "team_info_help"
+
         # 아무 조건에도 맞지 않으면 알 수 없는 질문으로 판단해.
         return "unknown"
 
@@ -850,6 +953,7 @@ class ChatbotService:
             ),
             "data": None
         }
+    
 ## 새로 추가한 항목 
     def _handle_admin_help(self):
             # 이 함수는 관리자가 확인할 수 있는 기능을 설명하는 곳이야.
@@ -930,8 +1034,7 @@ class ChatbotService:
             ),
             "data": None
         }
-
-    
+ 
     def _handle_notification_help(self):
         # 이 함수는 알림 기준이나 알림 방식에 대한 질문에 답하는 곳이야.
 
@@ -946,6 +1049,152 @@ class ChatbotService:
             ),
             "data": None
         }
+
+    def _handle_greeting(self):
+        # 이 함수는 사용자가 인사를 했을 때 답하는 곳이야.
+
+        return {
+            "intent": "greeting",
+            "answer": (
+                "안녕하세요! Weather-AI 상담 챗봇입니다. 반갑습니다 😊\n\n"
+                "저는 Weather-AI 서비스와 관련된 정보를 안내해드릴 수 있어요.\n"
+                "예를 들면 아래와 같은 질문을 할 수 있습니다.\n"
+                "1. Weather-AI가 어떤 시스템인지\n"
+                "2. 어떤 차량을 탐지하는지\n"
+                "3. 위험도 점수와 LLM 검증 방식\n"
+                "4. 관리자 대시보드에서 확인할 수 있는 내용\n"
+                "5. 팀원 소개와 담당 역할\n"
+                "6. 강사님 성함\n"
+                "7. 특정 지역이나 도로의 위험 상태\n\n"
+                "궁금한 내용을 편하게 질문해 주세요!"
+            ),
+            "data": {
+                "suggestions": [
+                    "Weather-AI가 뭐야?",
+                    "팀원 소개해줘",
+                    "선생님 이름 알려줘",
+                    "대시보드에서 뭘 볼 수 있어?",
+                    "어떤 차량을 탐지해?"
+                ]
+            }
+        }
+    
+    def _handle_team_info(self):
+        # 이 함수는 팀원 소개, 담당 역할, 선생님 정보를 안내하는 곳이야.
+        # 사용자가 "조원 소개해줘", "팀원 역할 알려줘", "선생님 이름 뭐야?"라고 물으면 여기로 와.
+
+        return {
+            "intent": "team_info_help",
+            "answer": (
+                "Weather-AI 프로젝트 팀 구성원과 담당 역할을 안내해드릴게요.\n\n"
+                "[담당 강사님]\n"
+                "- 김기원 강사님👨🏻‍🏫\n"
+                "- Weather-AI 프로젝트 진행 과정에서 지도와 피드백을 담당해주십니다.\n\n"
+
+                "[팀원 소개]\n"
+                "1. 안건우 (조장)👨🏻‍💻\n"
+                "- 전체 프로젝트 일정 및 마일스톤 관리\n"
+                "- DB 설계 및 Flask 프레임워크 구조 설계\n"
+                "- Git 브랜치 전략 및 코드 리뷰 주도\n"
+                "- 팀원 간 업무 조율 및 이슈 트래킹\n"
+                "- 위험 이벤트 게시판 CRUD 기능 구현 및 게시글 처리 흐름 개발\n\n"
+
+                "2. 여민엽 (부조장)👨🏻‍💻\n"
+                "- AI 탐지 모델 설계 및 학습 파이프라인 구축\n"
+                "- AI 추론 API 엔드포인트 개발\n"
+                "- 모델 성능 튜닝 및 결과 후처리 로직\n"
+                "- AI 서빙 환경 설정 및 배포\n"
+                "- LLM을 활용한 위험 이벤트 검증 및 위험 상황 판단 로직 개발\n\n"
+
+                "3. 유진설 (팀원)👩🏻‍💻\n"
+                "- 회원 가입, 로그인, 로그아웃 등 사용자 인증 기능 구현\n"
+                "- 회원 정보 조회, 탈퇴 등 회원 CRUD 기능 개발\n"
+                "- 소셜 로그인 연동 및 소셜 계정 정보 처리\n"
+                "- 로그인 상태에 따른 사용자 식별 및 인증 흐름 구성\n"
+                "- LLM 연동 과정에서 사용자 질의 처리와 응답 생성 기능\n\n"
+
+                "4. 김소현 (팀원)👩🏻‍💻\n"
+                "- 전체 UI/UX 설계 및 화면 구현\n"
+                "- 반응형 레이아웃 및 CSS 스타일링\n"
+                "- 백엔드 API 연동 및 데이터 렌더링\n"
+                "- CCTV API 연동을 통해 도로 영상 및 위치 정보를 화면에서 확인하는 기능 개발\n" 
+                "- 관리자 페이지와 사용자 화면의 사용성을 고려한 화면 구성 및 인터랙션 구현\n\n"
+
+                "5. 조정화 (팀원)👩🏻‍💻\n"
+                "- 관리자 대시보드 및 권한 설정\n"
+                "- 사용자 통계 및 로그 조회 기능\n"
+                "- 데이터 관리 및 백업 정책 수립\n"
+                "- 관리자 페이지 지도 API 구현\n"
+                "- Weather-AI 상담 챗봇 기능 구현 및 사용자 질문 의도 분류 로직 개발\n\n"
+
+                "원하시면 특정 팀원의 담당 업무만 따로 다시 설명해드릴 수도 있어요."
+            ),
+            "data": {
+                "teacher": {
+                    "name": "김기원👨🏻‍🏫",
+                    "role": "담당 강사님",
+                    "description": "Weather-AI 프로젝트 진행 과정에서 지도와 피드백을 담당"
+                },
+                "members": [
+                    {
+                        "name": "안건우👨🏻‍💻",
+                        "role": "조장",
+                        "tasks": [
+                            " 전체 프로젝트 일정 및 마일스톤 관리",
+                            " DB 설계 및 Flask 프레임워크 구조 설계",
+                            " Git 브랜치 전략 및 코드 리뷰 주도",
+                            " 팀원 간 업무 조율 및 이슈 트래킹",
+                            " 위험 이벤트 게시판 CRUD 기능 구현 및 게시글 처리 흐름 개발"
+                        ]
+                    },
+                    {
+                        "name": "여민엽👨🏻‍💻",
+                        "role": "부조장",
+                        "tasks": [
+                            " AI 탐지 모델 설계 및 학습 파이프라인 구축",
+                            " AI 추론 API 엔드포인트 개발",
+                            " 모델 성능 튜닝 및 결과 후처리 로직",
+                            " AI 서빙 환경 설정 및 배포",
+                            " LLM을 활용한 위험 이벤트 검증 및 위험 상황 판단 로직 개발"
+                        ]
+                    },
+                    {
+                        "name": "유진설👩🏻‍💻",
+                        "role": "팀원",
+                        "tasks": [
+                            " 회원 가입, 로그인, 로그아웃 등 사용자 인증 기능 구현",
+                            " 회원 정보 조회, 탈퇴 등 회원 CRUD 기능 개발",
+                            " 소셜 로그인 연동 및 소셜 계정 정보 처리",
+                            " 로그인 상태에 따른 사용자 식별 및 인증 흐름 구성",
+                            " LLM 연동 과정에서 사용자 질의 처리와 응답 생성 기능"
+                        ]
+                    },
+                    {
+                        "name": "김소현👩🏻‍💻",
+                        "role": "팀원",
+                        "tasks": [
+                            " 전체 UI/UX 설계 및 화면 구현",
+                            " 반응형 레이아웃 및 CSS 스타일링",
+                            " 백엔드 API 연동 및 데이터 렌더링",
+                            " CCTV API 연동을 통해 도로 영상 및 위치 정보를 화면에서 확인하는 기능 개발" ,
+                            " 관리자 페이지와 사용자 화면의 사용성을 고려한 화면 구성 및 인터랙션 구현"
+                        ]
+                    },
+                    {
+                        "name": "조정화👩🏻‍💻",
+                        "role": "팀원",
+                        "tasks": [
+                            " 관리자 대시보드 및 권한 설정",
+                            " 사용자 통계 및 로그 조회 기능",
+                            " 데이터 관리 및 백업 정책 수립",
+                            " 관리자 페이지 지도 API 구현",
+                            " Weather-AI 상담 챗봇 기능 구현 및 사용자 질문 의도 분류 로직 개발"
+                        ]
+                    }
+                ]
+            }
+        }
+
 
     def _handle_unknown(self):
         # 이 함수는 챗봇이 질문을 이해하지 못했을 때 실행돼.
@@ -965,9 +1214,13 @@ class ChatbotService:
                 "예를 들어 '대시보드에서 뭘 볼 수 있어?' 또는 "
                 "'강남대로 위험해?'처럼 질문해 주세요."
             ),
+
             "data": {
                 "suggestions": [
+                    "안녕하세요",
                     "Weather-AI가 뭐야?",
+                    "팀원 소개해줘",
+                    "선생님 이름 알려줘",
                     "어떤 차량을 탐지해?",
                     "위험도 점수는 뭐야?",
                     "LLM 검증은 뭐야?",
@@ -1134,6 +1387,11 @@ class ChatbotService:
             }
         
         try:
+            # 위험 상태 질문일 때만 DetectionRepository를 만들어요.
+            # 이렇게 하면 "안녕하세요", "반가워" 같은 질문은 DB 준비를 하지 않아서 더 빨라져요.
+            if self.detection_repo is None:
+                self.detection_repo = DetectionRepository()
+                
             # detection_events 테이블에서 해당 위치의 알림 필요 이벤트를 찾아.
             # alert_required=True는 실제 알림이 필요한 이벤트만 보겠다는 뜻이야.
             detections = self.detection_repo.find_all(
@@ -1171,7 +1429,6 @@ class ChatbotService:
                     "events": []
                 }
             }
-
 
         # 위험 알림이 있으면 프론트가 보기 쉽게 정리해.
         events = []
