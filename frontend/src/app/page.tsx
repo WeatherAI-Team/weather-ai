@@ -9,6 +9,7 @@ const weatherLabels = ['☀️ 맑음', '☁️ 흐림', '🌧️ 비', '❄️ 
 const DURATION = 3000
 
 export default function HomePage() {
+  useEffect(() => { document.title = 'Weather AI' }, [])
   const [phaseIdx, setPhaseIdx] = useState(0)
   const [mounted, setMounted] = useState(false)
 

@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import styles from './page.module.css'
+import { useModalKeyboard } from '@/hooks/useModalKeyboard'
 
 const API = process.env.NEXT_PUBLIC_API_URL
 
@@ -32,6 +33,7 @@ const roleToGrade = (role: string) => {
 }
 
 export default function MyPage() {
+  useEffect(() => { document.title = 'Weather AI - 마이페이지' }, [])
   const router = useRouter()
 
   const [nickname, setNickname]     = useState('')
@@ -56,7 +58,14 @@ export default function MyPage() {
   const [postCount, setPostCount]     = useState(0)
   const [commentCount, setCommentCount] = useState(0)
   const [withdrawModal, setWithdrawModal] = useState(false)
+  const [withdrawStep, setWithdrawStep]   = useState(1)
   const [withdrawing, setWithdrawing]     = useState(false)
+
+  useModalKeyboard(nameModal, () => setNameModal(false))
+  useModalKeyboard(pwModal, () => setPwModal(false))
+  useModalKeyboard(notiModal, () => setNotiModal(false))
+  useModalKeyboard(permModal, () => setPermModal(false))
+  useModalKeyboard(withdrawModal, () => { setWithdrawModal(false); setWithdrawStep(1) })
 
   const getToken = () => {
     try {
@@ -403,24 +412,47 @@ export default function MyPage() {
 
       {/* 회원 탈퇴 확인 모달 */}
       {withdrawModal && (
-        <div className={styles.overlay} onClick={() => setWithdrawModal(false)}>
+        <div className={styles.overlay} onClick={() => { setWithdrawModal(false); setWithdrawStep(1) }}>
           <div className={styles.modal} onClick={e => e.stopPropagation()}>
             <div className={styles.modalHeader}>
               <h2>회원 탈퇴</h2>
-              <button className={styles.modalClose} onClick={() => setWithdrawModal(false)}>✕</button>
+              <button className={styles.modalClose} onClick={() => { setWithdrawModal(false); setWithdrawStep(1) }}>✕</button>
             </div>
-            <div className={styles.modalBody}>
-              <div className={styles.withdrawWarning}>
-                <p className={styles.withdrawWarningTitle}>정말로 탈퇴하시겠습니까?</p>
-                <p className={styles.withdrawWarningDesc}>탈퇴 시 계정 및 모든 활동 내역이 비활성화되며, 이 작업은 되돌릴 수 없습니다.</p>
-              </div>
-            </div>
-            <div className={styles.modalActions}>
-              <button className={styles.cancelBtn} onClick={() => setWithdrawModal(false)}>취소</button>
-              <button className={styles.withdrawBtn} onClick={handleWithdraw} disabled={withdrawing}>
-                {withdrawing ? '처리 중...' : '탈퇴하기'}
-              </button>
-            </div>
+
+            {withdrawStep === 1 ? (
+              <>
+                <div className={styles.modalBody}>
+                  <div className={styles.withdrawWarning}>
+                    <p className={styles.withdrawWarningTitle}>정말 탈퇴하시겠습니까?</p>
+                    <p className={styles.withdrawWarningDesc}>탈퇴를 진행하기 전에 아래 안내 사항을 반드시 확인해 주세요.</p>
+                  </div>
+                </div>
+                <div className={styles.modalActions}>
+                  <button className={styles.cancelBtn} onClick={() => { setWithdrawModal(false); setWithdrawStep(1) }}>취소</button>
+                  <button className={styles.withdrawBtn} onClick={() => setWithdrawStep(2)}>다음</button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className={styles.modalBody}>
+                  <div className={styles.withdrawWarning}>
+                    <p className={styles.withdrawWarningTitle}>탈퇴 시 아래 사항이 적용됩니다.</p>
+                    <ul className={styles.withdrawWarningList}>
+                      <li>계정이 즉시 비활성화되며 로그인이 불가합니다.</li>
+                      <li>작성한 게시글 및 댓글이 모두 삭제됩니다.</li>
+                      <li>모든 개인정보가 삭제되며 복구할 수 없습니다.</li>
+                    </ul>
+                    <p className={styles.withdrawWarningFinal}>이 작업은 되돌릴 수 없습니다. 그래도 탈퇴하시겠습니까?</p>
+                  </div>
+                </div>
+                <div className={styles.modalActions}>
+                  <button className={styles.cancelBtn} onClick={() => setWithdrawStep(1)}>이전</button>
+                  <button className={styles.withdrawBtn} onClick={handleWithdraw} disabled={withdrawing}>
+                    {withdrawing ? '처리 중...' : '탈퇴하기'}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

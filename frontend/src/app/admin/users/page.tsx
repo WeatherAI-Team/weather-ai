@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import styles from './page.module.css'
 import { useNotification } from '@/contexts/NotificationContext'
+import { useModalKeyboard } from '@/hooks/useModalKeyboard'
 
 const sideMenus = [
   { label: '대시보드',  href: '/admin',                icon: '📊' },
@@ -32,6 +33,7 @@ type User = {
 }
 
 export default function UsersPage() {
+  useEffect(() => { document.title = 'Weather AI - 사용자 관리' }, [])
   const pathname = usePathname()
   const { unreadCount } = useNotification()
   const [boardOpen, setBoardOpen] = useState(false)
@@ -40,6 +42,8 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [detailUser, setDetailUser] = useState<User | null>(null)
+
+  useModalKeyboard(!!detailUser, () => setDetailUser(null))
 
   // 사용자 목록 불러오기
   const fetchUsers = async (keyword?: string) => {

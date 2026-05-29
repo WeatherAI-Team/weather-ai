@@ -64,6 +64,7 @@ const getCatClass = (board_type: string) => {
 // 컴포넌트
 // ─────────────────────────────────────────
 function PostDetail() {
+  useEffect(() => { document.title = 'Weather AI - 게시글' }, [])
   const router   = useRouter()
   const params   = useParams()
   const postId   = Number(params.id)
@@ -101,6 +102,16 @@ function PostDetail() {
       }
     }
     load()
+  }, [postId])
+
+  // 조회수 증가 (AbortController로 Strict Mode 이중 호출 방지)
+  useEffect(() => {
+    const controller = new AbortController()
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/board/posts/${postId}/view`, {
+      method: 'POST',
+      signal: controller.signal,
+    }).catch(() => {})
+    return () => controller.abort()
   }, [postId])
 
   useEffect(() => {

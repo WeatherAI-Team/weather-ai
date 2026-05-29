@@ -1,5 +1,7 @@
+import type { Metadata } from 'next'
 import styles from './page.module.css'
 
+export const metadata: Metadata = { title: '소개' }
 
 export default function IntroPage() {
   return (

@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import styles from "./page.module.css";
 
 export default function FindIdPage() {
+  useEffect(() => { document.title = 'Weather AI - 아이디 찾기' }, [])
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
   const [loginId, setLoginId] = useState("");

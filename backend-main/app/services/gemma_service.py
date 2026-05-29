@@ -153,13 +153,15 @@ def generate_final_alert(weather_data: dict, detection_result: dict) -> dict:
                 "Create Korean alerts for a severe-weather hazardous vehicle monitoring system. "
                 "JSON keys: risk_level, title, admin_message, driver_message, reason, alert_required, false_positive_suspected. "
                 "risk_level must be LOW, NORMAL, CAUTION, or DANGER. "
-                "admin_message is for control center operators. "
-                "driver_message is a short warning for drivers. "
+                "admin_message is for control center operators, describing the overall situation and required action. "
+                "driver_message is a short warning for drivers including a concrete action such as 감속, 안전거리 확보, 차선 변경 자제. "
                 "All values except risk_level must be Korean. "
-                "title is a short Korean event title. "
+                "title must follow this format: [위험도] {날씨종류} {차량종류} 위험 탐지. "
+                "위험도 is 긴급 if risk_level is DANGER, 경고 if CAUTION, 주의 if NORMAL. "
+                "For example: [긴급] 폭우 탱크로리 위험 탐지, [경고] 폭설 대형화물차 탐지, [주의] 안개 레미콘 탐지. "
+                "reason must specifically explain why this situation is dangerous, referencing detected vehicle type, vehicle count, weather severity. reason must be clearly different from admin_message. "
                 "alert_required must be boolean. "
                 "false_positive_suspected must be boolean. "
-                "driver_message must include a concrete driving action such as 감속, 안전거리 확보, 차선 변경 자제. "
             ),
         },
         {

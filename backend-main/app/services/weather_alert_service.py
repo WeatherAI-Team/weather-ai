@@ -2,6 +2,7 @@ import os
 from dotenv import load_dotenv
 from .weather_service import is_dangerous, build_weather_summary
 from .gemma_service import judge_weather_gate, generate_final_alert
+from .weather_log_service import create_weather_log_from_alerts
 
 load_dotenv()
 
@@ -25,6 +26,18 @@ def _is_monitoring_required(gate_result: dict) -> bool:
             return True
 
     return False
+
+
+def _to_weather_type(wrn_code: str) -> str:
+    mapping = {
+        "R": "HEAVY_RAIN",
+        "S": "HEAVY_SNOW",
+        "F": "FOG",
+        "W": "HEAVY_RAIN",
+        "T": "HEAVY_RAIN",
+    }
+    return mapping.get(wrn_code, "UNKNOWN")
+
 
 def check_and_generate_alerts() -> list:
     dangerous, alerts = is_dangerous()
@@ -83,12 +96,22 @@ def check_and_generate_alerts() -> list:
                 or f"{alert['wrn_name']} {alert['level']} 발령, 도로 상황 모니터링 필요"
             )
 
+            # DB 저장
+            weather_type = _to_weather_type(alert["wrn_code"])
+            risk_score = 8 if alert["level"] == "경보" else 6
+
+            create_weather_log_from_alerts(
+                cctv_source_id=None,
+                weather_type=weather_type,
+                weather_alerts=[alert],
+                weather_risk_score=risk_score,
+            )
+            print(f"[DB 저장] weather_log 저장 완료: {weather_type} / {alert['level']}")
 
         except Exception as e:
             print(f"[Gemma 오류] 기본 메시지 사용: {e}")
             gate_result = {}
             final_alert = {}
-
             message = f"{alert['wrn_name']} {alert['level']} 발령, 도로 상황 모니터링 필요"
 
         event_data = {

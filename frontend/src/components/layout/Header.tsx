@@ -92,17 +92,19 @@ export default function Header() {
           {mounted && (user ? (
             /* ── 로그인 상태 ── */
             <div className={styles.profileArea}>
+              <span className={styles.nicknameText}>
+                <span className={styles.roleLabel}>
+                  {{ admin: '관리자', manager: '매니저', user: '일반' }[user.role] ?? user.role}
+                </span>
+                <span className={styles.nicknameDivider}> | </span>
+                {user.nickname} 님
+              </span>
               <button
                 type="button"
                 className={styles.profileBtn}
                 onClick={() => setProfileOpen(!profileOpen)}
                 title="프로필 메뉴"
               >
-                {/* 동그란 로고 아이콘 */}
-                <span className={styles.avatar}>
-                  <img src="/logo_w.png" alt="프로필" width={28} height={28} style={{ borderRadius: '50%', objectFit: 'cover' }} />
-                </span>
-                <span className={`${styles.profileArrow} ${profileOpen ? styles.profileArrowOpen : ""}`}>▾</span>
                 {user.grade && <span className={styles.gradeBadge}>{user.grade}</span>}
               </button>
 

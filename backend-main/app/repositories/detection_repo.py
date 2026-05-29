@@ -2,6 +2,7 @@
 # or_는 "이 조건 또는 저 조건"으로 검색할 때 쓰는 도구야.
 # 예: 제목에 검색어가 있거나, 위치 이름에 검색어가 있거나 둘 중 하나면 찾기
 from sqlalchemy import or_
+from app import db
 
 # DetectionEvent 모델을 가져와.
 # 이 모델은 Supabase DB의 detection_events 테이블과 연결돼.
@@ -9,6 +10,7 @@ from ..models.detection_event import DetectionEvent
 
 
 class DetectionRepository:
+
     # 이 클래스는 DB에서 탐지 이벤트를 찾아오는 역할을 해.
     # 쉽게 말하면 "DB야, 조건에 맞는 탐지 결과 찾아줘!"라고 말하는 곳이야.
 

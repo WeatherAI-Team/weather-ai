@@ -12,13 +12,6 @@ class DetectionObject(db.Model):
     vehicle_type = db.Column(db.String, nullable=False)
     confidence = db.Column(db.Numeric, nullable=False)
 
-    bbox_x = db.Column(db.Numeric, nullable=True)
-    bbox_y = db.Column(db.Numeric, nullable=True)
-    bbox_width = db.Column(db.Numeric, nullable=True)
-    bbox_height = db.Column(db.Numeric, nullable=True)
-
-    frame_index = db.Column(db.Integer, nullable=True)
-    image_url = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
     model_name = db.Column(db.String, nullable=True)

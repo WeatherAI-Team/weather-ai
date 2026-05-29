@@ -1,10 +1,10 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import styles from './page.module.css'
 import { useNotification } from '@/contexts/NotificationContext'
+import { useModalKeyboard } from '@/hooks/useModalKeyboard'
 
 const sideMenus = [
   { label: '대시보드',  href: '/admin',                icon: '📊' },
@@ -82,6 +82,7 @@ type NotificationDetail = ApiNotification & {
 type Filters = {
   is_urgent: '' | 'true' | 'false'
   status: '' | 'PENDING' | 'SENT' | 'FAILED' | 'READ' | 'UNRESOLVED'
+  is_confirmed: '' | 'true' | 'false'
 }
 
 // ── 상세 모달 ─────────────────────────────────────────────────────────────────
@@ -133,7 +134,12 @@ function NotificationModal({
             {!loading && detail && (
               isResolved
                 ? <button className={styles.cancelBtn} onClick={() => onUnread(detail.id)}>처리 취소</button>
-                : <button className={styles.readBtnModal} onClick={() => onRead(detail.id)}>처리완료</button>
+                : <button
+                    className={isConfirmed ? styles.readBtnModal : styles.readBtnModalDisabled}
+                    disabled={!isConfirmed}
+                    title={!isConfirmed ? '확인 완료 후 처리할 수 있습니다' : undefined}
+                    onClick={() => onRead(detail.id)}
+                  >처리완료</button>
             )}
             <button className={styles.closeBtn} onClick={onClose} aria-label="닫기">✕</button>
           </div>
@@ -302,26 +308,26 @@ function NotificationModal({
 
 // ── 메인 페이지 ───────────────────────────────────────────────────────────────
 export default function NotificationsPage() {
-  const pathname = usePathname()
-  const router   = useRouter()
+  useEffect(() => { document.title = 'Weather AI - 알림 이력' }, [])
+  const pathname    = usePathname()
+  const router      = useRouter()
+  const searchParams = useSearchParams()
   const { unreadCount, notifications: sseNotifications, markAllRead, resolveNotification } = useNotification()
 
   const [boardOpen, setBoardOpen]     = useState(false)
   const [apiItems, setApiItems]       = useState<ApiNotification[]>([])
   const [loading, setLoading]         = useState(true)
-  const [filters, setFilters]         = useState<Filters>(() => {
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search)
-      const status = params.get('status') as Filters['status'] | null
-      const is_urgent = params.get('is_urgent') as Filters['is_urgent'] | null
-      return { is_urgent: is_urgent ?? '', status: status ?? '' }
-    }
-    return { is_urgent: '', status: '' }
+  const [filters, setFilters]         = useState<Filters>({
+    is_urgent:    (searchParams.get('is_urgent')    ?? '') as Filters['is_urgent'],
+    status:       (searchParams.get('status')       ?? '') as Filters['status'],
+    is_confirmed: (searchParams.get('is_confirmed') ?? '') as Filters['is_confirmed'],
   })
   const [page, setPage]               = useState(1)
   const [total, setTotal]             = useState(0)
   const [modalOpen, setModalOpen]     = useState(false)
   const [detail, setDetail]           = useState<NotificationDetail | null>(null)
+
+  useModalKeyboard(modalOpen, () => setModalOpen(false))
   const [detailLoading, setDetailLoading] = useState(false)
 
   const PER_PAGE = 20
@@ -335,6 +341,7 @@ export default function NotificationsPage() {
     const q = new URLSearchParams({ page: String(p), per_page: String(PER_PAGE) })
     if (f.is_urgent) q.set('is_urgent', f.is_urgent)
     if (f.status && f.status !== 'UNRESOLVED') q.set('status', f.status)
+    if (f.is_confirmed) q.set('is_confirmed', f.is_confirmed)
     try {
       const res  = await fetch(`${API}/api/admin/notifications?${q}`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -352,6 +359,15 @@ export default function NotificationsPage() {
 
   const merged: ApiNotification[] = (() => {
     const ids = new Set(apiItems.map(i => i.id))
+    const filteredApi = apiItems.filter(n => {
+      if (filters.is_urgent === 'true'  && !URGENT_LEVELS.includes(n.risk_level)) return false
+      if (filters.is_urgent === 'false' &&  URGENT_LEVELS.includes(n.risk_level)) return false
+      if (filters.status === 'UNRESOLVED' && n.status === 'READ') return false
+      if (filters.status && filters.status !== 'UNRESOLVED' && n.status !== filters.status) return false
+      if (filters.is_confirmed === 'true'  && !n.is_confirmed) return false
+      if (filters.is_confirmed === 'false' &&  n.is_confirmed) return false
+      return true
+    })
     const sseFiltered = sseNotifications
       .filter(n => !ids.has(n.id))
       .filter(n => {
@@ -364,7 +380,12 @@ export default function NotificationsPage() {
         if (filters.status) return n.status === filters.status
         return true
       })
-    return [...sseFiltered.map(n => ({ ...n })), ...apiItems]
+      .filter(n => {
+        if (filters.is_confirmed === 'true'  && !n.is_confirmed) return false
+        if (filters.is_confirmed === 'false' &&  n.is_confirmed) return false
+        return true
+      })
+    return [...sseFiltered.map(n => ({ ...n })), ...filteredApi]
   })()
 
   const handleRowClick = async (n: ApiNotification) => {
@@ -488,14 +509,12 @@ export default function NotificationsPage() {
           <label className={styles.filterLabel}>확인 여부</label>
           <select
             className={styles.filterSelect}
-            value={filters.status}
-            onChange={e => setFilters(f => ({ ...f, status: e.target.value as Filters['status'] }))}
+            value={filters.is_confirmed}
+            onChange={e => setFilters(f => ({ ...f, is_confirmed: e.target.value as Filters['is_confirmed'] }))}
           >
             <option value="">전체</option>
-            <option value="UNRESOLVED">미처리</option>
-            <option value="PENDING">미확인</option>
-            <option value="SENT">발송됨</option>
-            <option value="READ">확인완료</option>
+            <option value="false">미확인</option>
+            <option value="true">확인완료</option>
           </select>
 
           <span className={styles.totalCount}>총 {total.toLocaleString()}건</span>
@@ -559,7 +578,12 @@ export default function NotificationsPage() {
                           취소
                         </button>
                       ) : (
-                        <button className={styles.resolveBtn} onClick={() => handleRead(n.id)}>
+                        <button
+                          className={isConfirmed ? styles.resolveBtn : styles.resolveBtnDisabled}
+                          disabled={!isConfirmed}
+                          title={!isConfirmed ? '확인 완료 후 처리할 수 있습니다' : undefined}
+                          onClick={() => handleRead(n.id)}
+                        >
                           처리완료
                         </button>
                       )}

@@ -233,8 +233,16 @@
   border: 1.5px solid rgba(231, 76, 60, 0.3);
   border-radius: 10px;
 }
-.withdrawWarningTitle { font-size: 0.95rem; font-weight: 700; color: #c0392b; margin-bottom: 6px; }
+.withdrawWarningTitle { font-size: 0.95rem; font-weight: 700; color: #c0392b; margin-bottom: 8px; }
 .withdrawWarningDesc { font-size: 0.83rem; color: var(--text-muted); line-height: 1.5; }
+.withdrawWarningList {
+  margin: 8px 0 12px 0;
+  padding-left: 18px;
+  font-size: 0.84rem;
+  color: var(--text-muted);
+  line-height: 1.9;
+}
+.withdrawWarningFinal { font-size: 0.87rem; font-weight: 700; color: #c0392b; margin-top: 4px; }
 .withdrawBtn {
   flex: 1; padding: 11px;
   background: #e74c3c; color: white;

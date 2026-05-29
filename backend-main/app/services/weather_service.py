@@ -7,6 +7,12 @@ load_dotenv()
 KMA_API_KEY = os.getenv("WEATHER_API_KEY")
 BASE_URL = "https://apihub.kma.go.kr/api/typ01/url/wrn_met_data.php"
 
+# 더미 모드 (True: 더미 데이터 사용, False: 실제 기상청 API 사용)
+USE_DUMMY = True
+
+# 더미 날씨 시나리오 ("RAIN", "SNOW", "CLEAR" 중 선택)
+DUMMY_WEATHER = "SNOW"
+
 # 악천후 특보 코드
 DANGEROUS_WRN = {
     "R": "호우",
@@ -14,6 +20,24 @@ DANGEROUS_WRN = {
     "F": "안개",
     "W": "강풍",
     "T": "태풍",
+}
+
+DUMMY_SCENARIOS = {
+    "RAIN": (True, [{
+        "wrn_code": "R",
+        "wrn_name": "HEAVY_RAIN",
+        "level": "경보",
+        "reg_id": "11B00000",
+        "tm_fc": "202506010600",
+    }]),
+    "SNOW": (True, [{
+        "wrn_code": "S",
+        "wrn_name": "HEAVY_SNOW",
+        "level": "주의보",
+        "reg_id": "11B00000",
+        "tm_fc": "202506010600",
+    }]),
+    "CLEAR": (False, []),
 }
 
 def get_weather_alerts():
@@ -54,7 +78,23 @@ def parse_alerts(raw_text: str) -> list:
             })
     return alerts
 
+def _dummy_is_dangerous() -> tuple:
+    """
+    시연용 더미 날씨 데이터.
+    DUMMY_WEATHER 변수로 시나리오 전환 ("RAIN", "SNOW", "CLEAR").
+    USE_DUMMY = False 로 바꾸면 실제 API로 자동 전환.
+    """
+    scenario = DUMMY_SCENARIOS.get(DUMMY_WEATHER)
+
+    if scenario is None:
+        raise ValueError(f"DUMMY_WEATHER 값이 잘못됐어: {DUMMY_WEATHER} (RAIN, SNOW, CLEAR 중 선택)")
+
+    return scenario
+
 def is_dangerous() -> tuple:
+    if USE_DUMMY:
+        return _dummy_is_dangerous()
+
     raw = get_weather_alerts()
     alerts = parse_alerts(raw)
     return len(alerts) > 0, alerts
