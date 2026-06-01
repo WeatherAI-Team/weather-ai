@@ -4,6 +4,7 @@ from datetime import datetime
 
 from app.services.detection_event_save_service import save_detection_event_result
 from app.services.gemma_service import generate_final_alert
+from app.services.alert_save_service import save_alert_to_db
 
 DANGEROUS_VEHICLE_LABELS = {
     "25t_truck",
@@ -326,17 +327,32 @@ def save_ai_detection_result(data: dict) -> dict:
         yolo_result=yolo_result,
     )
 
-    return save_detection_event_result(
-        cctv_source_id=cctv_source_id,
-        weather_type=weather_type,
-        weather_alerts=weather_alerts,
-        yolo_result=yolo_result,
-        risk_result=risk_result,
-        final_alert=final_alert,
-        image_url=image_url,
-        weather_log_id=weather_log_id,
-        location_name=location_name,
-        latitude=latitude,
-        longitude=longitude,
+    save_result = save_detection_event_result(
+    cctv_source_id=cctv_source_id,
+    weather_type=weather_type,
+    weather_alerts=weather_alerts,
+    yolo_result=yolo_result,
+    risk_result=risk_result,
+    final_alert=final_alert,
+    image_url=image_url,
+    weather_log_id=weather_log_id,
+    location_name=location_name,
+    latitude=latitude,
+    longitude=longitude,
     )
-        
+
+    alert_save_result = None
+
+    if final_alert.get("alert_required"):
+        alert_save_result = save_alert_to_db(
+            event_id=save_result.get("event_id"),
+            final_alert=final_alert,
+            weather_type=weather_type,
+            risk_score=risk_result.get("risk_score", 0),
+        )
+
+    return {
+        **save_result,
+        "alert_save_result": alert_save_result,
+    }
+            
