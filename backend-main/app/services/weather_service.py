@@ -8,10 +8,10 @@ KMA_API_KEY = os.getenv("WEATHER_API_KEY")
 BASE_URL = "https://apihub.kma.go.kr/api/typ01/url/wrn_met_data.php"
 
 # 더미 모드 (True: 더미 데이터 사용, False: 실제 기상청 API 사용)
-USE_DUMMY = True
+USE_DUMMY = os.getenv("USE_DUMMY_WEATHER", "false").lower() == "true"
 
 # 더미 날씨 시나리오 ("RAIN", "SNOW", "CLEAR" 중 선택)
-DUMMY_WEATHER = "SNOW"
+DUMMY_WEATHER = os.getenv("DUMMY_WEATHER", "SNOW").upper()
 
 # 악천후 특보 코드
 DANGEROUS_WRN = {
