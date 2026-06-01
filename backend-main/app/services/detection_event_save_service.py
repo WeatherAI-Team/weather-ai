@@ -7,6 +7,7 @@ from app.repositories.detection_object_repo import DetectionObjectRepository
 from app.repositories.weather_log_repo import WeatherLogRepository
 from app.services.llm_event_payload_service import build_detection_event_payload
 from app.repositories.event_status_log_repo import EventStatusLogRepository
+from app.services.kma_observation_service import get_latest_asos_observation
 
 def _get_bbox_values(obj: dict):
     bbox = obj.get("bbox")
@@ -68,17 +69,23 @@ def save_detection_event_result(
             weather_type = weather_log.weather_type
 
     else:
+        observation = get_latest_asos_observation(
+            latitude=latitude,
+            longitude=longitude,
+        )
+
         weather_log = weather_log_repo.create_weather_log({
             "cctv_source_id": cctv_source_id,
             "weather_type": weather_type or "UNKNOWN",
-            "temperature": None,
-            "precipitation": None,
-            "snowfall": None,
-            "visibility": None,
+            "temperature": observation.get("temperature"),
+            "precipitation": observation.get("precipitation"),
+            "snowfall": observation.get("snowfall"),
+            "visibility": observation.get("visibility"),
             "weather_risk_score": risk_result.get("risk_score", 0),
             "source": "KMA",
             "raw_data": {
-            "alerts": weather_alerts,
+                "alerts": weather_alerts,
+                "observation": observation,
             },
             "created_at": datetime.utcnow(),
         })
