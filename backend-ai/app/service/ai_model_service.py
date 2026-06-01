@@ -261,10 +261,11 @@ class AIModelService:
         return yolo_boxes
 
     # ════════════════════════════════════════
-    # 이미지 분석 (DB 저장 포함)
+    # 이미지 분석 (저장 없이 결과만)
     # ════════════════════════════════════════
     async def detect_image(self, file: UploadFile) -> dict:
         print(f"[AI] 이미지 분석 요청: {file.filename}")
+
         file_bytes = await file.read()
         np_arr = np.frombuffer(file_bytes, np.uint8)
         frame = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
@@ -276,33 +277,27 @@ class AIModelService:
         yolo_boxes = self._run_yolo(frame, keras_result)
 
         if yolo_boxes:
-            best_box = max(yolo_boxes, key=lambda x: x['confidence'])
+            best_box = max(yolo_boxes, key=lambda x: x["confidence"])
             dominant_vehicle = f"{best_box['class_name']} ({best_box['confidence']}%)"
         else:
             dominant_vehicle = None
 
-        # DB 저장 (5초 인터벌 체크)
+        # 중요:
+        # /api/ai/detect는 분석만 담당한다.
+        # DB 저장은 backend-main의 /api/detections/save-result에서 처리한다.
         event_id = None
-        now = time.time()
-        if not self.last_save_time or (now - self.last_save_time) >= self.save_interval:
-            self.last_save_time = now
-            event_id = self._save_detection_event(keras_result, yolo_boxes)
-            if event_id:
-                self._save_detection_objects(event_id, yolo_boxes)
-        else:
-            print(f"[DB] 스킵 (마지막 저장 후 {int(now - self.last_save_time)}초 경과)")
 
         result = {
             **keras_result,
-            'has_danger_car': len(yolo_boxes) > 0,
-            'yolo_boxes': yolo_boxes,
-            'detected_vehicle': dominant_vehicle,
-            'yolo_detected': len(yolo_boxes) > 0,
-            'event_id': event_id
+            "has_danger_car": len(yolo_boxes) > 0,
+            "yolo_boxes": yolo_boxes,
+            "detected_vehicle": dominant_vehicle,
+            "yolo_detected": len(yolo_boxes) > 0,
+            "event_id": event_id,
         }
+
         print(f"[AI] 이미지 분석 완료: {result}")
         return result
-
     # ════════════════════════════════════════
     # 이미지 분석 + 저장 (DB 연동)
     # ════════════════════════════════════════
@@ -690,9 +685,7 @@ class AIModelService:
                         now = time.time()
                         if not self.last_save_time or (now - self.last_save_time) >= self.save_interval:
                             self.last_save_time = now
-                            event_id = self._save_detection_event(keras_result, yolo_boxes)
-                            if event_id:
-                                self._save_detection_objects(event_id, yolo_boxes)
+
                         else:
                             print(f"[DB] 스킵 (마지막 저장 후 {int(now - self.last_save_time)}초 경과)")
 

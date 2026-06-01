@@ -319,7 +319,8 @@ function HlsPlayer({
                 const now = Date.now();
 
                 const shouldSave =
-                  (data.is_danger || hasDangerVehicle) &&
+                  data.is_danger &&
+                  hasDangerVehicle &&
                   now - lastSaveAtRef.current > 60_000;
 
                 if (shouldSave) {
