@@ -7,6 +7,7 @@ from flask import Blueprint, request, jsonify
 from flask import current_app
 from app.services.hybrid_alert_service import run_hybrid_detection_flow
 from app.services.ai_detection_save_service import save_ai_detection_result
+from app.services.ai_service import analyze_video
 from app import db
 # 탐지 결과 기능을 처리하는 Service를 가져와.
 from ..services.detection_service import DetectionService
@@ -125,6 +126,7 @@ def analyze_detection():
             }), 200
 
         # 2단계: 영상 파일 받아서 FastAPI로 전달
+        
         if "file" not in request.files:
             return jsonify({
                 "success": False,
@@ -132,17 +134,13 @@ def analyze_detection():
             }), 400
 
         file = request.files["file"]
-        ai_server_url = current_app.config.get("AI_SERVER_URL", "http://127.0.0.1:8000")
 
-        import requests as req
-        ai_response = req.post(
-            f"{ai_server_url}/api/ai/analyze_and_save_video",
-            files={"file": (file.filename, file.stream, file.mimetype)},
-            data={"user_id": 1, "original_filename": file.filename},
-            timeout=300,
+        from app.services.ai_service import analyze_video
+
+        ai_result = analyze_video(
+            file_storage=file,
+            original_filename=file.filename,
         )
-        ai_response.raise_for_status()
-        ai_result = ai_response.json()
 
         # 3단계: weather_log DB 저장
         weather_type = _to_weather_type(alerts[0]["wrn_code"])
@@ -171,18 +169,42 @@ def analyze_detection():
         }
 
         final_alert = generate_final_alert(
-            weather_data=weather_data,
-            detection_result=detection_result,
+        weather_data=weather_data,
+        detection_result=detection_result,
         )
+
+        # 4.5단계: backend-main에서 detection_events 저장 후 event_id 확보
+        from app.services.ai_detection_save_service import (
+            _normalize_yolo_result,
+            _build_risk_result,
+        )
+        from app.services.detection_event_save_service import save_detection_event_result
+
+        yolo_result = _normalize_yolo_result(ai_result)
+        risk_result = _build_risk_result(ai_result, yolo_result)
+
+        event_save_result = save_detection_event_result(
+            cctv_source_id=None,
+            weather_type=weather_type,
+            weather_alerts=alerts,
+            yolo_result=yolo_result,
+            risk_result=risk_result,
+            final_alert=final_alert,
+            weather_log_id=weather_log.id,
+            location_name="업로드 영상",
+            latitude=None,
+            longitude=None,
+        )
+
+        event_id = event_save_result.get("event_id")
 
         # 5단계: admin_boards + notifications DB 저장
         alert_save_result = save_alert_to_db(
-            event_id=ai_result.get("event_id"),
+            event_id=event_id,
             final_alert=final_alert,
             weather_type=weather_type,
-            risk_score=8 if alerts[0]["level"] == "경보" else 6,
+            risk_score=risk_result.get("risk_score", 0),
         )
-
         return jsonify({
             "success": True,
             "message": "탐지 분석 완료",
@@ -191,10 +213,12 @@ def analyze_detection():
                 "ai_result": ai_result,
                 "final_alert": final_alert,
                 "weather_log_id": weather_log.id,
+                "event_id": event_id,
+                "event_save_result": event_save_result,
                 "alert_save_result": alert_save_result,
             },
         }), 200
-
+    
     except Exception:
         current_app.logger.exception("탐지 분석 중 오류 발생")
         return jsonify({
