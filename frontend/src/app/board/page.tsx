@@ -52,7 +52,7 @@ const MOCK_SUGGEST: Post[] = [
 const PAGE_SIZE = 10
 
 export default function BoardPage() {
-  useEffect(() => { document.title = 'Weather AI - 자유게시판' }, [])
+  useEffect(() => { document.title = 'Weather AI - 게시판' }, [])
   const router = useRouter()
   const [tab, setTab]               = useState<'info' | 'suggest'>('info')
   const [searchType, setSearchType] = useState('title')
@@ -158,8 +158,8 @@ export default function BoardPage() {
       <section className={styles.heroWrap}>
         <div className={styles.hero}>
           <p className={styles.eyebrow}>게시판</p>
-          <h1 className={styles.title}>커뮤니티 & 공지</h1>
-          <p className={styles.desc}>공지사항, 정보 공유, 건의사항을 확인하세요</p>
+          <h1 className={styles.title}>정보 공유 & 건의사항</h1>
+          <p className={styles.desc}>공유된 정보와 공지 사항, 건의 사항을 확인하세요.</p>
         </div>
       </section>
 

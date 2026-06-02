@@ -4,7 +4,7 @@
 .sidebar { width:220px; flex-shrink:0; background:var(--dark-navy); display:flex; flex-direction:column; padding:24px 0; position:fixed; top:0; left:0; height:100vh; z-index:50; overflow-y:auto; }
 .sideLogoWrap { padding:0 20px 15px; margin-bottom:15px; }
 .sideNav { display:flex; flex-direction:column; gap:2px; padding:0 10px; }
-.sideItem { display:flex; align-items:center; gap:10px; padding:11px 14px; border-radius:10px; font-size:0.88rem; font-weight:500; color:rgba(255,255,255,0.95); text-decoration:none; transition:all 0.2s; background:none; border:none; cursor:pointer; font-family:inherit; width:100%; text-align:left; }
+.sideItem { display:flex; align-items:center; gap:10px; padding:11px 14px; border-radius:10px; font-size:0.88rem; font-weight:500; color:rgba(255,255,255,0.95); text-decoration:none; transition:all 0.2s; background:none; border:none; cursor:pointer; font-family:inherit; width:100%; text-align:left; white-space:nowrap; }
 .sideItem:hover { background:rgba(255,255,255,0.08); color:rgba(255,255,255,0.5); }
 .sideActive { background:rgba(27,155,209,0.25); color:white; font-weight:700; }
 .sideIcon { font-size:1rem; }
@@ -255,5 +255,32 @@
 .countWarn { color:#f39c12; }
 .popupEmpty { font-size:0.88rem; color:var(--text-muted); text-align:center; padding:24px 0; }
 
-@media(max-width:1100px) { .contentRow{grid-template-columns:1fr} }
-@media(max-width:768px) { .sidebar{display:none} .main{margin-left:0;padding:16px} }
+@media(max-width:1100px) {
+  .contentRow {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
+  .mapPanel {
+    height: 60vh;
+    min-height: 400px;
+  }
+  .rightPanel {
+    height: auto;
+    overflow-y: visible;
+  }
+}
+
+@media(max-width:768px) {
+  .sidebar { display: none; }
+  .main { margin-left: 0; padding: 16px; }
+  .contentRow { gap: 14px; }
+  .mapPanel {
+    height: 50vh;
+    min-height: 300px;
+  }
+  .mapHeader { padding: 10px 14px; gap: 8px; }
+  .mapTitle { font-size: 0.85rem; }
+  .mapHint { display: none; }
+  .mapLegend { padding: 8px 14px; gap: 10px; }
+  .infoSection, .infoSectionLarge { padding: 14px; }
+}
