@@ -45,7 +45,8 @@ type CctvItem = {
 
 const sideMenus = [
   { label: '대시보드',  href: '/admin',                icon: '📊' },
-  { label: '관제센터',  href: '/admin/monitor',         icon: '📡' },
+  { label: 'AI 관제센터',  href: '/admin/monitor',         icon: '📡' },
+  { label: 'CCTV 모니터링', href: '/admin/cctv',            icon: '📷' },
   { label: '알림이력',  href: '/admin/notifications',   icon: '🔔' },
   { label: '사용자관리', href: '/admin/users',           icon: '👥' },
 ]
@@ -120,7 +121,7 @@ function HlsPlayer({ src, className }: { src: string; className?: string }) {
 }
 
 export default function MonitorPage() {
-  useEffect(() => { document.title = 'Weather AI - 관제센터' }, [])
+  useEffect(() => { document.title = 'Weather AI - AI 관제센터' }, [])
   const pathname = usePathname()
   const { unreadCount } = useNotification()
   const [boardOpen, setBoardOpen] = useState(false)
@@ -235,7 +236,7 @@ export default function MonitorPage() {
 
       <main className={styles.main}>
         <div className={styles.topBar}>
-          <h1 className={styles.pageTitle}>관제센터</h1>
+          <h1 className={styles.pageTitle}>AI 관제센터</h1>
         </div>
 
         <div className={styles.contentRow}>

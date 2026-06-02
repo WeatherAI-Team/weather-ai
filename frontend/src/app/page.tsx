@@ -48,7 +48,7 @@ export default function HomePage() {
 
           <div className={styles.heroCtas}>
             <Link href="/ai" className={styles.ctaPrimary}>
-              AI 탐지 시작
+              실시간 CCTV
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                 <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>

@@ -7,7 +7,7 @@ import Providers from '@/components/Providers'
 export const metadata: Metadata = {
   title: {
     template: 'Weather AI - %s',
-    default: 'Weather AI — 악천후 위험물질 차량 탐지 시스템',
+    default: 'Weather AI - 홈',
   },
   description: '악천후 상황 시 위험 물질 차량을 AI로 탐지하여 사고를 예방합니다',
 }

@@ -8,9 +8,11 @@ import { useModalKeyboard } from '@/hooks/useModalKeyboard'
 const API = process.env.NEXT_PUBLIC_API_URL
 
 const sideMenus = [
-  { label: '대시보드', href: '/admin', icon: '📊' },
-  { label: '관제센터', href: '/admin/monitor', icon: '📡' },
-  { label: '사용자관리', href: '/admin/users', icon: '👥' },
+  { label: '대시보드',     href: '/admin',               icon: '📊' },
+  { label: 'AI 관제센터',  href: '/admin/monitor',        icon: '📡' },
+  { label: 'CCTV 모니터링', href: '/admin/cctv',           icon: '📷' },
+  { label: '알림이력',     href: '/admin/notifications',  icon: '🔔' },
+  { label: '사용자관리',   href: '/admin/users',           icon: '👥' },
 ]
 const boardMenus = [
   { label: '건의게시판', href: '/board/suggest', icon: '💬' },
