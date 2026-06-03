@@ -205,6 +205,24 @@ def analyze_detection():
             weather_type=weather_type,
             risk_score=risk_result.get("risk_score", 0),
         )
+
+        # 6단계: event_clips 저장
+        from app.models.event_clip import EventClip
+
+        clip_path = ai_result.get("clip_path")
+        if clip_path and event_id:
+            try:
+                clip = EventClip(
+                    event_id=event_id,
+                    clip_url=clip_path,
+                )
+                db.session.add(clip)
+                db.session.commit()
+                print(f"[DB] event_clips 저장 완료: {clip_path}")
+            except Exception as e:
+                db.session.rollback()
+                print(f"[DB] event_clips 저장 실패: {e}")
+        
         return jsonify({
             "success": True,
             "message": "탐지 분석 완료",

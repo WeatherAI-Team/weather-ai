@@ -38,7 +38,7 @@ class NotificationService:
         result = self.repo.find_detail_by_id(notification_id)
         if result is None:
             return None
-        n, event = result
+        n, event, clip_url = result
         data = self._to_dict(
             n,
             event.location_name if event else None,
@@ -59,6 +59,7 @@ class NotificationService:
                 'llm_decision':        event.llm_decision,
                 'llm_reason':          event.llm_reason,
                 'detected_at':         event.detected_at.isoformat() if event.detected_at else None,
+                'clip_url':            clip_url,
             })
         return data
 

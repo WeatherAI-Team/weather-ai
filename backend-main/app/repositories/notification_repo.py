@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from app.models.event_clip import EventClip
 
 from app import db
 from ..models.notification import Notification
@@ -80,12 +81,25 @@ class NotificationRepository:
 
     def find_detail_by_id(self, notification_id: int):
         """알림 1건 + 연결된 DetectionEvent 전체 데이터 반환."""
-        return (
+        result = (
             db.session.query(Notification, DetectionEvent)
             .outerjoin(DetectionEvent, Notification.event_id == DetectionEvent.id)
             .filter(Notification.id == notification_id)
             .first()
         )
+        if result is None:
+            return None
+        
+        notification, event = result
+        
+        # event_clips 조회
+        clip_url = None
+        if event:
+            clip = EventClip.query.filter_by(event_id=event.id).first()
+            if clip:
+                clip_url = clip.clip_url
+        
+        return notification, event, clip_url
 
     def mark_as_unread(self, notification_id: int):
         """처리 취소: status만 SENT로 되돌림."""

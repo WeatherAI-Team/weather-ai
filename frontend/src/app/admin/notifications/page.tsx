@@ -78,6 +78,7 @@ type NotificationDetail = ApiNotification & {
   llm_decision: string | null
   llm_reason: string | null
   detected_at: string | null
+  clip_url: string | null
 }
 
 type Filters = {
@@ -227,6 +228,13 @@ function NotificationModal({
                 {/* CCTV */}
                 <div className={styles.modalSection}>
                   <h3 className={styles.sectionTitle}>📷 CCTV 화면</h3>
+                  {detail.clip_url ? (
+                    <video
+                      src={`http://localhost:8000/${detail.clip_url}`}
+                      controls
+                      style={{ width: '100%', borderRadius: '8px' }}
+                    />
+                  ) : (
                   <div className={styles.cctvPlaceholder}>
                     <span className={styles.cctvIcon}>📹</span>
                     <p className={styles.cctvMsg}>탐지 당시 저장된 영상이 없습니다</p>
@@ -234,6 +242,7 @@ function NotificationModal({
                       {detail.event_id ? `이벤트 ID: ${detail.event_id}` : '탐지 이벤트 정보 없음'}
                     </p>
                   </div>
+                  )}
                 </div>
               </div>
 
