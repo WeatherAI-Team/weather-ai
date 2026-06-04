@@ -151,27 +151,98 @@ def analyze_detection():
             weather_risk_score=8 if alerts[0]["level"] == "경보" else 6,
         )
 
-        # 4단계: Gemma 최종 알림 생성
+        # 4단계: YOLO 결과 정규화 및 Gemma 최종 알림 생성
+        from app.services.ai_detection_save_service import (
+            _normalize_yolo_result,
+            _build_risk_result,
+        )
+        from app.services.detection_event_save_service import save_detection_event_result
+
+        yolo_result = _normalize_yolo_result(ai_result)
+        risk_result = _build_risk_result(ai_result, yolo_result)
+
+        vehicle_name = yolo_result.get("representative_vehicle_name") or "위험 차량"
+        vehicle_label = yolo_result.get("representative_vehicle") or "UNKNOWN"
+
         weather_data = {
             "type": alerts[0]["wrn_name"],
             "level": alerts[0]["level"],
             "summary": weather_summary,
             "gate_result": gate_result,
         }
+
         detection_result = {
             "vehicle_detected": ai_result.get("has_danger_car", False),
-            "vehicle_type": ai_result.get("detected_vehicle"),
+            "vehicle_type": vehicle_name,
+            "representative_vehicle": vehicle_label,
+            "representative_vehicle_name": vehicle_name,
             "confidence": ai_result.get("confidence"),
             "weather": ai_result.get("weather"),
             "danger_confidence": ai_result.get("danger_confidence"),
             "weather_counts": ai_result.get("weather_counts"),
             "risk_vehicle_count": len(ai_result.get("yolo_boxes", [])) if ai_result.get("yolo_boxes") else 0,
+            "dangerous_objects": yolo_result.get("dangerous_objects", []),
+            "instruction": (
+                f"최종 차량 종류는 반드시 '{vehicle_name}'으로 사용하세요. "
+                "RMC는 레미콘이며 탱크로리/LPG 가스차량이 아닙니다. "
+                "차량 종류를 추측하거나 바꾸지 마세요."
+            ),
         }
 
         final_alert = generate_final_alert(
-        weather_data=weather_data,
-        detection_result=detection_result,
+            weather_data=weather_data,
+            detection_result=detection_result,
         )
+
+        risk_level = risk_result.get("risk_level") or final_alert.get("risk_level", "CAUTION")
+        final_alert["risk_level"] = risk_level
+
+        prefix = "긴급" if risk_level == "DANGER" else "주의"
+
+        weather_code = weather_data.get("type") or ai_result.get("weather") or "위험 기상"
+
+        WEATHER_NAME_MAP = {
+            "heavy_rain": "폭우",
+            "heavy_snow": "폭설",
+            "HEAVY_RAIN": "폭우",
+            "HEAVY_SNOW": "폭설",
+            "rain": "비",
+            "snow": "폭설",
+            "fog": "안개",
+            "clear": "맑음",
+            "RAIN": "비",
+            "SNOW": "폭설",
+            "FOG": "안개",
+            "CLEAR": "맑음",
+        }
+
+        weather_display_name = WEATHER_NAME_MAP.get(weather_code, weather_code)
+
+        # Gemma가 차량명/날씨명을 잘못 만들더라도 최종 저장/팝업 제목은 보정값으로 고정
+        final_alert["title"] = f"[{prefix}] {weather_display_name} {vehicle_name} 위험 탐지"
+
+        final_alert["admin_message"] = (
+            f"{weather_display_name} 상황에서 {vehicle_name} 차량이 감지되었습니다. "
+            "관제센터 모니터링이 필요합니다."
+        )
+
+        if vehicle_name != "LPG 가스차량":
+            wrong_words = ["탱크로리", "LPG", "가스차량", "유조차"]
+
+            if any(word in final_alert.get("driver_message", "") for word in wrong_words):
+                final_alert["driver_message"] = (
+                    f"{weather_display_name} 상황입니다. "
+                    "감속 운행하고 안전거리를 확보하십시오."
+                )
+
+            if any(word in final_alert.get("reason", "") for word in wrong_words):
+                final_alert["reason"] = (
+                    f"AI 날씨 탐지에서 {weather_display_name}가 감지되었고, "
+                    f"AI 차량 탐지에서 {vehicle_name} 차량이 대표 위험 차량으로 감지되었습니다."
+                )
+
+        final_alert["alert_required"] = risk_result.get("alert_required", True)
+        final_alert["false_positive_suspected"] = risk_result.get("false_positive_possible", False)
 
         # 4.5단계: backend-main에서 detection_events 저장 후 event_id 확보
         from app.services.ai_detection_save_service import (
