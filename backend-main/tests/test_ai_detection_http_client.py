@@ -42,7 +42,7 @@ def test_yolo_http_success(monkeypatch):
             return {
                 "yolo_boxes": [
                     {
-                        "class_name": "Gas_Trcuk",
+                        "class_name": "Gas_Truck",
                         "confidence": 91.0,
                         "box_coords": [10, 20, 100, 200],
                     }
@@ -59,7 +59,7 @@ def test_yolo_http_success(monkeypatch):
 
     assert result["used"] is True
     assert result["dangerous_vehicle_detected"] is True
-    assert result["dangerous_objects"][0]["label"] == "Gas_Trcuk"
+    assert result["dangerous_objects"][0]["label"] == "Gas_Truck"
 
 def test_keras_http_success(monkeypatch):
     class FakeResponse:

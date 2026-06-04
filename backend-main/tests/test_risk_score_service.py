@@ -24,10 +24,10 @@ def test_calculate_risk_score_with_weather_and_dangerous_vehicle():
         "dangerous_vehicle_detected": True,
         "max_confidence": 0.87,
         "objects": [
-            {"label": "Gas_Trcuk", "confidence": 0.87}
+            {"label": "Gas_Truck", "confidence": 0.87}
         ],
         "dangerous_objects": [
-            {"label": "Gas_Trcuk", "confidence": 0.87}
+            {"label": "Gas_Truck", "confidence": 0.87}
         ],
     }
 

@@ -21,16 +21,19 @@ const boardMenus = [
 const API = process.env.NEXT_PUBLIC_API_URL ?? ''
 
 const WEATHER_LABEL: Record<string, string> = {
-  clear: '맑음', fog: '안개', heavy_rain: '폭우', heavy_snow: '폭설',
+  CLEAR: '맑음', FOG: '안개', HEAVY_RAIN: '폭우', HEAVY_SNOW: '폭설', UNKNOWN: '알 수 없음',
 }
 const WEATHER_ICON: Record<string, string> = {
-  clear: '☀️', fog: '🌫️', heavy_rain: '🌧️', heavy_snow: '❄️',
+  CLEAR: '☀️', FOG: '🌫️', HEAVY_RAIN: '🌧️', HEAVY_SNOW: '❄️', UNKNOWN: '❓',
+}
+function weatherKey(type: string | null | undefined): string {
+  return (type || 'UNKNOWN').toUpperCase()
 }
 const VEHICLE_LABEL: Record<string, string> = {
-  RMC:        '래미콘',
-  Gas_Truck:  '탱크로리',
-  cargo_truck:'카고트럭',
-  '25t_truck':'25톤 이상 차량',
+  RMC:          '레미콘',
+  Gas_Truck:    '탱크로리',
+  cargo_truck:  '카고트럭',
+  '25t_truck':  '25톤 이상 차량',
 }
 const DECISION_LABEL: Record<string, { label: string; color: string }> = {
   approved:  { label: '위험 확인', color: '#e43b3b' },
@@ -112,7 +115,7 @@ function NotificationModal({
   const isConfirmed  = !!detail?.is_confirmed
   const isResolved   = detail?.status === 'READ'
   const decision   = detail?.llm_decision ? DECISION_LABEL[detail.llm_decision] : null
-  const vehicleLabel = detail?.main_vehicle_type ? (VEHICLE_LABEL[detail.main_vehicle_type] ?? detail.main_vehicle_type) : null
+  const vehicleLabel = detail?.main_vehicle_type ? (VEHICLE_LABEL[detail.main_vehicle_type] ?? null) : null
 
   const mapUrl = detail?.latitude && detail?.longitude
     ? `https://map.kakao.com/link/map/${encodeURIComponent(detail.location_name || '위치')},${detail.latitude},${detail.longitude}`
@@ -160,8 +163,8 @@ function NotificationModal({
                   {detail.risk_score != null && ` · ${detail.risk_score}점`}
                 </span>
                 <span className={styles.chip}>
-                  {WEATHER_ICON[detail.weather_type] ?? '🌤️'}&nbsp;
-                  {WEATHER_LABEL[detail.weather_type] ?? detail.weather_type}
+                  {WEATHER_ICON[weatherKey(detail.weather_type)]}&nbsp;
+                  {WEATHER_LABEL[weatherKey(detail.weather_type)]}
                 </span>
                 <span className={styles.chip}>
                   📍 {detail.location_name || '-'}
@@ -568,7 +571,7 @@ function NotificationsContent() {
                     <td className={styles.td}>{n.location_name}</td>
                     <td className={styles.td}>
                       <span className={styles.weatherBadge}>
-                        {WEATHER_LABEL[n.weather_type] ?? n.weather_type}
+                        {WEATHER_LABEL[weatherKey(n.weather_type)]}
                       </span>
                     </td>
                     <td className={styles.td} onClick={e => e.stopPropagation()}>
