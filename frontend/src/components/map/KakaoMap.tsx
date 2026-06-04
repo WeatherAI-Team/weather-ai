@@ -68,6 +68,8 @@ export default function KakaoMap({ selected, regionData, onSelect, onHover }: Ka
 
   // SDK 로드 및 지도 초기화
   useEffect(() => {
+    let isMounted = true
+
     const key = process.env.NEXT_PUBLIC_KAKAO_MAP_KEY
     if (!key) {
       console.warn('NEXT_PUBLIC_KAKAO_MAP_KEY 환경변수가 설정되지 않았습니다.')
@@ -75,63 +77,51 @@ export default function KakaoMap({ selected, regionData, onSelect, onHover }: Ka
     }
 
     const createMap = () => {
-      console.log('[KakaoMap] createMap 호출됨, mapRef:', mapRef.current)
-      if (!mapRef.current) {
-        console.error('[KakaoMap] mapRef.current 가 null — 컨테이너 없음')
-        return
-      }
+      if (!isMounted || !mapRef.current) return
+
       const map = new window.kakao.maps.Map(mapRef.current, {
         center: new window.kakao.maps.LatLng(36.2, 127.8),
         level: 13,
       })
       mapInstanceRef.current = map
       setMapReady(true)
-      console.log('[KakaoMap] 지도 생성 완료')
 
-      // 컨테이너 크기 변화 감지 → 자동 relayout
       const observer = new ResizeObserver(() => {
         map.relayout()
       })
       observer.observe(mapRef.current!)
-
     }
-
-    console.log('[KakaoMap] 초기화 시작, window.kakao:', window.kakao)
 
     // 케이스 1: Map 생성자까지 완전히 로드된 상태
     if (window.kakao?.maps?.Map) {
-      console.log('[KakaoMap] 케이스1 - 이미 로드됨')
       createMap()
-      return
+      return () => { isMounted = false }
     }
 
     // 케이스 2: kakao 객체는 있지만 maps.load() 호출이 필요한 상태
     if (window.kakao?.maps) {
-      console.log('[KakaoMap] 케이스2 - maps.load() 호출')
       window.kakao.maps.load(createMap)
-      return
+      return () => { isMounted = false }
     }
 
     // 케이스 3: 스크립트 태그가 이미 DOM에 있지만 아직 로드 중인 상태
     const existingScript = document.getElementById('kakao-map-sdk')
     if (existingScript) {
-      console.log('[KakaoMap] 케이스3 - 스크립트 로드 대기 중')
-      existingScript.addEventListener('load', () => window.kakao.maps.load(createMap))
-      return
+      const handler = () => window.kakao.maps.load(createMap)
+      existingScript.addEventListener('load', handler)
+      return () => { isMounted = false; existingScript.removeEventListener('load', handler) }
     }
 
     // 케이스 4: 스크립트 태그 자체가 없는 상태 → 새로 삽입
-    console.log('[KakaoMap] 케이스4 - 스크립트 새로 삽입')
     const script = document.createElement('script')
     script.id = 'kakao-map-sdk'
     script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${key}&autoload=false`
     script.async = true
-    script.onload = () => {
-      console.log('[KakaoMap] 스크립트 로드 완료, maps.load() 호출')
-      window.kakao.maps.load(createMap)
-    }
+    script.onload = () => window.kakao.maps.load(createMap)
     script.onerror = (e) => console.error('[KakaoMap] 스크립트 로드 실패:', e)
     document.head.appendChild(script)
+
+    return () => { isMounted = false }
   }, [])
 
   // 오버레이 업데이트 (지도 준비 완료 or regionData / selected 변경 시)

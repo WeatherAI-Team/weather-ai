@@ -21,8 +21,8 @@ class NotificationRepository:
             .filter(Notification.target_type == 'ADMIN')
         )
 
-    # 긴급 판정 기준: HIGH 또는 CRITICAL
-    URGENT_LEVELS = ('HIGH', 'CRITICAL')
+    # 긴급 판정 기준: DANGER, HIGH, CRITICAL
+    URGENT_LEVELS = ('DANGER', 'HIGH', 'CRITICAL')
 
     def find_all(self, page=1, per_page=20, is_urgent=None, status=None):
         q = self._base_query()

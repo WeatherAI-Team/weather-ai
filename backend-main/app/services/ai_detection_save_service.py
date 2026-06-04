@@ -16,11 +16,12 @@ DANGEROUS_VEHICLE_LABELS = {
 }
 
 VEHICLE_NAME_MAP = {
-    "RMC": "레미콘",
-    "Gas_Truck": "LPG 가스차량",
-    "gas_truck": "LPG 가스차량",
-    "25t_truck": "25톤 대형트럭",
-    "cargo_truck": "카고트럭",
+    "RMC":        "레미콘",
+    "Gas_Truck":  "탱크로리",
+    "cargo_truck":"카고트럭",
+    "25t_truck":  "카고트럭",
+    "rmc":        "레미콘",
+    "gas_truck":  "탱크로리",
 }
 
 WEATHER_NAME_MAP = {
