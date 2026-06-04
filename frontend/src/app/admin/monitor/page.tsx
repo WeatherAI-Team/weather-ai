@@ -89,7 +89,7 @@ function getRegionFromCoords(lat: number, lng: number): string | null {
 }
 
 const VEHICLE_TYPE_KO: Record<string, string> = {
-  RMC: '래미콘', Gas_Truck: '탱크로리', cargo_truck: '카고트럭', '25t_truck': '25톤 이상의 차량',
+  RMC: '레미콘', Gas_Truck: '탱크로리', cargo_truck: '카고트럭', '25t_truck': '25톤 이상의 차량',
 }
 const WEATHER_KO: Record<string, string> = {
   clear: '맑음', heavy_snow: '폭설', heavy_rain: '폭우', fog: '안개',

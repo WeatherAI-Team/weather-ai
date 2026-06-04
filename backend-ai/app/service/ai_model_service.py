@@ -27,7 +27,7 @@ DATABASE_URL = os.getenv('DATABASE_URL')
 print(f"[DB] DATABASE_URL: {DATABASE_URL}")
 
 VEHICLE_TYPE_MAP = {
-    'Gas_Trcuk': 'TANK_LORRY',
+    'Gas_Truck': 'TANK_LORRY',
     'RMC': 'CONCRETE_MIXER',
     'cargo_truck': 'HEAVY_TRUCK',
     '25t_truck': 'HEAVY_TRUCK',

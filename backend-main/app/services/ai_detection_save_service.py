@@ -9,13 +9,13 @@ from app.services.alert_save_service import save_alert_to_db
 DANGEROUS_VEHICLE_LABELS = {
     "25t_truck",
     "cargo_truck",
-    "Gas_Trcuk",
+    "Gas_Truck",
     "RMC",
 }
 
 VEHICLE_NAME_MAP = {
     "RMC": "레미콘",
-    "Gas_Trcuk": "LPG 가스차량",
+    "Gas_Truck": "LPG 가스차량",
     "Gas_Truck": "LPG 가스차량",
     "25t_truck": "25톤 대형트럭",
     "cargo_truck": "카고트럭",

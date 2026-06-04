@@ -31,11 +31,11 @@ const WEATHER_COLOR: Record<string, string> = {
   heavy_rain: '#1b9bd1',
   heavy_snow: '#81c4e2',
 }
-function weatherLabel(key: string) { const k = (key ?? '').toLowerCase(); return WEATHER_LABEL[k] ?? k }
+function weatherLabel(key: string) { const k = (key ?? '').toLowerCase(); return WEATHER_LABEL[k] ?? '-' }
 function weatherColor(key: string) { const k = (key ?? '').toLowerCase(); return WEATHER_COLOR[k] ?? '#aaa' }
 
 const VEHICLE_LABEL: Record<string, string> = {
-  concrete_mixer: '래미콘',
+  concrete_mixer: '레미콘',
   gas_truck:      '탱크로리',
   cargo_truck:    '카고트럭',
   '25t_truck':    '25톤 이상 차량',
