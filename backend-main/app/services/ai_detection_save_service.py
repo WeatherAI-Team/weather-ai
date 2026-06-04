@@ -11,17 +11,16 @@ DANGEROUS_VEHICLE_LABELS = {
     "cargo_truck",
     "Gas_Truck",
     "gas_truck",
-    "Gas_Truck",
     "RMC",
 }
 
 VEHICLE_NAME_MAP = {
-    "RMC":        "레미콘",
+    "RMC": "레미콘",    
+    "rmc": "레미콘",
+    "gas_truck": "탱크로리",
     "Gas_Truck":  "탱크로리",
-    "cargo_truck":"카고트럭",
+    "cargo_truck": "카고트럭",
     "25t_truck":  "카고트럭",
-    "rmc":        "레미콘",
-    "gas_truck":  "탱크로리",
 }
 
 WEATHER_NAME_MAP = {
@@ -181,7 +180,7 @@ def _build_risk_result(ai_result: dict, yolo_result: dict) -> dict:
         elif max_confidence >= 0.65:
             score += 5
             reasons.append("위험 차량 탐지 신뢰도 보통 이상")
-            score = min(score, 100)
+    score = min(score, 100)
 
     if score >= 80:
         risk_level = "DANGER"
@@ -376,17 +375,17 @@ def save_ai_detection_result(data: dict) -> dict:
     )
 
     save_result = save_detection_event_result(
-    cctv_source_id=cctv_source_id,
-    weather_type=weather_type,
-    weather_alerts=weather_alerts,
-    yolo_result=yolo_result,
-    risk_result=risk_result,
-    final_alert=final_alert,
-    image_url=image_url,
-    weather_log_id=weather_log_id,
-    location_name=location_name,
-    latitude=latitude,
-    longitude=longitude,
+        cctv_source_id=cctv_source_id,
+        weather_type=weather_type,
+        weather_alerts=weather_alerts,
+        yolo_result=yolo_result,
+        risk_result=risk_result,
+        final_alert=final_alert,
+        image_url=image_url,
+        weather_log_id=weather_log_id,
+        location_name=location_name,
+        latitude=latitude,
+        longitude=longitude,
     )
 
     alert_save_result = None
