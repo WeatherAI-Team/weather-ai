@@ -5,7 +5,7 @@ def test_build_detection_event_payload():
     yolo_result = {
         "objects": [
             {
-                "label": "Gas_Trcuk",
+                "label": "Gas_Truck",
                 "confidence": 0.91,
                 "dangerous": True,
                 "bbox": [10, 20, 110, 220],
@@ -19,7 +19,7 @@ def test_build_detection_event_payload():
         ],
         "dangerous_objects": [
             {
-                "label": "Gas_Trcuk",
+                "label": "Gas_Truck",
                 "confidence": 0.91,
                 "dangerous": True,
             }
@@ -61,7 +61,7 @@ def test_build_detection_event_payload():
     assert payload["weather_type"] == "호우"
     assert payload["total_vehicle_count"] == 2
     assert payload["risk_vehicle_count"] == 1
-    assert payload["main_vehicle_type"] == "Gas_Trcuk"
+    assert payload["main_vehicle_type"] == "Gas_Truck"
     assert payload["risk_score"] == 85
     assert payload["risk_level"] == "DANGER"
     assert payload["alert_required"] is True

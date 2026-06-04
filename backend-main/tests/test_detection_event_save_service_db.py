@@ -9,7 +9,7 @@ def test_save_detection_event_result_db_rollback():
         yolo_result = {
             "objects": [
                 {
-                    "label": "Gas_Trcuk",
+                    "label": "Gas_Truck",
                     "confidence": 0.91,
                     "dangerous": True,
                     "bbox": [10, 20, 110, 220],
@@ -17,7 +17,7 @@ def test_save_detection_event_result_db_rollback():
             ],
             "dangerous_objects": [
                 {
-                    "label": "Gas_Trcuk",
+                    "label": "Gas_Truck",
                     "confidence": 0.91,
                     "dangerous": True,
                     "bbox": [10, 20, 110, 220],

@@ -12,12 +12,13 @@ DANGEROUS_VEHICLE_LABELS = {
     "Gas_Trcuk",
     "Gas_Truck",
     "gas_truck",
+    "Gas_Truck",
     "RMC",
 }
 
 VEHICLE_NAME_MAP = {
     "RMC": "레미콘",
-    "Gas_Trcuk": "LPG 가스차량",
+    "Gas_Truck": "LPG 가스차량",
     "Gas_Truck": "LPG 가스차량",
     "gas_truck": "LPG 가스차량",
     "25t_truck": "25톤 대형트럭",
