@@ -9,7 +9,6 @@ from app.services.alert_save_service import save_alert_to_db
 DANGEROUS_VEHICLE_LABELS = {
     "25t_truck",
     "cargo_truck",
-    "Gas_Trcuk",
     "Gas_Truck",
     "gas_truck",
     "Gas_Truck",
@@ -18,7 +17,6 @@ DANGEROUS_VEHICLE_LABELS = {
 
 VEHICLE_NAME_MAP = {
     "RMC": "레미콘",
-    "Gas_Truck": "LPG 가스차량",
     "Gas_Truck": "LPG 가스차량",
     "gas_truck": "LPG 가스차량",
     "25t_truck": "25톤 대형트럭",
