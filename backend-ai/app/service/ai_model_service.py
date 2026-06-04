@@ -29,7 +29,7 @@ print(f"[DB] DATABASE_URL: {DATABASE_URL}")
 VEHICLE_TYPE_MAP = {
     'Gas_Truck':   'gas_truck',
     'RMC':         'rmc',
-    'cargo_truck': 'cargo_truck',
+    'cargo_trurck': 'cargo_truck',
 
 }
 
@@ -38,7 +38,7 @@ class AIModelService:
 
     def __init__(self):
         print("[AI] 모델 로딩 중...")
-        self.keras_model = keras.models.load_model('weather_classifier_finetuned_model.keras')
+        self.keras_model = keras.models.load_model('weather_classifier_model.keras')
         self.yolo_model = YOLO('best.pt')
         print("[AI] 모든 모델 로딩 완료!")
 
