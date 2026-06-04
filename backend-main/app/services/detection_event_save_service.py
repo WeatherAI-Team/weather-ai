@@ -1,6 +1,6 @@
 # app/services/detection_event_save_service.py
 
-from datetime import datetime
+from datetime import datetime, timezone, timedelta 
 from app import db
 from app.repositories.detection_repo import DetectionRepository
 from app.repositories.detection_object_repo import DetectionObjectRepository
@@ -8,6 +8,16 @@ from app.repositories.weather_log_repo import WeatherLogRepository
 from app.services.llm_event_payload_service import build_detection_event_payload
 from app.repositories.event_status_log_repo import EventStatusLogRepository
 from app.services.kma_observation_service import get_latest_asos_observation
+
+
+# 한국 시간은 UTC보다 9시간 빨라.
+KST = timezone(timedelta(hours=9))
+
+
+def kst_now():
+    # 현재 한국 시간을 가져와.
+    # DB 컬럼이 timezone 없는 DateTime이라서 timezone 정보는 제거해.
+    return datetime.now(KST).replace(tzinfo=None)
 
 def _get_bbox_values(obj: dict):
     bbox = obj.get("bbox")
@@ -29,7 +39,7 @@ def _build_detection_object_payloads(event_id, yolo_result):
             "event_id": event_id,
             "vehicle_type": obj.get("label", "UNKNOWN"),
             "confidence": obj.get("confidence", 0),
-            "created_at": datetime.utcnow(),
+            "created_at": kst_now(),
             "model_name": "YOLO",
             "is_risk_vehicle": obj.get("dangerous", False),
         })
@@ -87,7 +97,7 @@ def save_detection_event_result(
                 "alerts": weather_alerts,
                 "observation": observation,
             },
-            "created_at": datetime.utcnow(),
+            "created_at": kst_now(),
         })
     
     event_payload = build_detection_event_payload(

@@ -1,5 +1,5 @@
-from datetime import datetime
-
+from datetime import datetime, timezone, timedelta
+KST = timezone(timedelta(hours=9))
 
 def build_detection_event_payload(
     weather_log_id,
@@ -12,7 +12,7 @@ def build_detection_event_payload(
     latitude=None,
     longitude=None,
 ):
-    now = datetime.utcnow()
+    now = datetime.now(KST).replace(tzinfo=None)
 
     yolo_result = yolo_result or {}
     risk_result = risk_result or {}

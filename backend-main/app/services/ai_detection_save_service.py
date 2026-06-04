@@ -1,10 +1,20 @@
 # app/services/ai_detection_save_service.py
 
-from datetime import datetime
+from datetime import datetime, timezone, timedelta 
 
 from app.services.detection_event_save_service import save_detection_event_result
 from app.services.gemma_service import generate_final_alert
 from app.services.alert_save_service import save_alert_to_db
+
+
+# 한국 시간은 UTC보다 9시간 빨라.
+KST = timezone(timedelta(hours=9))
+
+
+def kst_now():
+    # 현재 한국 시간을 가져와.
+    # DB 컬럼이 timezone 없는 DateTime이라서 timezone 정보는 제거해.
+    return datetime.now(KST).replace(tzinfo=None)
 
 DANGEROUS_VEHICLE_LABELS = {
     "25t_truck",
@@ -155,7 +165,7 @@ def _build_weather_alerts(ai_result: dict, cctv_source_id=None) -> list[dict]:
             "wrn_name": weather_name,
             "level": "경보" if is_danger else "관심",
             "reg_id": str(cctv_source_id) if cctv_source_id else "UNKNOWN",
-            "tm_fc": datetime.utcnow().isoformat(),
+            "tm_fc": kst_now().isoformat(),
         }
     ]
 
