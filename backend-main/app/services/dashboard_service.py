@@ -23,7 +23,7 @@ class DashboardService:
         # 시간이 없으면 화면에 "-"로 보여줘.
         if not dt:
             return "-"
-     
+        
         # DB에는 이미 한국 시간(KST) 기준으로 저장하기 때문에
         # 여기서는 시간을 더하지 않고 그대로 표시만 해.
         return dt.strftime("%p %I:%M").replace("AM", "오전").replace("PM", "오후")

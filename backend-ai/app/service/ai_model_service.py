@@ -38,8 +38,8 @@ print(f"[DB] DATABASE_URL: {DATABASE_URL}")
 VEHICLE_TYPE_MAP = {
     'Gas_Truck':   'gas_truck',
     'RMC':         'rmc',
-    'cargo_truck': 'cargo_truck',
-    '25t_truck':   'cargo_truck',
+    'cargo_trurck': 'cargo_truck',
+
 }
 
 
@@ -204,7 +204,7 @@ class AIModelService:
     def _run_yolo(self, frame: np.ndarray, keras_result: dict) -> list:
         yolo_boxes = []
 
-        if keras_result['confidence'] >= 60.0:
+        if keras_result['is_danger'] and keras_result['confidence'] >= 40.0:  # 배포 시 60.0으로 변경
             print(f"[AI] 🚨 신뢰도 {keras_result['confidence']}% → YOLO 위험차량 탐지 시작")
             yolo_results = self.yolo_model(frame, verbose=False, conf=0.4)
 
@@ -234,7 +234,7 @@ class AIModelService:
                 print(f"[AI] YOLO 대표 차종: {best_box['class_name']} ({best_box['confidence']}%)")
             print(f"[AI] YOLO 탐지 결과: {[b['class_name'] for b in yolo_boxes]}")
         else:
-            print(f"[AI] YOLO 스킵 (신뢰도 {keras_result['confidence']}% < 60%)")
+            print(f"[AI] YOLO 스킵 (날씨: {keras_result['weather']} | 신뢰도: {keras_result['confidence']}%)")
 
         return yolo_boxes
 
@@ -244,7 +244,6 @@ class AIModelService:
             os.makedirs(clips_dir, exist_ok=True)
 
             now_str = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-            temp_clip = os.path.join(clips_dir, f"temp_{now_str}.mp4")
             clip_path = os.path.join(clips_dir, f"clip_{now_str}.mp4")
 
             start_sec = max(0, (trigger_frame - int(fps * 1.5)) / fps)
@@ -399,7 +398,7 @@ class AIModelService:
             vehicle_counter = Counter()
             vehicle_confidence = {}
             all_yolo_boxes = []
-            first_danger_frame = None  # 위험 차량 첫 탐지 프레임 번호
+            first_danger_frame = None
 
             while True:
                 if self.stop_requested:
@@ -430,10 +429,8 @@ class AIModelService:
 
                     for box in yolo_boxes:
                         vehicle_counter[box['class_name']] += 1
-
                         if box['class_name'] not in vehicle_confidence:
                             vehicle_confidence[box['class_name']] = []
-
                         vehicle_confidence[box['class_name']].append(box['confidence'])
 
                     analyzed_frame_count += 1
@@ -479,7 +476,6 @@ class AIModelService:
             else:
                 dominant_vehicle = None
 
-            # 클립 저장 (분석 완료 후)
             clip_path = None
             if first_danger_frame is not None and has_danger_car:
                 clip_path = self._save_clip(
