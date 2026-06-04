@@ -19,6 +19,15 @@ from fastapi import UploadFile
 import keras
 from ultralytics import YOLO
 
+# 한국 시간은 UTC보다 9시간 빨라.
+KST = datetime.timezone(datetime.timedelta(hours=9))
+
+
+def kst_now():
+    # 현재 한국 시간을 가져와.
+    # DB 컬럼이 timezone 없는 DateTime이라서 timezone 정보는 제거해.
+    return datetime.datetime.now(KST).replace(tzinfo=None)
+
 CLASS_NAMES = ['fog', 'heavy_rain', 'heavy_snow', 'sun']
 DANGER_CLASSES = ['fog', 'heavy_rain', 'heavy_snow']
 
@@ -84,19 +93,27 @@ class AIModelService:
             else:
                 main_vehicle_type = None
 
+            now = kst_now()
+
+            print(f"[DB] 저장 시간(KST): {now}")
+
             cur.execute("""
                 INSERT INTO detection_events (
                     cctv_source_id, weather_type, model_name, detected_at,
                     risk_vehicle_count, total_vehicle_count, main_vehicle_type,
                     detection_confidence, risk_level, alert_required, event_status,
                     created_at, updated_at
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
+                ) VALUES (
+                    %s, %s, %s, %s,
+                    %s, %s, %s, %s, %s, %s, %s,
+                    %s, %s
+                )
                 RETURNING id
             """, (
                 cctv_source_id,
                 keras_result['weather'].upper(),
                 'YOLO11m',
-                datetime.datetime.now(),
+                now,
                 risk_vehicle_count,
                 risk_vehicle_count,
                 main_vehicle_type,
@@ -104,6 +121,8 @@ class AIModelService:
                 risk_level,
                 keras_result['is_danger'] and risk_vehicle_count > 0,
                 'UNCONFIRMED',
+                now,
+                now,
             ))
 
             event_id = cur.fetchone()[0]
@@ -127,12 +146,13 @@ class AIModelService:
 
             for box in yolo_boxes:
                 vehicle_type = VEHICLE_TYPE_MAP.get(box['class_name'], 'SPECIAL_VEHICLE')
+                object_created_at = kst_now() 
                 cur.execute("""
                     INSERT INTO detection_objects (
                         event_id, is_risk_vehicle, vehicle_type, model_name, confidence, created_at
-                    ) VALUES (%s, %s, %s, %s, %s, NOW())
+                    ) VALUES (%s, %s, %s, %s, %s, %s)
                 """, (
-                    event_id, True, vehicle_type, 'YOLO11m', box['confidence'] / 100.0,
+                    event_id, True, vehicle_type, 'YOLO11m', box['confidence'] / 100.0, object_created_at,
                 ))
 
             conn.commit()
@@ -379,6 +399,16 @@ class AIModelService:
             vehicle_confidence = {}
             all_yolo_boxes = []
             first_danger_frame = None
+            last_yolo_boxes = []  # 추가
+            # 바운딩박스 영상 저장용
+            annotated_dir = os.path.join(STATIC_DIR, 'annotated')
+            os.makedirs(annotated_dir, exist_ok=True)
+            now_str_vid = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            annotated_temp = os.path.join(annotated_dir, f"annotated_temp_{now_str_vid}.mp4")
+            width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+            height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+            fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+            out_writer = cv2.VideoWriter(annotated_temp, fourcc, fps, (width, height))
 
             while True:
                 if self.stop_requested:
@@ -402,10 +432,13 @@ class AIModelService:
                     yolo_boxes = self._run_yolo(frame, keras_result)
 
                     if len(yolo_boxes) > 0:
+                        last_yolo_boxes = yolo_boxes
                         danger_car_frames += 1
                         all_yolo_boxes.extend(yolo_boxes)
                         if first_danger_frame is None:
                             first_danger_frame = frame_count
+                    else:
+                        last_yolo_boxes = []
 
                     for box in yolo_boxes:
                         vehicle_counter[box['class_name']] += 1
@@ -415,9 +448,39 @@ class AIModelService:
 
                     analyzed_frame_count += 1
 
+                for box in last_yolo_boxes:
+                    coords = box['box_coords']
+                    cls_name = box['class_name']
+                    conf = box['confidence']
+                    cv2.rectangle(frame,
+                        (int(coords[0]), int(coords[1])),
+                        (int(coords[2]), int(coords[3])),
+                        (0, 0, 255), 3)
+                    cv2.putText(frame,
+                        f"{cls_name} {round(conf)}%",
+                        (int(coords[0]), int(coords[1]) - 10),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2)
+
+                out_writer.write(frame)
                 frame_count += 1
 
             cap.release()
+            cap.release()
+            out_writer.release()
+            self.is_analyzing = False
+
+            # ffmpeg로 브라우저 호환 포맷으로 변환
+            annotated_path = annotated_temp.replace('_temp_', '_')
+            subprocess.run([
+                'ffmpeg', '-i', annotated_temp,
+                '-vcodec', 'libx264', '-acodec', 'aac', '-y',
+                annotated_path
+            ], capture_output=True, timeout=120)
+
+            if os.path.exists(annotated_temp):
+                os.remove(annotated_temp)
+
+            print(f"[AI] 바운딩박스 영상 저장 완료: {annotated_path}")
             self.is_analyzing = False
 
             if analyzed_frame_count == 0:
@@ -434,6 +497,7 @@ class AIModelService:
                     'total_frames': total_frames,
                     'fps': fps,
                     'clip_path': None,
+                    'annotated_path': annotated_path if os.path.exists(annotated_path) else None,
                     'original_filename': original_filename,
                     'message': '분석 실패: 영상에서 프레임을 읽을 수 없습니다.',
                 }
@@ -459,7 +523,7 @@ class AIModelService:
             clip_path = None
             if first_danger_frame is not None and has_danger_car:
                 clip_path = self._save_clip(
-                    video_path=read_path,
+                    video_path=annotated_path,
                     trigger_frame=first_danger_frame,
                     fps=fps,
                     duration_sec=3,
@@ -486,6 +550,7 @@ class AIModelService:
                 'total_frames': total_frames,
                 'fps': fps,
                 'clip_path': clip_path,
+                'annotated_path': annotated_path if os.path.exists(annotated_path) else None,
                 'original_filename': original_filename,
                 'message': '중지됨' if self.stop_requested else '분석 완료',
             }
@@ -543,6 +608,10 @@ class AIModelService:
             vehicle_confidence = {}
             all_yolo_boxes = []
 
+            all_yolo_boxes = []
+            first_danger_frame = None
+            last_yolo_boxes = []  # 마지막 탐지된 바운딩박스 유지용
+
             while True:
                 if self.stop_requested:
                     print("[AI] 분석 중지됨")
@@ -558,13 +627,20 @@ class AIModelService:
 
                 if frame_count % 5 == 0:
                     keras_result = self._predict_weather(frame)
+
                     weather_counts[keras_result['weather']] += 1
                     confidence_sum[keras_result['weather']] += keras_result['confidence']
 
                     yolo_boxes = self._run_yolo(frame, keras_result)
+
                     if len(yolo_boxes) > 0:
+                        last_yolo_boxes = yolo_boxes  # 마지막 탐지 결과 저장
                         danger_car_frames += 1
                         all_yolo_boxes.extend(yolo_boxes)
+                        if first_danger_frame is None:
+                            first_danger_frame = frame_count
+                    else:
+                        last_yolo_boxes = []  # 탐지 없으면 초기화
 
                     for box in yolo_boxes:
                         vehicle_counter[box['class_name']] += 1
@@ -573,6 +649,21 @@ class AIModelService:
                         vehicle_confidence[box['class_name']].append(box['confidence'])
 
                     analyzed_frame_count += 1
+
+                # 마지막 탐지된 바운딩박스 현재 프레임에 그리기
+                for box in last_yolo_boxes:
+                    coords = box['box_coords']
+                    cls_name = box['class_name']
+                    conf = box['confidence']
+                    cv2.rectangle(frame,
+                        (int(coords[0]), int(coords[1])),
+                        (int(coords[2]), int(coords[3])),
+                        (0, 0, 255), 3)
+                    cv2.putText(frame,
+                        f"{cls_name} {round(conf)}%",
+                        (int(coords[0]), int(coords[1]) - 10),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2)
+
                 frame_count += 1
 
             cap.release()

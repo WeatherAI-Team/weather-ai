@@ -69,6 +69,7 @@ type Event = {
   event_status: string
   alert_required: boolean
   detected_at: string | null
+  display_time: string | null
 }
 
 type Summary = {
@@ -254,7 +255,7 @@ export default function ControlPage() {
 
                     </span>
                     <span className={styles.eventTime}>
-                      {e.detected_at ? new Date(e.detected_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }) : '-'}
+                      {e.display_time ?? '-'}
                     </span>
                   </div>
                 </div>

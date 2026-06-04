@@ -1,11 +1,17 @@
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from app import db
 from app.models.admin_board import AdminBoard
 from app.models.notification import Notification
 from app.models.detection_event import DetectionEvent
 
-def utc_now():
-    return datetime.now(timezone.utc).replace(tzinfo=None)
+# 한국 시간은 UTC보다 9시간 빨라.
+
+KST = timezone(timedelta(hours=9))
+
+def kst_now():
+    # 함수 이름은 기존 코드와 맞추기 위해 kst_now로 둬.
+    # 실제 저장 시간은 한국 시간으로 넣어줘.
+    return datetime.now(KST).replace(tzinfo=None)
 
 def save_alert_to_db(
     event_id: int | None,
@@ -29,7 +35,7 @@ def save_alert_to_db(
                 event.llm_decision = "ALERT" if final_alert.get("alert_required") else "SKIP"
                 event.llm_reason   = final_alert.get("reason", "")
                 event.alert_required = bool(final_alert.get("alert_required", True))
-                event.updated_at   = utc_now()
+                event.updated_at   = kst_now()
                 db.session.flush()
 
         # admin_boards 저장
@@ -44,8 +50,8 @@ def save_alert_to_db(
             vehicle_type   = vehicle_type,
             event_status   = "UNCONFIRMED",
             created_by_llm = True,
-            created_at     = utc_now(),
-            updated_at     = utc_now(),
+            created_at     = kst_now(),
+            updated_at     = kst_now(),
         )
         db.session.add(admin_board)
         db.session.flush()
@@ -59,8 +65,8 @@ def save_alert_to_db(
             content     = final_alert.get("driver_message", content),  # driver_message로 변경
             risk_level  = risk_level,
             status      = "SENT",
-            sent_at     = utc_now(),
-            created_at  = utc_now(),
+            sent_at     = kst_now(),
+            created_at  = kst_now(),
         )
         db.session.add(notification)
         db.session.commit()
