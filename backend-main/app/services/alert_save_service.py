@@ -1,11 +1,17 @@
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from app import db
 from app.models.admin_board import AdminBoard
 from app.models.notification import Notification
 from app.models.detection_event import DetectionEvent
 
+# 한국 시간은 UTC보다 9시간 빨라.
+
+KST = timezone(timedelta(hours=9))
+
 def utc_now():
-    return datetime.now(timezone.utc).replace(tzinfo=None)
+    # 함수 이름은 기존 코드와 맞추기 위해 utc_now로 둬.
+    # 실제 저장 시간은 한국 시간으로 넣어줘.
+    return datetime.now(KST).replace(tzinfo=None)
 
 def save_alert_to_db(
     event_id: int | None,

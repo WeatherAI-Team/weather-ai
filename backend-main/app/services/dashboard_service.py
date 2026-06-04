@@ -7,10 +7,23 @@ from ..models.detection_event import DetectionEvent
 
 DAY_LABELS = ['월', '화', '수', '목', '금', '토', '일']
 
+
 class DashboardService:
     # 이 클래스는 관리자 대시보드에 필요한 통계를 만들어주는 곳이야.
     # 쉽게 말하면 "관리자 화면에 보여줄 숫자들을 계산하는 곳"이야.
 
+    def _format_display_time(self, dt):
+        # 시간이 없으면 화면에 "-"로 보여줘.
+        if not dt:
+            return "-"
+
+        # DB에서 가져온 시간이 UTC 기준으로 보이기 때문에
+        # 화면에 보여줄 때만 한국 시간으로 9시간 더해줘.
+        kst_dt = dt + timedelta(hours=9)
+
+        # 오전/오후 시:분 형태로 바꿔줘.
+        return kst_dt.strftime("%p %I:%M").replace("AM", "오전").replace("PM", "오후")
+    
     def get_summary(self):
         # 전체 탐지 이벤트 개수를 세어.
         # detection_events 테이블에 데이터가 몇 개 있는지 확인하는 거야.
@@ -51,14 +64,14 @@ class DashboardService:
         # 최근 탐지 이벤트 5개를 가져와.
         # detected_at 기준으로 최신 데이터부터 가져오는 거야.
         recent_events = DetectionEvent.query.order_by(
-            DetectionEvent.detected_at.desc()
+        DetectionEvent.id.desc()
         ).limit(5).all()
 
         # 알림 필요 이벤트 최근 5개를 별도로 가져와.
         recent_alert_events = DetectionEvent.query.filter(
-            DetectionEvent.alert_required.is_(True)
+        DetectionEvent.alert_required.is_(True)
         ).order_by(
-            DetectionEvent.detected_at.desc()
+        DetectionEvent.id.desc()
         ).limit(5).all()
 
         # 계산한 통계들을 딕셔너리 형태로 묶어서 돌려줘.
@@ -104,7 +117,7 @@ class DashboardService:
 
         # 완성된 개수 결과를 돌려줘.
         return result
-
+    
     def _event_to_dict(self, event):
         # DetectionEvent 객체는 그대로 JSON으로 보내기 어려워.
         # 그래서 필요한 값만 딕셔너리로 바꿔줘.
@@ -141,7 +154,11 @@ class DashboardService:
             "alert_required": event.alert_required,
 
             # 탐지 발생 시간이야.
-            "detected_at": event.detected_at.isoformat() if event.detected_at else None
+            "detected_at": event.detected_at.isoformat() if event.detected_at else None,
+
+            # 화면에 바로 보여줄 한국 시간 값
+            # 예: 오후 12:11
+            "display_time": self._format_display_time(event.detected_at)
         }
 
     def get_weekly_counts(self):

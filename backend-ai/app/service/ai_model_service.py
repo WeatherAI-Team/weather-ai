@@ -19,6 +19,15 @@ from fastapi import UploadFile
 import keras
 from ultralytics import YOLO
 
+# 한국 시간은 UTC보다 9시간 빨라.
+KST = datetime.timezone(datetime.timedelta(hours=9))
+
+
+def kst_now():
+    # 현재 한국 시간을 가져와.
+    # DB 컬럼이 timezone 없는 DateTime이라서 timezone 정보는 제거해.
+    return datetime.datetime.now(KST).replace(tzinfo=None)
+
 CLASS_NAMES = ['fog', 'heavy_rain', 'heavy_snow', 'sun']
 DANGER_CLASSES = ['fog', 'heavy_rain', 'heavy_snow']
 
@@ -83,20 +92,25 @@ class AIModelService:
                 main_vehicle_type = VEHICLE_TYPE_MAP.get(best_box['class_name'], 'SPECIAL_VEHICLE')
             else:
                 main_vehicle_type = None
-
+                
             cur.execute("""
                 INSERT INTO detection_events (
                     cctv_source_id, weather_type, model_name, detected_at,
                     risk_vehicle_count, total_vehicle_count, main_vehicle_type,
                     detection_confidence, risk_level, alert_required, event_status,
                     created_at, updated_at
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
+                ) VALUES (
+                    %s, %s, %s,
+                    (NOW() AT TIME ZONE 'Asia/Seoul'),
+                    %s, %s, %s, %s, %s, %s, %s,
+                    (NOW() AT TIME ZONE 'Asia/Seoul'),
+                    (NOW() AT TIME ZONE 'Asia/Seoul')
+                )
                 RETURNING id
             """, (
                 cctv_source_id,
                 keras_result['weather'].upper(),
                 'YOLO11m',
-                datetime.datetime.now(),
                 risk_vehicle_count,
                 risk_vehicle_count,
                 main_vehicle_type,
