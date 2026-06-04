@@ -54,6 +54,13 @@ class DashboardService:
             DetectionEvent.detected_at.desc()
         ).limit(5).all()
 
+        # 알림 필요 이벤트 최근 5개를 별도로 가져와.
+        recent_alert_events = DetectionEvent.query.filter(
+            DetectionEvent.alert_required.is_(True)
+        ).order_by(
+            DetectionEvent.detected_at.desc()
+        ).limit(5).all()
+
         # 계산한 통계들을 딕셔너리 형태로 묶어서 돌려줘.
         # 딕셔너리는 JSON으로 바꾸기 쉬운 모양이야.
         return {
@@ -64,7 +71,8 @@ class DashboardService:
             "risk_level_counts": risk_level_counts,
             "weather_type_counts": weather_type_counts,
             "vehicle_type_counts": vehicle_type_counts,
-            "recent_events": [self._event_to_dict(event) for event in recent_events]
+            "recent_events": [self._event_to_dict(event) for event in recent_events],
+            "recent_alert_events": [self._event_to_dict(event) for event in recent_alert_events]
         }
 
     def _count_by_field(self, field):

@@ -14,11 +14,11 @@ const GRADE_INFO: Record<string, { label: string; color: string; permissions: st
   },
   MANAGER: {
     label: 'MANAGER', color: '#07559d',
-    permissions: ['CCTV 분석 결과 확인', '탐지 이력 조회', '게시글 작성 · 수정 · 관리'],
+    permissions: ['CCTV 분석 결과 확인', '리포트 생성', '탐지 이력 조회', '게시글 관리', '회원 관리'],
   },
   USER: {
     label: 'USER', color: '#1b9bd1',
-    permissions: ['건의 게시글 작성/수정'],
+    permissions: ['건의 게시글 작성/수정', '댓글 작성', '마이페이지 조회'],
   },
 }
 

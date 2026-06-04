@@ -30,10 +30,9 @@ function weatherKey(type: string | null | undefined): string {
   return (type || 'UNKNOWN').toUpperCase()
 }
 const VEHICLE_LABEL: Record<string, string> = {
-  RMC:          '레미콘',
-  Gas_Truck:    '탱크로리',
-  cargo_truck:  '카고트럭',
-  '25t_truck':  '25톤 이상 차량',
+  rmc:        '레미콘',
+  gas_truck:  '탱크로리',
+  cargo_truck:'카고트럭',
 }
 const DECISION_LABEL: Record<string, { label: string; color: string }> = {
   approved:  { label: '위험 확인', color: '#e43b3b' },
@@ -97,12 +96,16 @@ function NotificationModal({
   onClose,
   onRead,
   onUnread,
+  onConfirm,
+  onUnconfirm,
 }: {
   detail: NotificationDetail | null
   loading: boolean
   onClose: () => void
   onRead: (id: number) => void
   onUnread: (id: number) => void
+  onConfirm: (id: number) => void
+  onUnconfirm: (id: number) => void
 }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
@@ -110,12 +113,12 @@ function NotificationModal({
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose])
 
-  const URGENT_LEVELS = ['HIGH', 'CRITICAL']
+  const URGENT_LEVELS = ['HIGH', 'CRITICAL', 'DANGER']
   const isUrgent     = !!detail?.risk_level && URGENT_LEVELS.includes(detail.risk_level)
   const isConfirmed  = !!detail?.is_confirmed
   const isResolved   = detail?.status === 'READ'
   const decision   = detail?.llm_decision ? DECISION_LABEL[detail.llm_decision] : null
-  const vehicleLabel = detail?.main_vehicle_type ? (VEHICLE_LABEL[detail.main_vehicle_type] ?? null) : null
+  const vehicleLabel = detail?.main_vehicle_type ? (VEHICLE_LABEL[detail.main_vehicle_type.toLowerCase()] ?? null) : null
 
   const mapUrl = detail?.latitude && detail?.longitude
     ? `https://map.kakao.com/link/map/${encodeURIComponent(detail.location_name || '위치')},${detail.latitude},${detail.longitude}`
@@ -137,14 +140,21 @@ function NotificationModal({
           </div>
           <div className={styles.modalHeaderActions}>
             {!loading && detail && (
-              isResolved
-                ? <button className={styles.cancelBtn} onClick={() => onUnread(detail.id)}>처리 취소</button>
-                : <button
-                    className={isConfirmed ? styles.readBtnModal : styles.readBtnModalDisabled}
-                    disabled={!isConfirmed}
-                    title={!isConfirmed ? '확인 완료 후 처리할 수 있습니다' : undefined}
-                    onClick={() => onRead(detail.id)}
-                  >처리완료</button>
+              <>
+                {isConfirmed
+                  ? <button className={styles.confirmedBtn} onClick={() => onUnconfirm(detail.id)}>✅ 확인완료</button>
+                  : <button className={styles.unconfirmedBtn} onClick={() => onConfirm(detail.id)}>⏳ 미확인</button>
+                }
+                {isResolved
+                  ? <button className={styles.cancelBtn} onClick={() => onUnread(detail.id)}>처리 취소</button>
+                  : <button
+                      className={isConfirmed ? styles.readBtnModal : styles.readBtnModalDisabled}
+                      disabled={!isConfirmed}
+                      title={!isConfirmed ? '확인 완료 후 처리할 수 있습니다' : undefined}
+                      onClick={() => onRead(detail.id)}
+                    >처리완료</button>
+                }
+              </>
             )}
             <button className={styles.closeBtn} onClick={onClose} aria-label="닫기">✕</button>
           </div>
@@ -339,6 +349,7 @@ function NotificationsContent() {
   const [total, setTotal]             = useState(0)
   const [modalOpen, setModalOpen]     = useState(false)
   const [detail, setDetail]           = useState<NotificationDetail | null>(null)
+  const openId = searchParams.get('open_id')
 
   useModalKeyboard(modalOpen, () => setModalOpen(false))
   const [detailLoading, setDetailLoading] = useState(false)
@@ -347,12 +358,33 @@ function NotificationsContent() {
 
   useEffect(() => { markAllRead() }, [markAllRead])
 
+  useEffect(() => {
+    if (!openId) return
+    const token = getToken()
+    if (!token) return
+    setModalOpen(true)
+    setDetail(null)
+    setDetailLoading(true)
+    fetch(`${API}/api/admin/notifications/${openId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => r.json())
+      .then(json => { if (json.success) setDetail(json.data) })
+      .catch(() => {})
+      .finally(() => setDetailLoading(false))
+  }, [openId]) // eslint-disable-line
+
+  const URGENT_LEVELS = ['HIGH', 'CRITICAL', 'DANGER']
+
   const fetchNotifications = useCallback(async (p = 1, f = filters) => {
     const token = getToken()
     if (!token) { router.push('/login'); return }
     setLoading(true)
-    const q = new URLSearchParams({ page: String(p), per_page: String(PER_PAGE) })
-    if (f.is_urgent) q.set('is_urgent', f.is_urgent)
+    // is_urgent 필터는 백엔드 risk_level 값 불일치 이슈로 클라이언트에서 처리
+    const isUrgentFilter = !!f.is_urgent
+    const perPage = isUrgentFilter ? 500 : PER_PAGE
+    const pageNum = isUrgentFilter ? 1 : p
+    const q = new URLSearchParams({ page: String(pageNum), per_page: String(perPage) })
     if (f.status && f.status !== 'UNRESOLVED') q.set('status', f.status)
     if (f.is_confirmed) q.set('is_confirmed', f.is_confirmed)
     try {
@@ -360,15 +392,24 @@ function NotificationsContent() {
         headers: { Authorization: `Bearer ${token}` },
       })
       const json = await res.json()
-      if (json.success) { setApiItems(json.data.items); setTotal(json.data.total) }
+      if (json.success) {
+        const items: ApiNotification[] = json.data.items
+        setApiItems(items)
+        if (isUrgentFilter) {
+          const urgentCount = items.filter(n =>
+            URGENT_LEVELS.includes((n.risk_level ?? '').toUpperCase())
+          ).length
+          setTotal(urgentCount)
+        } else {
+          setTotal(json.data.total)
+        }
+      }
     } catch {}
     finally { setLoading(false) }
   }, [filters, router])
 
   useEffect(() => { fetchNotifications(1, filters); setPage(1) }, [filters]) // eslint-disable-line
   useEffect(() => { fetchNotifications(page, filters) },          [page])    // eslint-disable-line
-
-  const URGENT_LEVELS = ['HIGH', 'CRITICAL']
 
   const merged: ApiNotification[] = (() => {
     const ids = new Set(apiItems.map(i => i.id))
@@ -519,6 +560,17 @@ function NotificationsContent() {
             <option value="false">일반</option>
           </select>
 
+          <label className={styles.filterLabel}>처리 여부</label>
+          <select
+            className={styles.filterSelect}
+            value={filters.status}
+            onChange={e => setFilters(f => ({ ...f, status: e.target.value as Filters['status'] }))}
+          >
+            <option value="">전체</option>
+            <option value="UNRESOLVED">미처리</option>
+            <option value="READ">처리완료</option>
+          </select>
+
           <label className={styles.filterLabel}>확인 여부</label>
           <select
             className={styles.filterSelect}
@@ -640,6 +692,8 @@ function NotificationsContent() {
           onClose={() => setModalOpen(false)}
           onRead={handleRead}
           onUnread={handleUnread}
+          onConfirm={handleConfirm}
+          onUnconfirm={handleUnconfirm}
         />
       )}
     </div>
