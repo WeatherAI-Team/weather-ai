@@ -12,6 +12,18 @@ type Message = {
   suggestions?: string[]
 }
 
+function formatBotText(text: string) {
+  return text.split('\n').flatMap((line, li, lineArr) => {
+    const parts = line.split(/(?<!\d)\. /)
+    const nodes = parts.flatMap((part, i) =>
+      i < parts.length - 1
+        ? [part + '.', <br key={`s${li}-${i}`} />]
+        : [part]
+    )
+    return li < lineArr.length - 1 ? [...nodes, <br key={`n${li}`} />] : nodes
+  })
+}
+
 const quickQuestions = [
   'AI 탐지는 어떻게 작동하나요?',
   '위험물질 차량은 어떤 차량인가요?',
@@ -74,8 +86,8 @@ export default function ChatBot() {
     <>
       {!open && (
         <button className={styles.floatingButton} onClick={() => setOpen(true)}>
-          <span className={styles.buttonIcon}>💬</span>
-          <span className={styles.buttonText}>AI 상담</span>
+          <span className={styles.buttonIcon}>🤖</span>
+          <span className={styles.buttonText}>AI 챗봇</span>
         </button>
       )}
 
@@ -114,7 +126,7 @@ export default function ChatBot() {
                       message.sender === 'user' ? styles.userBubble : styles.botBubble
                     }`}
                   >
-                    {message.text}
+                    {message.sender === 'bot' ? formatBotText(message.text) : message.text}
                   </div>
                   {message.suggestions && (
                     <div className={styles.suggestions}>

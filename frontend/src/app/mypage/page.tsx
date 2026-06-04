@@ -14,11 +14,11 @@ const GRADE_INFO: Record<string, { label: string; color: string; permissions: st
   },
   MANAGER: {
     label: 'MANAGER', color: '#07559d',
-    permissions: ['CCTV 분석 결과 확인', '탐지 이력 조회', '게시글 작성 · 수정 · 관리'],
+    permissions: ['CCTV 분석 결과 확인', '리포트 생성', '탐지 이력 조회', '게시글 관리', '회원 관리'],
   },
   USER: {
     label: 'USER', color: '#1b9bd1',
-    permissions: ['건의 게시글 작성/수정'],
+    permissions: ['건의 게시글 작성/수정', '댓글 작성', '마이페이지 조회'],
   },
 }
 
@@ -45,12 +45,14 @@ export default function MyPage() {
   const [loading, setLoading]       = useState(true)
   const [isSocial, setIsSocial]     = useState(false)
 
-  const [nameModal, setNameModal]   = useState(false)
-  const [pwModal, setPwModal]       = useState(false)
-  const [notiModal, setNotiModal]   = useState(false)
-  const [permModal, setPermModal]   = useState(false)
+  const [nameModal, setNameModal]       = useState(false)
+  const [realNameModal, setRealNameModal] = useState(false)
+  const [pwModal, setPwModal]           = useState(false)
+  const [notiModal, setNotiModal]       = useState(false)
+  const [permModal, setPermModal]       = useState(false)
 
-  const [newNickname, setNewNickname] = useState('')
+  const [newNickname, setNewNickname]   = useState('')
+  const [newRealName, setNewRealName]   = useState('')
   const [pwForm, setPwForm]           = useState({ current: '', next: '', confirm: '' })
   const [pwError, setPwError]         = useState('')
   const [noti, setNoti]               = useState({ email: true, sms: false, app: true })
@@ -62,6 +64,7 @@ export default function MyPage() {
   const [withdrawing, setWithdrawing]     = useState(false)
 
   useModalKeyboard(nameModal, () => setNameModal(false))
+  useModalKeyboard(realNameModal, () => setRealNameModal(false))
   useModalKeyboard(pwModal, () => setPwModal(false))
   useModalKeyboard(notiModal, () => setNotiModal(false))
   useModalKeyboard(permModal, () => setPermModal(false))
@@ -97,6 +100,15 @@ export default function MyPage() {
         setProvider(m.provider ?? 'local')
         setJoinedAt(m.created_at ? m.created_at.slice(0, 10) : '')
         setIsSocial(m.provider !== 'local')
+
+        // 알림 설정 별도 조회
+        try {
+          const notiRes  = await fetch(`${API}/api/member/me/notifications`, {
+            headers: { Authorization: `Bearer ${token}` },
+          })
+          const notiData = await notiRes.json()
+          if (notiData.success) setNoti(notiData.data)
+        } catch { /* 실패 시 기본값 유지 */ }
 
         // 게시글/댓글 수 별도 조회
         try {
@@ -145,6 +157,25 @@ export default function MyPage() {
         } catch { /* ignore */ }
       }
       setNameModal(false)
+    } catch { alert('오류가 발생했습니다.') }
+    finally { setSaving(false) }
+  }
+
+  // ── 이름 변경
+  const handleRealNameSave = async () => {
+    if (!newRealName.trim()) return
+    setSaving(true)
+    const token = getToken()
+    try {
+      const res  = await fetch(`${API}/api/member/me`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ real_name: newRealName.trim(), email }),
+      })
+      const data = await res.json()
+      if (!data.success) { alert(data.message); return }
+      setRealName(data.data.real_name ?? newRealName.trim())
+      setRealNameModal(false)
     } catch { alert('오류가 발생했습니다.') }
     finally { setSaving(false) }
   }
@@ -260,6 +291,14 @@ export default function MyPage() {
                     <span className={styles.settingArrow}>›</span>
                   </button>
 
+                  <button className={styles.settingItem} onClick={() => { setNewRealName(realName); setRealNameModal(true) }}>
+                    <div className={styles.settingLeft}>
+                      <span className={styles.settingIcon}>👤</span>
+                      <span className={styles.settingName}>이름 변경</span>
+                    </div>
+                    <span className={styles.settingArrow}>›</span>
+                  </button>
+
                   {!isSocial && (
                     <button className={styles.settingItem} onClick={() => { setPwForm({ current: '', next: '', confirm: '' }); setPwError(''); setPwModal(true) }}>
                       <div className={styles.settingLeft}>
@@ -336,6 +375,40 @@ export default function MyPage() {
         </div>
       )}
 
+      {/* 이름 변경 모달 */}
+      {realNameModal && (
+        <div className={styles.overlay} onClick={() => setRealNameModal(false)}>
+          <div className={styles.modal} onClick={e => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <h2>이름 변경</h2>
+              <button className={styles.modalClose} onClick={() => setRealNameModal(false)}>✕</button>
+            </div>
+            <div className={styles.modalBody}>
+              <div className={styles.currentInfo}>
+                <span className={styles.currentLabel}>현재 이름</span>
+                <span className={styles.currentValue}>{realName || '(미설정)'}</span>
+              </div>
+              <div className={styles.field}>
+                <label>변경할 이름</label>
+                <input
+                  className={styles.input}
+                  value={newRealName}
+                  onChange={e => setNewRealName(e.target.value)}
+                  placeholder="새 이름을 입력하세요"
+                  onKeyDown={e => e.key === 'Enter' && handleRealNameSave()}
+                />
+              </div>
+            </div>
+            <div className={styles.modalActions}>
+              <button className={styles.cancelBtn} onClick={() => setRealNameModal(false)}>취소</button>
+              <button className={styles.saveBtn} onClick={handleRealNameSave} disabled={saving}>
+                {saving ? '저장 중...' : '저장'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 비밀번호 변경 모달 */}
       {pwModal && (
         <div className={styles.overlay} onClick={() => setPwModal(false)}>
@@ -404,7 +477,20 @@ export default function MyPage() {
               ))}
             </div>
             <div className={styles.modalActions}>
-              <button className={styles.saveBtn} style={{ flex: 1 }} onClick={() => setNotiModal(false)}>저장</button>
+              <button className={styles.saveBtn} style={{ flex: 1 }} disabled={saving} onClick={async () => {
+                setSaving(true)
+                const token = getToken()
+                try {
+                  const res  = await fetch(`${API}/api/member/me/notifications`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                    body: JSON.stringify(noti),
+                  })
+                  const data = await res.json()
+                  if (!data.success) { alert(data.message); return }
+                } catch { alert('오류가 발생했습니다.') }
+                finally { setSaving(false); setNotiModal(false) }
+              }}>{saving ? '저장 중...' : '저장'}</button>
             </div>
           </div>
         </div>

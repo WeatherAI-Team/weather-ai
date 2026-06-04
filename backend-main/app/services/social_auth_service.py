@@ -137,6 +137,7 @@ class SocialAuthService:
                         email=email,
                         created_at=datetime.now(),
                         updated_at=datetime.now(),
+                        deleted_at=None,
                     )
 
                     self.social_account_repo.save(social_account)

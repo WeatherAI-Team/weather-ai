@@ -18,7 +18,7 @@ AI_SERVER_TIMEOUT = int(os.getenv("AI_SERVER_TIMEOUT", "120"))
 DANGEROUS_VEHICLE_LABELS = {
     "25t_truck",
     "cargo_truck",
-    "Gas_Trcuk",
+    "Gas_Truck",
     "RMC",
 }
 
@@ -64,7 +64,7 @@ def _normalize_yolo_objects(data: dict) -> list[dict]:
 
     2. yolo_boxes:
        [
-         {"class_name": "Gas_Trcuk", "confidence": 91.0, "box_coords": [...]}
+         {"class_name": "Gas_Truck", "confidence": 91.0, "box_coords": [...]}
        ]
 
     이 함수는 두 형식을 모두 받아서 아래 형식으로 통일한다.

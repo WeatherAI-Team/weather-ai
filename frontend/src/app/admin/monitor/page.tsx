@@ -45,7 +45,8 @@ type CctvItem = {
 
 const sideMenus = [
   { label: '대시보드',  href: '/admin',                icon: '📊' },
-  { label: '관제센터',  href: '/admin/monitor',         icon: '📡' },
+  { label: 'AI 관제센터',  href: '/admin/monitor',         icon: '📡' },
+  { label: 'CCTV 모니터링', href: '/admin/cctv',            icon: '📷' },
   { label: '알림이력',  href: '/admin/notifications',   icon: '🔔' },
   { label: '사용자관리', href: '/admin/users',           icon: '👥' },
 ]
@@ -88,13 +89,13 @@ function getRegionFromCoords(lat: number, lng: number): string | null {
 }
 
 const VEHICLE_TYPE_KO: Record<string, string> = {
-  RMC: '래미콘', Gas_Truck: '탱크로리', cargo_truck: '카고트럭', '25t_truck': '25톤 이상의 차량',
+  rmc: '레미콘', gas_truck: '탱크로리', cargo_truck: '카고트럭',
 }
 const WEATHER_KO: Record<string, string> = {
   clear: '맑음', heavy_snow: '폭설', heavy_rain: '폭우', fog: '안개',
 }
 
-function toVehicleType(v: string | null) { return v ? (VEHICLE_TYPE_KO[v] ?? v) : '알 수 없음' }
+function toVehicleType(v: string | null) { return v ? (VEHICLE_TYPE_KO[v.toLowerCase()] ?? '차량') : '알 수 없음' }
 function toWeather(w: string | null) { return w ? (WEATHER_KO[w] ?? w) : '알 수 없음' }
 function toStatus(r: string | null) { return r === 'high' ? '위험' : '경고' }
 function toTime(iso: string | null) { return iso ? iso.slice(11, 16) : '--:--' }
@@ -120,7 +121,7 @@ function HlsPlayer({ src, className }: { src: string; className?: string }) {
 }
 
 export default function MonitorPage() {
-  useEffect(() => { document.title = 'Weather AI - 관제센터' }, [])
+  useEffect(() => { document.title = 'Weather AI - AI 관제센터' }, [])
   const pathname = usePathname()
   const { unreadCount } = useNotification()
   const [boardOpen, setBoardOpen] = useState(false)
@@ -235,7 +236,7 @@ export default function MonitorPage() {
 
       <main className={styles.main}>
         <div className={styles.topBar}>
-          <h1 className={styles.pageTitle}>관제센터</h1>
+          <h1 className={styles.pageTitle}>AI 관제센터</h1>
         </div>
 
         <div className={styles.contentRow}>

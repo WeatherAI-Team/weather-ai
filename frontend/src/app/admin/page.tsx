@@ -10,7 +10,8 @@ const API = process.env.NEXT_PUBLIC_API_URL ?? ''
 
 const sideMenus = [
   { label: '대시보드',  href: '/admin',                icon: '📊' },
-  { label: '관제센터',  href: '/admin/monitor',         icon: '📡' },
+  { label: 'AI 관제센터',  href: '/admin/monitor',         icon: '📡' },
+  { label: 'CCTV 모니터링',  href: '/admin/cctv',            icon: '📷' },
   { label: '알림이력',  href: '/admin/notifications',   icon: '🔔' },
   { label: '사용자관리', href: '/admin/users',           icon: '👥' },
 ]
@@ -30,23 +31,23 @@ const WEATHER_COLOR: Record<string, string> = {
   heavy_rain: '#1b9bd1',
   heavy_snow: '#81c4e2',
 }
-function weatherLabel(key: string) { const k = (key ?? '').toLowerCase(); return WEATHER_LABEL[k] ?? k }
+function weatherLabel(key: string) { const k = (key ?? '').toLowerCase(); return WEATHER_LABEL[k] ?? '-' }
 function weatherColor(key: string) { const k = (key ?? '').toLowerCase(); return WEATHER_COLOR[k] ?? '#aaa' }
 
 const VEHICLE_LABEL: Record<string, string> = {
-  concrete_mixer: '래미콘',
-  gas_truck:      '탱크로리',
-  cargo_truck:    '카고트럭',
-  '25t_truck':    '25톤 이상 차량',
+  rmc:        '레미콘',
+  gas_truck:  '탱크로리',
+  cargo_truck:'카고트럭',
 }
 function vehicleLabel(key: string | null) {
   if (!key) return '차량'
-  return VEHICLE_LABEL[(key).toLowerCase()] ?? key
+  return VEHICLE_LABEL[(key).toLowerCase()] ?? '차량'
 }
 function eventTitle(e: Event) {
   return e.llm_title || e.event_title || `${vehicleLabel(e.main_vehicle_type)} 탐지 이벤트`
 }
-function isHighRisk(level: string | null) { return (level ?? '').toLowerCase() === 'high' }
+const URGENT_LEVELS = ['HIGH', 'CRITICAL', 'DANGER']
+function isHighRisk(level: string | null) { return (level ?? '').toUpperCase() === 'DANGER' }
 
 function getToken(): string | null {
   try {
@@ -79,6 +80,14 @@ type Summary = {
   weather_type_counts: Record<string, number>
   vehicle_type_counts: Record<string, number>
   recent_events: Event[]
+  recent_alert_events: Event[]
+}
+
+type UrgentNotif = {
+  id: number
+  title: string
+  risk_level: string
+  created_at: string | null
 }
 
 export default function ControlPage() {
@@ -91,6 +100,8 @@ export default function ControlPage() {
   const [memberCount, setMemberCount] = useState<number | null>(null)
   const [weeklyData, setWeeklyData] = useState<{ day: string; count: number }[]>([])
   const [unresolvedCount, setUnresolvedCount] = useState<number | null>(null)
+  const [urgentNotifCount, setUrgentNotifCount] = useState<number | null>(null)
+  const [urgentNotifs, setUrgentNotifs]       = useState<UrgentNotif[]>([])
   const [loading, setLoading]       = useState(true)
 
   useEffect(() => {
@@ -105,12 +116,19 @@ export default function ControlPage() {
       fetch(`${API}/api/admin/dashboard/weekly`,   { headers }).then(r => r.json()),
       fetch(`${API}/api/admin/notifications?per_page=1`, { headers }).then(r => r.json()),
       fetch(`${API}/api/admin/notifications?per_page=1&status=READ`, { headers }).then(r => r.json()),
-    ]).then(([dash, members, weekly, allNotifs, readNotifs]) => {
+      fetch(`${API}/api/admin/notifications?per_page=200`, { headers }).then(r => r.json()),
+    ]).then(([dash, members, weekly, allNotifs, readNotifs, recentNotifs]) => {
       if (dash.success)    setSummary(dash.data)
       if (members.success) setMemberCount(members.data?.pagination?.total ?? null)
       if (weekly.success)  setWeeklyData(weekly.data)
       if (allNotifs.success && readNotifs.success) {
         setUnresolvedCount((allNotifs.data?.total ?? 0) - (readNotifs.data?.total ?? 0))
+      }
+      if (recentNotifs.success) {
+        const allUrgent = (recentNotifs.data?.items ?? [])
+          .filter((n: UrgentNotif) => URGENT_LEVELS.includes((n.risk_level ?? '').toUpperCase()))
+        setUrgentNotifCount(allUrgent.length)
+        setUrgentNotifs(allUrgent.slice(0, 5))
       }
     }).catch(console.error).finally(() => setLoading(false))
   }, [router])
@@ -191,9 +209,9 @@ export default function ControlPage() {
         <div className={styles.statsRow}>
           {[
             { label: '총 탐지 건수',      value: summary?.total_event_count?.toLocaleString() ?? '-',  unit: '건', color: '#07559d', href: undefined },
-            { label: '알림 필요 이벤트',   value: summary?.alert_required_count ?? '-',                unit: '건', color: '#e43b3b', href: '/admin/notifications' },
+            { label: '긴급 알림 이벤트 건수', value: urgentNotifCount ?? '-',                             unit: '건', color: '#e43b3b', href: '/admin/notifications?is_urgent=true' },
             { label: '미처리 이벤트',      value: unresolvedCount ?? '-',                              unit: '건', color: '#f39c12', href: '/admin/notifications?status=UNRESOLVED' },
-            { label: '전체 회원 수',       value: memberCount?.toLocaleString() ?? '-',                unit: '명', color: '#1b9bd1', href: undefined },
+            { label: '전체 회원 수',       value: memberCount?.toLocaleString() ?? '-',                unit: '명', color: '#1b9bd1', href: '/admin/users' },
           ].map(s => {
             const inner = (
               <>
@@ -233,6 +251,7 @@ export default function ControlPage() {
                   <div className={styles.eventRight}>
                     <span className={styles.eventBadge}>
                       {weatherLabel(e.weather_type)}
+
                     </span>
                     <span className={styles.eventTime}>
                       {e.detected_at ? new Date(e.detected_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }) : '-'}
@@ -245,21 +264,21 @@ export default function ControlPage() {
 
           <div className={styles.panel}>
             <h2 className={styles.panelTitle}>
-              최근 알림 필요 이벤트 (최근 5개)
-              <Link href="/admin/notifications" className={styles.panelViewAll}>전체보기 →</Link>
+              긴급 알림 이벤트 (최근 5개)
+              <Link href="/admin/notifications?is_urgent=true" className={styles.panelViewAll}>전체보기 →</Link>
             </h2>
             <div className={styles.alertList}>
-              {(summary?.recent_events ?? []).filter(e => e.alert_required).slice(0, 5).length === 0 && (
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem' }}>알림 이벤트가 없습니다.</p>
+              {urgentNotifs.length === 0 && (
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem' }}>긴급 알림 이벤트가 없습니다.</p>
               )}
-              {(summary?.recent_events ?? []).filter(e => e.alert_required).slice(0, 5).map(e => (
-                <Link key={e.id} href="/admin/notifications" className={styles.alertItem}>
-                  <span className={`${styles.alertIcon} ${isHighRisk(e.risk_level) ? styles.alertDanger : styles.alertWarn}`}>
-                    {isHighRisk(e.risk_level) ? '🚨' : '⚠️'}
+              {urgentNotifs.map(n => (
+                <Link key={n.id} href={`/admin/notifications?is_urgent=true&open_id=${n.id}`} className={styles.alertItem}>
+                  <span className={`${styles.alertIcon} ${styles.alertDanger}`}>
+                    🚨
                   </span>
-                  <span className={styles.alertMsg}>{eventTitle(e)}</span>
+                  <span className={styles.alertMsg}>{n.title}</span>
                   <span className={styles.alertTime}>
-                    {e.detected_at ? new Date(e.detected_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }) : '-'}
+                    {n.created_at ? new Date(n.created_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }) : '-'}
                   </span>
                 </Link>
               ))}

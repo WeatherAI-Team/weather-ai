@@ -192,12 +192,14 @@ function HlsPlayer({
   onDetect,
   onUrlExpired,
   onSaveDetection,
+  monitoringEnabled = false,
 }: {
   src: string;
   className?: string;
   onDetect?: (info: DetectInfo | null) => void;
   onUrlExpired?: () => void;
   onSaveDetection?: (aiData: any) => void;
+  monitoringEnabled?: boolean;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -247,6 +249,11 @@ function HlsPlayer({
     const abortController = new AbortController();
 
     const analyzeFrame = async () => {
+      if (!monitoringEnabled) {
+        onDetect?.(null);
+        return;
+      }
+
       if (isAnalyzingRef.current) return;
       if (video.readyState < 2 || video.paused) return;
 
@@ -312,7 +319,8 @@ function HlsPlayer({
                 const now = Date.now();
 
                 const shouldSave =
-                  (data.is_danger || hasDangerVehicle) &&
+                  data.is_danger &&
+                  hasDangerVehicle &&
                   now - lastSaveAtRef.current > 60_000;
 
                 if (shouldSave) {
@@ -374,7 +382,7 @@ function HlsPlayer({
       abortController.abort(); // 진행 중인 fetch 중단
       isAnalyzingRef.current = false; // 분석 플래그 초기화
     };
-  }, [src]);
+  }, [src, monitoringEnabled]);
 
   return (
     <div style={{ position: "relative", width: "100%" }}>
@@ -407,7 +415,37 @@ export default function AiPage() {
   useEffect(() => {
     document.title = "Weather AI - AI 탐지";
   }, []);
+  const getAuthToken = () => {
+    const directToken =
+      localStorage.getItem("access_token") ||
+      localStorage.getItem("token") ||
+      localStorage.getItem("accessToken") ||
+      localStorage.getItem("authToken");
 
+    if (directToken) return directToken;
+
+    const getTokenFromJson = (key: string) => {
+      try {
+        const obj = JSON.parse(localStorage.getItem(key) || "null");
+
+        return (
+          obj?.access_token ||
+          obj?.accessToken ||
+          obj?.token ||
+          obj?.authToken ||
+          obj?.jwt ||
+          obj?.data?.access_token ||
+          obj?.data?.accessToken ||
+          obj?.data?.token ||
+          null
+        );
+      } catch {
+        return null;
+      }
+    };
+
+    return getTokenFromJson("loginUser") || getTokenFromJson("user");
+  };
   const [tab, setTab] = useState<TabType>("cctv");
   const [selectedCctv, setSelectedCctv] = useState<number | null>(null);
   const [cctvList, setCctvList] = useState<CctvItem[]>([]);
@@ -419,6 +457,31 @@ export default function AiPage() {
   const [result, setResult] = useState<Result | null>(null);
   const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
   const [isImage, setIsImage] = useState(false);
+
+  const [cctvGate, setCctvGate] = useState<any>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    const token = getAuthToken();
+
+    console.log("[Auth token exists]", !!token);
+
+    if (!token) {
+      setIsAdmin(false);
+      return;
+    }
+
+    try {
+      const payload = JSON.parse(atob(token.split(".")[1]));
+
+      console.log("[Auth payload]", payload);
+
+      setIsAdmin(payload.role === "admin");
+    } catch (e) {
+      console.error("토큰 role 확인 실패:", e);
+      setIsAdmin(false);
+    }
+  }, []);
 
   useEffect(() => {
     setDetectInfo(null);
@@ -443,6 +506,54 @@ export default function AiPage() {
     if (tab !== "cctv") return;
     fetchCctvList();
   }, [tab]);
+
+  useEffect(() => {
+    if (tab !== "cctv") return;
+
+    const fetchCctvGate = async () => {
+      const token = getAuthToken();
+
+      console.log("[CCTV Gate] isAdmin:", isAdmin);
+      console.log("[CCTV Gate] token exists:", !!token);
+
+      if (!token || !isAdmin) {
+        setCctvGate(null);
+        return;
+      }
+
+      try {
+        const res = await fetch(`${BACKEND_URL}/api/cctv/gate`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        console.log("[CCTV Gate status]", res.status);
+
+        const data = await res.json();
+        console.log("[CCTV Gate response]", data);
+
+        if (res.status === 401 || res.status === 403) {
+          setCctvGate(null);
+          console.warn("CCTV Gate는 관리자만 조회할 수 있습니다.");
+          return;
+        }
+
+        if (data.success) {
+          setCctvGate(data.data);
+          console.log("[CCTV Gate]", data.data);
+        }
+      } catch (e) {
+        console.error("CCTV Gate 조회 실패:", e);
+      }
+    };
+
+    fetchCctvGate();
+
+    const timer = setInterval(fetchCctvGate, 10 * 60 * 1000);
+
+    return () => clearInterval(timer);
+  }, [tab, isAdmin]);
 
   // ✅ URL 만료 시 목록 갱신 (실패할 때만 1번 호출 → API 절약)
   const handleUrlExpired = useCallback(() => {
@@ -498,9 +609,7 @@ export default function AiPage() {
     formData.append("user_id", "1");
     formData.append("original_filename", file.name);
 
-    const endpoint = fileIsImage
-      ? "/api/ai/detect"
-      : "/api/detections/analyze";
+    const endpoint = fileIsImage ? "/api/ai/detect" : "/api/detections/analyze";
 
     try {
       const res = await fetch(`${BACKEND_URL}${endpoint}`, {
@@ -509,30 +618,101 @@ export default function AiPage() {
       });
       const data = await res.json();
 
-      if (fileIsImage) {
-        // 이미지: FastAPI 직접 응답
-        if (data.success) {
-          setResult({
-            detected: data.is_danger,
-            confidence: data.confidence,
-            label: data.weather,
-            detections: data.detections ?? [],
-          });
-        }
-      } else {
-        // 영상: Flask → FastAPI 경유 응답
-        const aiResult = data?.data?.ai_result;
-        if (data.success && aiResult) {
-          setResult({
-            detected: aiResult.has_danger_car,
-            confidence: aiResult.confidence,
-            label: aiResult.weather,
-            detections: aiResult.yolo_boxes?.map((box: any) => ({
+      const aiResult = fileIsImage ? data : (data?.data?.ai_result ?? data);
+      const detectedVehicleName =
+        typeof aiResult.detected_vehicle === "string"
+          ? aiResult.detected_vehicle.split(" ")[0]
+          : null;
+
+      const detectedVehicleConfidenceMatch =
+        typeof aiResult.detected_vehicle === "string"
+          ? aiResult.detected_vehicle.match(/\(([\d.]+)%\)/)
+          : null;
+
+      const detectedVehicleConfidence = detectedVehicleConfidenceMatch
+        ? Number(detectedVehicleConfidenceMatch[1])
+        : (aiResult.danger_confidence ?? 0);
+
+      if (data.success && aiResult) {
+        const yoloBoxes =
+          aiResult.yolo_boxes ??
+          aiResult.detections?.map((det: any) => ({
+            class_name: det.label,
+            confidence:
+              det.confidence > 1
+                ? det.confidence
+                : Number((det.confidence * 100).toFixed(1)),
+            box_coords: det.bbox,
+          })) ??
+          (detectedVehicleName
+            ? [
+                {
+                  class_name: detectedVehicleName,
+                  confidence: detectedVehicleConfidence,
+                  box_coords: null,
+                },
+              ]
+            : []);
+        const uniqueYoloBoxes = Object.values(
+          yoloBoxes.reduce((acc: Record<string, any>, box: any) => {
+            const key = box.class_name;
+
+            if (!acc[key] || box.confidence > acc[key].confidence) {
+              acc[key] = box;
+            }
+
+            return acc;
+          }, {}),
+        );
+
+        setResult({
+          detected: Boolean(aiResult.is_danger || aiResult.has_danger_car),
+          confidence: aiResult.confidence ?? 0,
+          label: aiResult.weather ?? "UNKNOWN",
+          detections:
+            aiResult.detections ??
+            uniqueYoloBoxes.map((box: any) => ({
               bbox: box.box_coords,
               label: box.class_name,
-              confidence: box.confidence / 100,
-            })) ?? [],
-          });
+              confidence:
+                box.confidence > 1 ? box.confidence / 100 : box.confidence,
+            })),
+        });
+
+        const shouldSave =
+          fileIsImage &&
+          (aiResult.is_danger ||
+            aiResult.has_danger_car ||
+            yoloBoxes.length > 0);
+
+        if (shouldSave) {
+          const saveRes = await fetch(
+            `${BACKEND_URL}/api/detections/save-result`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                ai_result: {
+                  ...aiResult,
+                  yolo_boxes: uniqueYoloBoxes,
+                },
+                cctv_source_id: null,
+                cctv_name: fileIsImage ? "업로드 이미지" : "업로드 영상",
+                latitude: null,
+                longitude: null,
+                image_url:
+                  aiResult.file_url ??
+                  aiResult.video_url ??
+                  aiResult.local_path ??
+                  null,
+              }),
+            },
+          );
+
+          const saveResult = await saveRes.json();
+          console.log("[업로드 분석 DB 저장 결과]", saveResult);
         }
       }
     } catch {
@@ -589,7 +769,45 @@ export default function AiPage() {
             <div className={styles.cctvTabGrid}>
               <div className={styles.panel}>
                 <h2>{selected ? selected.cctvname : "CCTV 실시간 화면"}</h2>
-                {selected && detectInfo && (
+                {isAdmin && tab === "cctv" && cctvGate && (
+                  <div
+                    className={`${styles.gateCard} ${
+                      cctvGate.monitoring_required
+                        ? styles.gateActive
+                        : styles.gateIdle
+                    }`}
+                  >
+                    <div className={styles.gateLeft}>
+                      <span className={styles.gateIcon}>
+                        {cctvGate.monitoring_required ? "🟢" : "⏸️"}
+                      </span>
+
+                      <div>
+                        <p className={styles.gateLabel}>LLM Gate</p>
+                        <strong className={styles.gateTitle}>
+                          CCTV AI 감시{" "}
+                          {cctvGate.monitoring_required ? "활성화" : "대기"}
+                        </strong>
+                      </div>
+                    </div>
+
+                    <div className={styles.gateRight}>
+                      <span className={styles.gateBadge}>
+                        {cctvGate.risk_level}
+                      </span>
+                      <span
+                        className={styles.gateReason}
+                        title={cctvGate.reason}
+                      >
+                        {cctvGate.monitoring_required
+                          ? "위험 기상 조건 확인됨"
+                          : "현재 감시 대기 상태"}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {isAdmin && selected && detectInfo && (
                   <div className={styles.cctvDetectBar}>
                     <span
                       style={{
@@ -620,6 +838,9 @@ export default function AiPage() {
                       onDetect={setDetectInfo}
                       onUrlExpired={handleUrlExpired}
                       onSaveDetection={saveDetectionEvent}
+                      monitoringEnabled={
+                        isAdmin && (cctvGate?.monitoring_required ?? false)
+                      }
                     />
                   ) : (
                     <div className={styles.cctvEmpty}>

@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useRef, Suspense } from 'react'
-import { useRouter, useParams } from 'next/navigation'
+import { useRouter, useParams, notFound } from 'next/navigation'
 import styles from './page.module.css'
 
 // ─────────────────────────────────────────
@@ -73,6 +73,7 @@ function PostDetail() {
   const [comments, setComments] = useState<Comment[]>([])
   const [loading, setLoading]   = useState(true)
   const [error, setError]       = useState('')
+  const [isNotFound, setIsNotFound] = useState(false)
 
   const [deleteConfirm, setDeleteConfirm] = useState(false)
 
@@ -91,6 +92,7 @@ function PostDetail() {
     const load = async () => {
       try {
         const res  = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/board/posts/${postId}`)
+        if (res.status === 404) { setIsNotFound(true); return }
         const data = await res.json()
         if (!data.success) throw new Error(data.message)
         setPost(data.post)
@@ -209,6 +211,7 @@ function PostDetail() {
     })
 
   // ── 렌더링
+  if (isNotFound) notFound()
   if (loading) return <div className={styles.empty}>불러오는 중...</div>
   if (error)   return <div className={styles.empty}>{error}</div>
   if (!post)   return <div className={styles.empty}>게시글을 찾을 수 없습니다.</div>

@@ -47,3 +47,9 @@ Thumbs.db
 # --- 욜로 모델 파일 ---
 **/*.pt
 **/results.csv
+
+# Video files
+*.mp4
+*.avi
+*.mkv
+*.mov

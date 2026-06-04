@@ -384,8 +384,35 @@ class MemberService:
                 "message": "이미 탈퇴 처리된 회원입니다."
             }
         self.member_repo.deactivate_member(member)
+        self.social_account_repo.deactivate_all_by_member_id(member.id)
 
         return{
                 "success": True,
                 "message": "회원 탈퇴가 완료되었습니다."
             }
+
+    def get_noti_settings(self, member_id):
+        member = self.member_repo.find_by_id(member_id)
+        if not member or member.deleted_at is not None:
+            return {"success": False, "message": "존재하지 않는 회원입니다."}
+        return {
+            "success": True,
+            "data": {
+                "email": bool(member.noti_email),
+                "sms":   bool(member.noti_sms),
+                "app":   bool(member.noti_app),
+            }
+        }
+
+    def update_noti_settings(self, member_id, data):
+        member = self.member_repo.find_by_id(member_id)
+        if not member or member.deleted_at is not None:
+            return {"success": False, "message": "존재하지 않는 회원입니다."}
+        noti_email = bool(data.get("email", member.noti_email))
+        noti_sms   = bool(data.get("sms",   member.noti_sms))
+        noti_app   = bool(data.get("app",   member.noti_app))
+        self.member_repo.update_noti_settings(member, noti_email, noti_sms, noti_app)
+        return {
+            "success": True,
+            "data": {"email": noti_email, "sms": noti_sms, "app": noti_app}
+        }

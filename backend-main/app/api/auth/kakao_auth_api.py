@@ -31,10 +31,13 @@ def kakao_login():
 
 @kakao_auth_bp.route("/callback")
 def kakao_callback():
+    if request.args.get("error"):
+        return redirect(f"{FRONTEND_URL}/auth/callback?error=login_cancelled")
+
     code = request.args.get("code")
 
     if not code:
-        return jsonify({"error": "인가 코드가 없습니다."}), 400
+        return redirect(f"{FRONTEND_URL}/auth/callback?error=login_cancelled")
 
     token_url = "https://kauth.kakao.com/oauth/token"
 

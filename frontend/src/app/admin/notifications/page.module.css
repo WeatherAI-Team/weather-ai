@@ -50,6 +50,7 @@
   font-family: inherit;
   width: 100%;
   text-align: left;
+  white-space: nowrap;
 }
 .sideItem:hover { background: rgba(255,255,255,0.08); }
 .sideActive {
@@ -585,7 +586,7 @@
 }
 .vehicleStatDanger { border-color: #ffb3b3; background: #fff5f5; }
 .vehicleStatAccent { border-color: #b3d4f5; background: #f0f8ff; }
-.vehicleNum        { font-size: 1.4rem; font-weight: 700; color: var(--dark-navy); }
+.vehicleNum        { font-size: 1.4rem; font-weight: 700; color: var(--dark-navy); min-height: 2.1rem; display: flex; align-items: center; justify-content: center; }
 .vehicleNumText    { font-size: 0.88rem !important; text-align: center; }
 .vehicleStatLabel  { font-size: 0.72rem; color: var(--text-muted); font-weight: 600; }
 

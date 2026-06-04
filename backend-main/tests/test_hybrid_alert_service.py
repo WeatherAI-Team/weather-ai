@@ -53,7 +53,7 @@ def test_hybrid_detection_flow_with_mock(monkeypatch):
             "dangerous_vehicle_detected": True,
             "objects": [
                 {
-                    "label": "Gas_Trcuk",
+                    "label": "Gas_Truck",
                     "confidence": 0.9,
                     "dangerous": True,
                     "bbox": [10, 20, 100, 200],
@@ -61,7 +61,7 @@ def test_hybrid_detection_flow_with_mock(monkeypatch):
             ],
             "dangerous_objects": [
                 {
-                    "label": "Gas_Trcuk",
+                    "label": "Gas_Truck",
                     "confidence": 0.9,
                     "dangerous": True,
                     "bbox": [10, 20, 100, 200],

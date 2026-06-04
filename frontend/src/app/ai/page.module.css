@@ -83,6 +83,110 @@
 .cctvInfoTime { font-size: 0.78rem; color: var(--text-muted); }
 .cctvDetectBar { display: flex; gap: 24px; align-items: center; padding: 10px 16px; background: var(--bg); border-radius: 8px; border: 1px solid var(--border); font-size: 0.88rem; font-weight: 600; margin-top: 4px; margin-bottom: 16px; }
 
+/* ── CCTV LLM Gate 상태 카드 ── */
+.gateCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  margin: 4px 0 16px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: linear-gradient(135deg, #f8fbff, #eef7ff);
+  box-shadow: 0 8px 24px rgba(7, 85, 157, 0.08);
+}
+
+.gateActive {
+  border-color: rgba(39, 174, 96, 0.35);
+  background: linear-gradient(135deg, #f0fff7, #eefbf4);
+}
+
+.gateIdle {
+  border-color: rgba(7, 85, 157, 0.16);
+  background: linear-gradient(135deg, #f8fbff, #edf6ff);
+}
+
+.gateLeft {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.gateIcon {
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: inset 0 0 0 1px var(--border);
+  flex-shrink: 0;
+}
+
+.gateLabel {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--secondary);
+  margin-bottom: 3px;
+}
+
+.gateTitle {
+  display: block;
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: var(--dark-navy);
+  white-space: nowrap;
+}
+
+.gateRight {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.gateBadge {
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.gateReason {
+  max-width: 220px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 768px) {
+  .gateCard {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .gateRight {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .gateReason {
+    max-width: 100%;
+  }
+}
+
 /* ── URL 입력 ── */
 .streamInput { display: flex; gap: 8px; }
 .input { flex: 1; padding: 12px 16px; border: 1.5px solid var(--border); border-radius: 10px; font-family: inherit; font-size: 0.88rem; color: var(--text-primary); background: var(--bg); outline: none; transition: border-color 0.2s; }
@@ -120,6 +224,7 @@
 .detectionConfBar { flex: 1; height: 5px; background: var(--border); border-radius: 3px; overflow: hidden; }
 .detectionConfFill { height: 100%; border-radius: 3px; transition: width 0.6s ease; }
 .detectionConf span { font-size: 0.78rem; color: var(--text-muted); white-space: nowrap; }
+
 
 /* ── 분석 결과 ── */
 .loading { display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 64px 0; }
