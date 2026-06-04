@@ -341,7 +341,7 @@
 }
 
 /* ── 알림 이력 ── */
-.alertList { display: flex; flex-direction: column; gap: 10px; flex: 1; justify-content: space-between; }
+.alertList { display: flex; flex-direction: column; gap: 10px; }
 .alertItem {
   display: flex;
   align-items: center;

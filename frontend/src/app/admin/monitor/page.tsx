@@ -89,13 +89,13 @@ function getRegionFromCoords(lat: number, lng: number): string | null {
 }
 
 const VEHICLE_TYPE_KO: Record<string, string> = {
-  RMC: '레미콘', Gas_Truck: '탱크로리', cargo_truck: '카고트럭', '25t_truck': '25톤 이상의 차량',
+  rmc: '레미콘', gas_truck: '탱크로리', cargo_truck: '카고트럭',
 }
 const WEATHER_KO: Record<string, string> = {
   clear: '맑음', heavy_snow: '폭설', heavy_rain: '폭우', fog: '안개',
 }
 
-function toVehicleType(v: string | null) { return v ? (VEHICLE_TYPE_KO[v] ?? v) : '알 수 없음' }
+function toVehicleType(v: string | null) { return v ? (VEHICLE_TYPE_KO[v.toLowerCase()] ?? '차량') : '알 수 없음' }
 function toWeather(w: string | null) { return w ? (WEATHER_KO[w] ?? w) : '알 수 없음' }
 function toStatus(r: string | null) { return r === 'high' ? '위험' : '경고' }
 function toTime(iso: string | null) { return iso ? iso.slice(11, 16) : '--:--' }
