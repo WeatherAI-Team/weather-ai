@@ -408,6 +408,7 @@ export default function CctvPage() {
       nextIdx += 1
     }
   }
+
   const streamUrl = (cam: CctvItem) =>
     `${API_URL}/api/cctv/stream?url=${encodeURIComponent(cam.cctvurl)}`
 
