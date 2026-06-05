@@ -61,24 +61,283 @@ function getRegionFromCoords(lat: number, lng: number): string | null {
   return null
 }
 
-function HlsPlayer({ src, className }: { src: string; className?: string }) {
+function HlsPlayer({
+  src,
+  className,
+  onStreamError,
+}: {
+  // 재생할 CCTV 주소야.
+  src: string
+
+  // 기존 CSS 클래스야.
+  className?: string
+
+  // CCTV 재생 실패 시 부모에게 알려주는 함수야.
+  onStreamError?: () => void
+}) {
+  // 실제 video 태그를 제어하기 위한 공간이야.
   const videoRef = useRef<HTMLVideoElement>(null)
+
+  // hls 객체를 저장해두는 공간이야.
+  const hlsRef = useRef<Hls | null>(null)
+
+  // 현재 CCTV 영상 상태야.
+  // loading: 처음 불러오는 중
+  // playing: 영상 표시 중
+  // error: 영상 연결 실패
+  const [videoStatus, setVideoStatus] = useState<'loading' | 'playing' | 'error'>('loading')
+
+  // 다시 불러오기 버튼을 눌렀을 때 useEffect를 다시 실행시키기 위한 숫자야.
+  const [reloadKey, setReloadKey] = useState(0)
+
   useEffect(() => {
+    // video 태그를 가져와.
     const video = videoRef.current
-    if (!video || !src) return
-    let hls: Hls | null = null
+
+    // video 태그가 없으면 아무것도 하지 않아.
+    if (!video) return
+
+    // CCTV 주소가 없으면 실패 처리해.
+    if (!src) {
+      setVideoStatus('error')
+      return
+    }
+
+    // 새 CCTV를 불러올 때는 로딩 상태로 시작해.
+    setVideoStatus('loading')
+
+    // 기존 hls 연결이 있으면 먼저 정리해.
+    if (hlsRef.current) {
+      hlsRef.current.destroy()
+      hlsRef.current = null
+    }
+
+    // 이전 영상이 남아 보이지 않게 비워줘.
+    video.pause()
+    video.removeAttribute('src')
+    video.load()
+
+    // 이미 실패 처리됐는지 확인하기 위한 값이야.
+    let isFinished = false
+
+    // 로딩을 끄고 재생 상태로 바꾸는 함수야.
+    const markPlaying = () => {
+      // 이미 실패/정리된 상태면 아무것도 하지 않아.
+      if (isFinished) return
+
+      // 영상이 보이기 시작했다고 판단해서 로딩 화면을 꺼.
+      setVideoStatus('playing')
+    }
+
+    // 실패 화면으로 바꾸는 함수야.
+    const markError = () => {
+    // 이미 처리됐으면 또 처리하지 않아.
+    if (isFinished) return
+
+    // 실패 처리 완료 표시야.
+    isFinished = true
+
+    // 실패 화면을 보여줘.
+    setVideoStatus('error')
+
+    // 부모 컴포넌트에게 이 CCTV가 실패했다고 알려줘.
+    onStreamError?.()
+  }
+
+    // 15초 안에 영상이 준비되지 않으면 실패로 바꿔.
+    // 단, hls에서 조각을 받으면 markPlaying이 먼저 실행돼서 로딩은 꺼져.
+    const failTimer = window.setTimeout(() => {
+      markError()
+    }, 8000)
+
+    // 재생 상태가 되면 실패 타이머를 꺼주는 함수야.
+    const markPlayingAndClearTimer = () => {
+      window.clearTimeout(failTimer)
+      markPlaying()
+    }
+
+    // video 태그에서 영상 준비/재생 이벤트가 오면 로딩을 꺼.
+    video.onloadedmetadata = markPlayingAndClearTimer
+    video.onloadeddata = markPlayingAndClearTimer
+    video.oncanplay = markPlayingAndClearTimer
+    video.onplaying = markPlayingAndClearTimer
+
+    // video 태그 자체에서 에러가 나면 실패 화면을 보여줘.
+    video.onerror = markError
+
     if (Hls.isSupported()) {
-      hls = new Hls()
+      // hls 객체를 만들어.
+      const hls = new Hls({
+        // m3u8 목록 로딩 제한 시간이야.
+        manifestLoadingTimeOut: 10000,
+
+        // ts 영상 조각 로딩 제한 시간이야.
+        fragLoadingTimeOut: 10000,
+
+        // 재시도를 너무 오래 하지 않게 제한해.
+        manifestLoadingMaxRetry: 1,
+        fragLoadingMaxRetry: 1,
+
+        // 재시도 간격이야.
+        manifestLoadingRetryDelay: 1000,
+        fragLoadingRetryDelay: 1000,
+      })
+
+      // 나중에 정리할 수 있게 저장해.
+      hlsRef.current = hls
+
+      // CCTV 주소를 hls에 넣어.
       hls.loadSource(src)
+
+      // hls를 video 태그와 연결해.
       hls.attachMedia(video)
-      hls.on(Hls.Events.MANIFEST_PARSED, () => { video.play().catch(() => {}) })
+
+      // m3u8을 읽으면 재생을 시도해.
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        // m3u8을 읽은 시점에도 로딩을 꺼줘.
+        // CCTV는 실제 영상이 살짝 늦게 붙어도 검은 로딩이 계속 덮이는 것보다 이게 나아.
+        markPlayingAndClearTimer()
+
+        video.play().catch(() => {
+          // 자동재생이 막혀도 controls가 있어서 사용자가 재생할 수 있어.
+        })
+      })
+
+      // 영상 조각 하나라도 받아오면 로딩을 꺼.
+      // 지금 정화 화면처럼 영상은 나오는데 로딩이 남는 문제를 잡는 핵심이야.
+      hls.on(Hls.Events.FRAG_LOADED, () => {
+        markPlayingAndClearTimer()
+      })
+
+      // 영상 조각이 버퍼에 들어가도 로딩을 꺼.
+      hls.on(Hls.Events.FRAG_BUFFERED, () => {
+        markPlayingAndClearTimer()
+      })
+
+      // hls 에러 처리야.
+      hls.on(Hls.Events.ERROR, (_, data) => {
+        console.log('[HLS 에러]', data)
+
+        // 치명적이지 않은 에러는 무시해.
+        // 실시간 CCTV는 작은 버퍼 에러가 자주 날 수 있어.
+        if (!data.fatal) return
+
+        // 미디어 에러는 복구를 한 번 시도해.
+        if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+          hls.recoverMediaError()
+          return
+        }
+
+        // 네트워크 fatal 에러는 실패 화면으로 바꿔.
+        markError()
+      })
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      // Safari처럼 HLS를 기본 지원하는 브라우저용 코드야.
       video.src = src
       video.play().catch(() => {})
+    } else {
+      // HLS를 지원하지 않는 브라우저면 실패 처리해.
+      markError()
     }
-    return () => { hls?.destroy() }
-  }, [src])
-  return <video ref={videoRef} className={className} autoPlay muted playsInline controls />
+
+    // CCTV가 바뀌거나 컴포넌트가 사라질 때 정리해.
+    return () => {
+      isFinished = true
+      window.clearTimeout(failTimer)
+
+      video.onloadedmetadata = null
+      video.onloadeddata = null
+      video.oncanplay = null
+      video.onplaying = null
+      video.onerror = null
+
+      if (hlsRef.current) {
+        hlsRef.current.destroy()
+        hlsRef.current = null
+      }
+    }
+  }, [src, reloadKey])
+
+  // 다시 불러오기 버튼을 눌렀을 때 실행돼.
+  const handleRetry = () => {
+    setVideoStatus('loading')
+    setReloadKey((prev) => prev + 1)
+  }
+
+  return (
+    <div style={{ position: 'relative', width: '100%', height: '100%', background: '#000' }}>
+      {videoStatus === 'loading' && (
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            zIndex: 10,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'rgba(0, 0, 0, 0.35)',
+            color: '#fff',
+            fontSize: '14px',
+            fontWeight: 600,
+            pointerEvents: 'none',
+          }}
+        >
+          CCTV 영상 로딩 중...
+        </div>
+      )}
+
+      {videoStatus === 'error' && (
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            zIndex: 20,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'rgba(0, 0, 0, 0.82)',
+            color: '#fff',
+            textAlign: 'center',
+            padding: '16px',
+          }}
+        >
+          <div>
+            <p style={{ margin: '0 0 8px', fontSize: '14px', fontWeight: 700 }}>
+              CCTV 영상 연결 실패
+            </p>
+            <p style={{ margin: '0 0 12px', fontSize: '12px', opacity: 0.75 }}>
+              원본 CCTV 서버가 응답하지 않거나 접근을 거부했습니다.
+            </p>
+            <button
+              type="button"
+              onClick={handleRetry}
+              style={{
+                border: 'none',
+                borderRadius: '8px',
+                padding: '8px 12px',
+                background: '#fff',
+                color: '#111',
+                fontSize: '12px',
+                fontWeight: 700,
+                cursor: 'pointer',
+              }}
+            >
+              다시 불러오기
+            </button>
+          </div>
+        </div>
+      )}
+
+      <video
+        ref={videoRef}
+        className={className}
+        autoPlay
+        muted
+        playsInline
+        controls
+      />
+    </div>
+  )
 }
 
 export default function CctvPage() {
@@ -94,11 +353,16 @@ export default function CctvPage() {
   const [expandedRegions, setExpandedRegions] = useState<Set<string>>(new Set())
 
   useEffect(() => {
-    fetch(`${API_URL}/api/cctv`)
-      .then(r => r.json())
-      .then(data => setCctvList(data?.response?.data ?? []))
-      .catch(() => {})
-      .finally(() => setLoading(false))
+    const load = () => {
+      fetch(`${API_URL}/api/cctv`)
+        .then(r => r.json())
+        .then(data => setCctvList(data?.response?.data ?? []))
+        .catch(() => {})
+        .finally(() => setLoading(false))
+    }
+    load()
+    const timer = setInterval(load, 50000) // 50초마다 새 URL 발급
+    return () => clearInterval(timer)
   }, [])
 
   const cctvByRegion: Record<string, CctvItem[]> = {}
@@ -128,10 +392,22 @@ export default function CctvPage() {
       const next = [...selectedIdxs]
       next[activeSlot] = globalIdx
       setSelectedIdxs(next)
-      setActiveSlot((activeSlot + 1) % 4)
+      setActiveSlot((activeSlot + 1) % 4)  
     }
   }
 
+  const replaceFailedCctv = (slot: number, failedIdx: number) => {
+    let nextIdx = failedIdx + 1
+    while (nextIdx < cctvList.length) {
+      if (!selectedIdxs.includes(nextIdx)) {
+        const next = [...selectedIdxs]
+        next[slot] = nextIdx
+        setSelectedIdxs(next)
+        return
+      }
+      nextIdx += 1
+    }
+  }
   const streamUrl = (cam: CctvItem) =>
     `${API_URL}/api/cctv/stream?url=${encodeURIComponent(cam.cctvurl)}`
 
@@ -218,9 +494,14 @@ export default function CctvPage() {
                       className={`${styles.videoCell} ${activeSlot === slot ? styles.videoCellActive : ''}`}
                       onClick={() => setActiveSlot(slot)}
                     >
-                      {cam ? (
+                     {cam ? (
                         <>
-                          <HlsPlayer key={cam.cctvurl} src={streamUrl(cam)} className={styles.videoCellStream} />
+                          <HlsPlayer
+                            key={`slot-${slot}-${idx}`}
+                            src={streamUrl(cam)}
+                            className={styles.videoCellStream}
+                            onStreamError={() => replaceFailedCctv(slot, selectedIdxs[slot]!)}
+                          />
                           <div className={styles.videoCellLabel}>{cam.cctvname}</div>
                         </>
                       ) : (
