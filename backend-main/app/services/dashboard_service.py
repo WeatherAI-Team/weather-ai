@@ -15,9 +15,8 @@ class DashboardService:
         # 시간이 없으면 None으로 돌려줘.
         if not dt:
             return None
-
-        # DB에서 UTC처럼 넘어온 시간을 API 응답용 한국 시간으로 바꿔줘.
-        return dt + timedelta(hours=9)
+        
+        return dt 
     
     def _format_display_time(self, dt):
         # 시간이 없으면 화면에 "-"로 보여줘.

@@ -59,6 +59,8 @@ class NotificationService:
                 'llm_decision':        event.llm_decision,
                 'llm_reason':          event.llm_reason,
                 'detected_at':         event.detected_at.isoformat() if event.detected_at else None,
+                # 상세 화면에서 쓸 수 있는 표시용 시간도 같이 내려줘요.
+                "detected_display_time": self.format_display_time(event.detected_at),
                 'clip_url':            clip_url,
             })
         return data
@@ -68,6 +70,9 @@ class NotificationService:
         return [self._to_dict(n, loc, weather) for n, loc, weather in rows]
 
     def _to_dict(self, n, location_name=None, weather_type=None):
+        # 알림 생성 시간을 한국 시간으로 바꿔요.
+        display_dt = n.created_at
+
         return {
             "id":            n.id,
             "target_type":   n.target_type,
@@ -78,9 +83,31 @@ class NotificationService:
             "risk_level":    n.risk_level,
             "status":        n.status,
             "is_confirmed":  n.read_at is not None,
-            "sent_at":       n.sent_at.isoformat()   if n.sent_at    else None,
-            "read_at":       n.read_at.isoformat()   if n.read_at    else None,
-            "created_at":    n.created_at.isoformat() if n.created_at else None,
+            "sent_at": n.sent_at.isoformat() if n.sent_at else None,
+            "read_at": n.read_at.isoformat() if n.read_at else None,
+            "created_at": n.created_at.isoformat() if n.created_at else None,
+
+            # 화면 표시용 한국 시간만 추가해요.
+            "display_time": self.format_display_time(display_dt),
+
             "location_name": location_name or "",
-            "weather_type":  weather_type  or "",
+            "weather_type": weather_type or "",
         }
+    
+    def format_display_time(self, dt):
+        # 시간이 없으면 화면에 표시할 수 없으니 '-'를 돌려줘요.
+        if not dt:
+            return "-"
+
+        # 오전/오후를 정해요.
+        period = "오전" if dt.hour < 12 else "오후"
+
+        # 24시간제를 12시간제로 바꿔요.
+        hour = dt.hour % 12
+
+        # 0시는 12시로 보여줘야 해요.
+        if hour == 0:
+            hour = 12
+
+        # 예: 오후 07:08 형태로 만들어줘요.
+        return f"{period} {hour:02d}:{dt.minute:02d}"
