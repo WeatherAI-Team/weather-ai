@@ -20,6 +20,7 @@ type Result = {
   confidence: number;
   label: string;
   detections: Detection[];
+  annotated_url?: string;
 };
 
 type CctvItem = {
@@ -677,6 +678,9 @@ export default function AiPage() {
               confidence:
                 box.confidence > 1 ? box.confidence / 100 : box.confidence,
             })),
+          annotated_url: aiResult.annotated_path
+            ? `http://localhost:8000/${aiResult.annotated_path}`
+            : undefined,  // 추가
         });
 
         const shouldSave =
@@ -946,7 +950,7 @@ export default function AiPage() {
                       )
                     ) : (
                       <video
-                        src={uploadedUrl}
+                        src={result?.annotated_url || uploadedUrl}
                         controls
                         className={styles.videoPlayer}
                       />
