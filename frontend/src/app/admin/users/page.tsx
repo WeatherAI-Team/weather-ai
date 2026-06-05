@@ -112,7 +112,7 @@ export default function UsersPage() {
             </Link>
           ))}
           <button className={`${styles.sideItem} ${styles.sideDropBtn}`} onClick={() => setBoardOpen(!boardOpen)}>
-            <span className={styles.sideIcon}>📝</span>게시글
+            <span className={styles.sideIcon}>📝</span>게시글 관리
             <span className={`${styles.arrow} ${boardOpen ? styles.arrowOpen : ''}`}>▾</span>
           </button>
           {boardOpen && (

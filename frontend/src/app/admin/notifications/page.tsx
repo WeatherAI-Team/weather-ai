@@ -526,7 +526,7 @@ function NotificationsContent() {
             onClick={() => setBoardOpen(!boardOpen)}
           >
             <span className={styles.sideIcon}>📝</span>
-            게시글
+            게시글 관리
             <span className={`${styles.arrow} ${boardOpen ? styles.arrowOpen : ''}`}>▾</span>
           </button>
           {boardOpen && (
