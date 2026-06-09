@@ -1,4 +1,6 @@
 # --- Python (Backend-main, Backend-ai) ---
+# 가상환경 (이름이 .venv인 경우 모두 제외)
+**/.venv/
 **/venv/
 ENV/
 env/
