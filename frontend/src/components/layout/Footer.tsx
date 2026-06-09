@@ -185,7 +185,7 @@ export default function Footer() {
             <div className={styles.stackGroup}>
               <span className={styles.stackLabel}>AI</span>
               <div className={styles.stackTags}>
-                {['FastAPI', 'YOLOv8', 'OpenCV'].map(t => (
+                {['FastAPI', 'YOLOv11', 'OpenCV'].map(t => (
                   <span key={t} className={styles.stackTag}>{t}</span>
                 ))}
               </div>

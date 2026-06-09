@@ -140,7 +140,7 @@
 /* ───── 댓글 섹션 ───── */
 .commentSection {
   border-top: 2px solid rgba(7,85,157,0.10);
-  padding-top: 28px;
+  padding-top: 16px;
   display: flex; flex-direction: column; gap: 20px;
 }
 .commentHeading {
