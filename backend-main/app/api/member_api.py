@@ -56,7 +56,7 @@ def login():
             'access_token',
             access_token,
             httponly=True,
-            secure=os.getenv("FLASK_ENV") == "production"
+            secure=os.getenv("FLASK_ENV") == "production",
             samesite='Lax',
             max_age=60 * 60 * 24 * 7,
             domain='mbc-sw.iptime.org'  # ✅ 도메인 추가
