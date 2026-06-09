@@ -6,56 +6,8 @@ board_api.py  –  API 레이어 (요청/응답만)
 from flask import Blueprint, request, jsonify
 from app.services import board_service
 from app.repositories import board_repo
-from functools import wraps
-from jose import jwt
-import os
-
+from app.utils.auth_decorators import login_required, admin_required
 board_bp = Blueprint("board", __name__, url_prefix="/api/board")
-
-SECRET_KEY = os.getenv("SECRET_KEY", "your-fallback-secret-key")
-
-
-# ──────────────────────────────────────────────────────────────
-# 데코레이터 (기존 member_api.py 패턴과 동일)
-# ──────────────────────────────────────────────────────────────
-
-def login_required(f):
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        token = request.headers.get('Authorization')
-        if not token:
-            return jsonify({"success": False, "message": "토큰이 없습니다."}), 401
-        try:
-            auth_token = token.split(" ")[1] if " " in token else token
-            payload = jwt.decode(auth_token, SECRET_KEY, algorithms=["HS256"], options={"verify_exp": False})
-            request.user_id   = payload.get("sub")
-            request.user_role = payload.get("role", "user")
-        except Exception as e:
-            print(f"[JWT ERROR] {e}")
-            return jsonify({"success": False, "message": "유효하지 않은 토큰입니다."}), 401
-        return f(*args, **kwargs)
-    return decorated
-
-
-def admin_required(f):
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        token = request.headers.get('Authorization')
-        if not token:
-            return jsonify({"success": False, "message": "토큰이 없습니다."}), 401
-        try:
-            auth_token = token.split(" ")[1] if " " in token else token
-            payload = jwt.decode(auth_token, SECRET_KEY, algorithms=["HS256"], options={"verify_exp": False})
-            request.user_id   = payload.get("sub")
-            request.user_role = payload.get("role", "user")
-            if request.user_role not in ("admin", "manager"):
-                return jsonify({"success": False, "message": "관리자 권한이 필요합니다."}), 403
-        except Exception as e:
-            print(f"[JWT ERROR] {e}")
-            return jsonify({"success": False, "message": "유효하지 않은 토큰입니다."}), 401
-        return f(*args, **kwargs)
-    return decorated
-
 
 # ──────────────────────────────────────────────────────────────
 # 게시글 목록
