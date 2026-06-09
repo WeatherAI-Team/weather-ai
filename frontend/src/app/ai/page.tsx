@@ -5,7 +5,6 @@ import styles from "./page.module.css";
 
 const BACKEND_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
-const AI_URL = process.env.NEXT_PUBLIC_AI_URL || "http://localhost:8000";
 
 type TabType = "cctv" | "upload";
 
@@ -282,7 +281,7 @@ function HlsPlayer({
               const formData = new FormData();
               formData.append("file", blob, "frame.jpg");
 
-              const res = await fetch(`${AI_URL}/api/ai/detect`, {
+              const res = await fetch(`${BACKEND_URL}/api/ai/detect`, {
                 method: "POST",
                 body: formData,
                 signal: abortController.signal, // ✅ fetch에 signal 연결
@@ -613,7 +612,7 @@ export default function AiPage() {
     const endpoint = fileIsImage ? "/api/ai/detect" : "/api/detections/analyze";
 
     try {
-      const res = await fetch(`${fileIsImage ? AI_URL : BACKEND_URL}${endpoint}`, {
+      const res = await fetch(`${BACKEND_URL}${endpoint}`, {
         method: "POST",
         body: formData,
       });
@@ -679,7 +678,7 @@ export default function AiPage() {
                 box.confidence > 1 ? box.confidence / 100 : box.confidence,
             })),
           annotated_url: aiResult.annotated_path
-            ? `${AI_URL}/${aiResult.annotated_path}`
+            ? `${BACKEND_URL}/${aiResult.annotated_path}`
             : undefined,
         });
 
