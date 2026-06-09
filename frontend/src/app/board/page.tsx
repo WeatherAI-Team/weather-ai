@@ -9,7 +9,7 @@ import styles from './page.module.css'
 // ─────────────────────────────────────────
 type Post = {
   id: number
-  category: string          // 화면 표시용 한글 (공지/정보/건의)
+  category: string          // 화면 표시용 한글 (공지/정보/건의/버그/자료)
   title: string
   author_nickname: string
   created_at: string
@@ -22,6 +22,8 @@ type Post = {
 const toCategory = (board_type: string): string => {
   if (board_type === 'NOTICE') return '공지'
   if (board_type === 'INFO')   return '정보'
+  if (board_type === 'BUG')    return '버그'
+  if (board_type === 'DATA')   return '자료'
   return '건의'
 }
 
@@ -54,7 +56,7 @@ const PAGE_SIZE = 10
 export default function BoardPage() {
   useEffect(() => { document.title = 'Weather AI - 게시판' }, [])
   const router = useRouter()
-  const [tab, setTab]               = useState<'info' | 'suggest'>('info')
+  const [tab, setTab] = useState<'info' | 'suggest' | 'bug' | 'data'>('info')
   const [searchType, setSearchType] = useState('title')
   const [searchInput, setSearchInput] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
@@ -112,7 +114,15 @@ export default function BoardPage() {
     }
 
     // ── mock fallback ──
-    const source   = tab === 'info' ? MOCK_INFO : MOCK_SUGGEST
+    // 백엔드 연결이 안 됐을 때 임시로 보여줄 데이터
+    const source =
+      tab === 'info'
+        ? MOCK_INFO
+        : tab === 'bug'
+          ? []
+          : tab === 'data'
+            ? []
+            : MOCK_SUGGEST
     const filtered = source.filter(p => {
       if (!searchQuery) return true
       const q = searchQuery.toLowerCase()
@@ -128,7 +138,7 @@ export default function BoardPage() {
 
   useEffect(() => { fetchPosts() }, [fetchPosts])
 
-  const handleTabChange = (newTab: 'info' | 'suggest') => {
+  const handleTabChange = (newTab: 'info' | 'suggest' | 'bug' | 'data') => {
     setTab(newTab)
     setPage(1)
     setSearchInput('')
@@ -150,6 +160,11 @@ export default function BoardPage() {
   const getCatClass = (cat: string) => {
     if (cat === '정보') return `${styles.category} ${styles.categoryInfo}`
     if (cat === '건의') return `${styles.category} ${styles.categorySuggest}`
+
+    // CSS에 버그/자료 전용 스타일이 아직 없으면 일단 건의 스타일을 같이 써.
+    if (cat === '버그') return `${styles.category} ${styles.categorySuggest}`
+    if (cat === '자료') return `${styles.category} ${styles.categoryInfo}`
+
     return `${styles.category} ${styles.categoryNotice}`
   }
 
@@ -174,6 +189,14 @@ export default function BoardPage() {
               className={tab === 'suggest' ? `${styles.tab} ${styles.tabActive}` : styles.tab}
               onClick={() => handleTabChange('suggest')}
             >건의게시판</button>
+            <button
+              className={tab === 'bug' ? `${styles.tab} ${styles.tabActive}` : styles.tab}
+              onClick={() => handleTabChange('bug')}
+            >버그게시판</button>
+            <button
+              className={tab === 'data' ? `${styles.tab} ${styles.tabActive}` : styles.tab}
+              onClick={() => handleTabChange('data')}
+            >자료게시판</button>
           </div>
 
           <div className={styles.toolbar}>

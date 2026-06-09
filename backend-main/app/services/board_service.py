@@ -55,7 +55,12 @@ def _is_privileged(user_role: str) -> bool:
 
 _BOARD_TYPE_MAP = {
     "suggest": ["FREE"],
-    "info":    ["INFO", "NOTICE"],
+    "free": ["FREE"],
+    "FREE": ["FREE"],
+    "bug": ["BUG"],
+    "BUG": ["BUG"],
+    "data": ["DATA"],
+    "DATA": ["DATA"],
 }
 
 
@@ -98,13 +103,37 @@ def increment_post_view(post_id: int) -> tuple[bool, str]:
 
 
 def create_post(member_id: str, title: str, content: str, board_type: str, pinned: bool, user_role: str) -> tuple[dict | None, str, int]:
+    # 제목이나 내용이 비어 있으면 게시글을 만들 수 없어.
     if not title.strip() or not content.strip():
         return None, "제목과 내용을 입력해주세요.", 400
 
-    if board_type in ("INFO", "NOTICE") and not _is_privileged(user_role):
-        return None, "정보/공지 게시글은 관리자만 작성할 수 있습니다.", 403
+    # 프론트에서 board_type이 소문자로 와도 처리할 수 있게 대문자로 바꿔.
+    # 예: bug -> BUG, data -> DATA
+    board_type = (board_type or "FREE").upper()
 
+    # 허용할 게시판 종류만 정해.
+    allowed_board_types = {"FREE", "INFO", "NOTICE", "BUG", "DATA"}
+
+    # 이상한 게시판 종류가 들어오면 저장하지 않아.
+    if board_type not in allowed_board_types:
+        return None, "올바르지 않은 게시판 종류입니다.", 400
+
+    # 관리자/매니저인지 확인해.
+    is_privileged = _is_privileged(user_role)
+
+    # 일반 사용자는 건의게시판만 작성할 수 있게 막아.
+    # 즉 FREE만 가능하고, INFO/NOTICE/BUG/DATA는 관리자/매니저만 가능해.
+    if board_type in ("INFO", "NOTICE", "BUG", "DATA") and not is_privileged:
+        return None, "해당 게시판은 관리자만 작성할 수 있습니다.", 403
+
+    # 일반 사용자가 직접 pinned=true를 보내도 고정 게시글이 되지 않게 막아.
+    if not is_privileged:
+        pinned = False
+
+    # 게시글을 DB에 저장해.
     post = board_repo.create_post(member_id, title, content, board_type, pinned)
+
+    # 저장된 게시글 정보를 돌려줘.
     return _serialize_post(post), "", 201
 
 
@@ -130,14 +159,26 @@ def update_post(post_id: int, update_data: dict, user_id: str, user_role: str) -
 
 
 def delete_post(post_id: int, user_id: str, user_role: str) -> tuple[str, int]:
+    # 삭제할 게시글을 찾아.
     post = board_repo.get_post_by_id(post_id)
+
+    # 게시글이 없으면 404를 돌려줘.
     if not post:
         return "게시글을 찾을 수 없습니다.", 404
 
-    if str(post.member_id) != str(user_id):
+    # 작성자 본인인지 확인해.
+    is_author = str(post.member_id) == str(user_id)
+
+    # 관리자 또는 매니저인지 확인해.
+    is_privileged = _is_privileged(user_role)
+
+    # 작성자도 아니고 관리자도 아니면 삭제할 수 없어.
+    if not is_author and not is_privileged:
         return "삭제 권한이 없습니다.", 403
 
+    # 작성자 본인이거나 관리자/매니저면 삭제 가능해.
     board_repo.soft_delete_post(post)
+
     return "", 200
 
 
@@ -204,9 +245,6 @@ def delete_comment(comment_id: int, user_id: str, user_role: str) -> tuple[str, 
 # ──────────────────────────────────────────────────────────────
 # 마이페이지 서비스
 # ──────────────────────────────────────────────────────────────
-
-_TYPE_TO_BOARD = {"FREE": "건의게시판", "INFO": "정보게시판", "NOTICE": "정보게시판"}
-
 
 def get_my_posts(member_id: str, search: str, page: int, per_page: int) -> dict:
     posts, total = board_repo.get_posts_by_member(member_id, search, page, per_page)

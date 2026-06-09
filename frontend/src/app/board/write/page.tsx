@@ -14,17 +14,23 @@ const getLocalUser = (): LocalUser | null => {
 const TAB_TO_TYPE: Record<string, string> = {
   suggest: 'FREE',
   info:    'INFO',
+  bug:     'BUG',
+  data:    'DATA',
 }
+
+
 const TAB_LABEL: Record<string, string> = {
   suggest: '건의게시판',
   info:    '정보게시판',
+  bug:     '버그게시판',
+  data:    '자료게시판',
 }
 
 function WriteForm() {
   useEffect(() => { document.title = 'Weather AI - 글쓰기' }, [])
   const router       = useRouter()
   const searchParams = useSearchParams()
-  const tab          = (searchParams.get('tab') || 'suggest') as 'info' | 'suggest'
+  const tab = (searchParams.get('tab') || 'suggest') as 'info' | 'suggest' | 'bug' | 'data'
   const editId       = searchParams.get('edit')
 
   const [localUser, setLocalUser]   = useState<LocalUser | null>(null)
@@ -50,8 +56,12 @@ function WriteForm() {
   useEffect(() => {
     if (!ready) return
     if (!localUser) { router.replace('/login'); return }
-    if (tab === 'info' && !isPrivileged) router.replace('/board')
-  }, [ready, localUser, tab, isPrivileged, router])
+    if ((tab === 'info' || tab === 'bug' || tab === 'data') && !isPrivileged) {
+    router.replace('/board')
+    return
+  }
+}, [ready, localUser, tab, isPrivileged, router])
+  
 
   // 수정 모드: 기존 게시글 불러오기
   useEffect(() => {
@@ -138,6 +148,8 @@ function WriteForm() {
               >
                 <option value="FREE">건의</option>
                 <option value="INFO">정보</option>
+                <option value="BUG">버그</option>
+                <option value="DATA">자료</option>
               </select>
             </div>
             <label className={styles.pinnedLabel}>
