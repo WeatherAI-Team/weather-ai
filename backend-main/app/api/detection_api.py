@@ -9,60 +9,10 @@ from app.services.hybrid_alert_service import run_hybrid_detection_flow
 from app.services.ai_detection_save_service import save_ai_detection_result
 from app.services.ai_service import analyze_video
 from app import db
-import os
-from functools import wraps
-from jose import jwt
-from jose.exceptions import ExpiredSignatureError, JWTError
+from app.utils.auth_decorators import admin_required
 
 # 탐지 결과 기능을 처리하는 Service를 가져와.
 from ..services.detection_service import DetectionService
-
-
-SECRET_KEY = os.getenv("SECRET_KEY", "your-fallback-secret-key")
-
-
-def admin_required(f):
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        token = request.headers.get("Authorization")
-
-        if not token:
-            return jsonify({"success": False, "message": "토큰이 없습니다."}), 401
-
-        try:
-            auth_token = token.split(" ")[1] if " " in token else token
-
-            payload = jwt.decode(
-                auth_token,
-                SECRET_KEY,
-                algorithms=["HS256"]
-            )
-
-            user_id = payload.get("sub")
-            user_role = payload.get("role", "user")
-            current_app.logger.info(f"[AUTH] role={user_role}")
-
-            if not user_id:
-                return jsonify({"success": False, "message": "유효하지 않은 토큰입니다."}), 401
-
-            if user_role not in ("admin", "manager"):
-                return jsonify({"success": False, "message": "관리자 권한이 필요합니다."}), 403
-
-            request.user_id = int(user_id)
-            request.user_role = user_role
-
-        except ExpiredSignatureError:
-            return jsonify({"success": False, "message": "토큰이 만료되었습니다."}), 401
-
-        except JWTError:
-            return jsonify({"success": False, "message": "유효하지 않은 토큰입니다."}), 401
-
-        except ValueError:
-            return jsonify({"success": False, "message": "유효하지 않은 사용자 정보입니다."}), 401
-
-        return f(*args, **kwargs)
-
-    return decorated
 
 # detection API 묶음을 만들어.
 # 이 파일의 API 주소는 /api/detections 로 시작해.
