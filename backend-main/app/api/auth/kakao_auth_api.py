@@ -8,6 +8,7 @@ from app.services.social_auth_service import SocialAuthService
 load_dotenv()
 
 kakao_auth_bp = Blueprint("kakao_auth", __name__, url_prefix="/api/auth/kakao")
+domain = 'mbc-sw.iptime.org' if os.getenv("FLASK_ENV") == "production" else None
 
 KAKAO_REST_API_KEY = os.getenv("KAKAO_REST_API_KEY")
 KAKAO_CLIENT_SECRET = os.getenv("KAKAO_CLIENT_SECRET")
@@ -103,7 +104,7 @@ def kakao_callback():
             secure=os.getenv("FLASK_ENV") == "production",
             samesite='Lax',
             max_age=60 * 60 * 24 * 7,
-            domain='mbc-sw.iptime.org'  # ✅ 도메인 추가
+            domain=domain  # ✅ 도메인 추가
         )
         return response
 

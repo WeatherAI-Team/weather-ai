@@ -18,9 +18,14 @@ from jose import jwt, JWTError
 cctv_bp = Blueprint("cctv", __name__)
 
 def _get_token_payload():
+    # 헤더에서 먼저 읽고, 없으면 쿠키에서 읽어
     auth_header = request.headers.get("Authorization", "")
-
-    if not auth_header.startswith("Bearer "):
+    if auth_header.startswith("Bearer "):
+        token = auth_header.split(" ", 1)[1]
+    else:
+        token = request.cookies.get("access_token")
+    
+    if not token:
         return None, (
             jsonify({
                 "success": False,
@@ -28,17 +33,14 @@ def _get_token_payload():
             }),
             401,
         )
-
-    token = auth_header.split(" ", 1)[1]
-
+    
     secret_key = os.getenv("SECRET_KEY") or current_app.config.get("SECRET_KEY")
-
     algorithm = (
         current_app.config.get("JWT_ALGORITHM")
         or os.getenv("JWT_ALGORITHM")
         or "HS256"
     )
-
+    
     if not secret_key:
         return None, (
             jsonify({
@@ -47,15 +49,10 @@ def _get_token_payload():
             }),
             500,
         )
-
+    
     try:
-        payload = jwt.decode(
-            token,
-            secret_key,
-            algorithms=[algorithm],
-        )
+        payload = jwt.decode(token, secret_key, algorithms=[algorithm])
         return payload, None
-
     except JWTError:
         return None, (
             jsonify({
@@ -64,7 +61,6 @@ def _get_token_payload():
             }),
             401,
         )
-
 
 def _require_admin():
     payload, error_response = _get_token_payload()
@@ -329,3 +325,20 @@ def analyze_video_only():
         current_app.logger.error(f"영상 분석 실패: {e}")
         return jsonify({"error": str(e)}), 500
     
+
+# 바운딩박스 영상 가져오기
+@cctv_bp.route("/ai-static/<path:filepath>", methods=["GET"])
+def ai_static_proxy(filepath):
+    ai_url = os.getenv("AI_SERVER_URL", "http://localhost:8000")
+    # static/ 접두사 제거 (이미 /static/으로 마운트되어 있음)
+    clean_path = filepath.removeprefix("static/")
+    try:
+        res = requests.get(f"{ai_url}/static/{clean_path}", stream=True)
+        res.raise_for_status()
+        return Response(
+            stream_with_context(res.iter_content(chunk_size=4096)),
+            content_type=res.headers.get("content-type", "video/mp4"),
+        )
+    except Exception as e:
+        current_app.logger.error(f"AI static 프록시 실패: {e}")
+        return jsonify({"success": False, "message": "파일을 가져오지 못했습니다."}), 502

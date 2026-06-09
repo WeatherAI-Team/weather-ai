@@ -387,7 +387,9 @@ export default function MonitorPage() {
   useEffect(() => {
     async function load() {
       try {
-        const res  = await fetch(`${API_URL}/api/detections?per_page=200`)
+        const res = await fetch(`${API_URL}/api/detections?per_page=200`, {
+          credentials: 'include',
+        })
         const json = await res.json()
         if (!json.success) throw new Error(json.message)
         const items: DetectionApiItem[] = json.data.items

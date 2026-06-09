@@ -7,6 +7,7 @@ from flask import Blueprint, request, jsonify
 
 # 지도 기능을 처리하는 MapService를 가져와.
 from ..services.map_service import MapService
+from app.utils.auth_decorators import admin_required
 
 
 # 지도 API 묶음을 만들어.
@@ -19,6 +20,7 @@ map_service = MapService()
 
 
 @map_bp.route("/events", methods=["GET"])
+@admin_required
 def get_map_event_markers():
     # 이 함수는 GET /api/map/events 요청이 들어오면 실행돼.
     # 쉽게 말하면 "지도에 찍을 탐지 이벤트 위치들을 주세요"라는 요청이야.

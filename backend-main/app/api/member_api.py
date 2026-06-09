@@ -1,9 +1,10 @@
 from flask import Blueprint, request, jsonify, make_response
 from ..services.member_service import MemberService
 from app.utils.auth_decorators import login_required
+import os
 
 member_bp = Blueprint('member', __name__, url_prefix='/api/member')
-
+domain = 'mbc-sw.iptime.org' if os.getenv("FLASK_ENV") == "production" else None
 
 member_service = MemberService()
 
@@ -41,7 +42,7 @@ def login():
             secure=os.getenv("FLASK_ENV") == "production",
             samesite='Lax',
             max_age=60 * 60 * 24 * 7,
-            domain='mbc-sw.iptime.org'  # ✅ 도메인 추가
+            domain=domain  # ✅ 도메인 추가
         )
         return response
 

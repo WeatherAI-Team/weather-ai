@@ -6,6 +6,7 @@ from flask import Blueprint, jsonify
 
 # 관리자 대시보드 기능을 처리하는 DashboardService를 가져와.
 from ..services.dashboard_service import DashboardService
+from app.utils.auth_decorators import admin_required
 
 
 # 관리자 대시보드 API 묶음을 만들어.
@@ -22,12 +23,14 @@ dashboard_service = DashboardService()
 
 
 @dashboard_bp.route("/weekly", methods=["GET"])
+@admin_required
 def get_weekly_counts():
     result = dashboard_service.get_weekly_counts()
     return jsonify({"success": True, "data": result}), 200
 
 
 @dashboard_bp.route("/summary", methods=["GET"])
+@admin_required
 def get_dashboard_summary():
     # 이 함수는 GET /api/admin/dashboard/summary 요청이 들어오면 실행돼.
     # 쉽게 말하면 "관리자 대시보드에 보여줄 요약 통계를 주세요"라는 요청이야.

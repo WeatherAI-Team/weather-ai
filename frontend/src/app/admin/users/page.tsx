@@ -53,9 +53,8 @@ export default function UsersPage() {
       setError(null)
       const query = new URLSearchParams({ per_page: '100' })
       if (keyword) query.append('keyword', keyword)
-      const token = JSON.parse(localStorage.getItem('user') ?? 'null')?.access_token ?? ''
       const res = await fetch(`${API_URL}/api/admin/members?${query}`, {
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
       })
       const json = await res.json()
       if (json.success) {
@@ -89,20 +88,12 @@ export default function UsersPage() {
   const nextActive = !currentActive
 
   try {
-    // localStorage에서 로그인한 관리자 정보를 가져와.
-    const saved = localStorage.getItem('user')
-    const token = saved ? JSON.parse(saved).access_token : ''
-
     // 백엔드에 active 값을 저장해달라고 요청해.
     const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/members/${id}/active`, {
       method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        active: nextActive,
-      }),
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ active: nextActive }),
     })
 
     const data = await res.json()

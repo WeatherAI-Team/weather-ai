@@ -34,9 +34,11 @@ def _require_admin(token: str):
 
 
 def _bearer_token():
-    """Authorization 헤더에서 Bearer 토큰 추출."""
+    """Authorization 헤더 또는 쿠키에서 토큰 추출."""
     auth = request.headers.get('Authorization', '')
-    return auth[7:] if auth.startswith('Bearer ') else None
+    if auth.startswith('Bearer '):
+        return auth[7:]
+    return request.cookies.get('access_token')
 
 
 # ── GET /api/admin/notifications ────────────────────────────────────────────
@@ -138,6 +140,8 @@ def mark_as_unread(notification_id):
 @notification_bp.route('/stream', methods=['GET'])
 def stream():
     token = request.args.get('token')
+    if not token:
+        token = request.cookies.get('access_token')
     payload = _decode_payload(token) if token else None
     if payload is None or payload.get('role') != 'admin':
         return Response(

@@ -55,7 +55,8 @@ def create_app():
         app,
         resources={r"/api/*": {"origins": [
             "http://localhost:3000",
-            "http://172.25.181.79:3000"
+            "http://172.25.181.79:3000",
+            "http://172.23.176.1:3000",
         ]}},
         supports_credentials=True,
         methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],

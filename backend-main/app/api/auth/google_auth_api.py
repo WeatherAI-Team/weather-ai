@@ -8,6 +8,7 @@ from app.services.social_auth_service import SocialAuthService
 load_dotenv()
 
 google_auth_bp = Blueprint("google_auth", __name__, url_prefix="/api/auth/google")
+domain = 'mbc-sw.iptime.org' if os.getenv("FLASK_ENV") == "production" else None
 
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
@@ -91,7 +92,7 @@ def google_callback():
             secure=os.getenv("FLASK_ENV") == "production",
             samesite='Lax',
             max_age=60 * 60 * 24 * 7,
-            domain='mbc-sw.iptime.org'  # ✅ 도메인 추가
+            domain=domain  # ✅ 도메인 추가
         )
         return response
 

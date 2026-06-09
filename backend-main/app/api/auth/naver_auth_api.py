@@ -9,6 +9,7 @@ from app.services.social_auth_service import SocialAuthService
 load_dotenv()
 
 naver_auth_bp = Blueprint("naver_auth", __name__, url_prefix="/api/auth/naver")
+domain = 'mbc-sw.iptime.org' if os.getenv("FLASK_ENV") == "production" else None
 
 NAVER_CLIENT_ID = os.getenv("NAVER_CLIENT_ID")
 NAVER_CLIENT_SECRET = os.getenv("NAVER_CLIENT_SECRET")
@@ -108,7 +109,7 @@ def naver_callback():
             secure=os.getenv("FLASK_ENV") == "production",
             samesite='Lax',
             max_age=60 * 60 * 24 * 7,
-            domain='mbc-sw.iptime.org'  # ✅ 도메인 추가
+            domain=domain  # ✅ 도메인 추가
         )
         return response
 

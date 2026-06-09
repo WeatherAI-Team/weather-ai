@@ -567,6 +567,7 @@ export default function AiPage() {
       const res = await fetch(`${BACKEND_URL}${endpoint}`, {
         method: "POST",
         body: formData,
+        credentials: 'include',
       });
       const data = await res.json();
 
@@ -586,6 +587,7 @@ export default function AiPage() {
         : (aiResult.danger_confidence ?? 0);
 
       if (data.success && aiResult) {
+        console.log("[annotated_path]", aiResult.annotated_path)
         const yoloBoxes =
           aiResult.yolo_boxes ??
           aiResult.detections?.map((det: any) => ({
@@ -630,7 +632,7 @@ export default function AiPage() {
                 box.confidence > 1 ? box.confidence / 100 : box.confidence,
             })),
           annotated_url: aiResult.annotated_path
-            ? `${BACKEND_URL}/${aiResult.annotated_path}`
+            ? `${BACKEND_URL}/api/ai-static/${aiResult.annotated_path}`
             : undefined,
         });
 
