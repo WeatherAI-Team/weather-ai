@@ -53,7 +53,10 @@ export default function UsersPage() {
       setError(null)
       const query = new URLSearchParams({ per_page: '100' })
       if (keyword) query.append('keyword', keyword)
-      const res = await fetch(`${API_URL}/api/admin/members?${query}`)
+      const token = JSON.parse(localStorage.getItem('user') ?? 'null')?.access_token ?? ''
+      const res = await fetch(`${API_URL}/api/admin/members?${query}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
       const json = await res.json()
       if (json.success) {
         setUsers(json.data.members)
