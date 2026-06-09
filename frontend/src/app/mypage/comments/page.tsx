@@ -28,17 +28,6 @@ const TYPE_COLOR: Record<string, string> = {
   NOTICE: 'info',
 }
 
-function getToken(): string | null {
-  try {
-    const raw = localStorage.getItem('user')
-    if (raw) {
-      const parsed = JSON.parse(raw)
-      if (parsed?.access_token) return parsed.access_token
-    }
-    return localStorage.getItem('access_token')
-  } catch { return null }
-}
-
 export default function MyCommentsPage() {
   useEffect(() => { document.title = 'Weather AI - 내 댓글' }, [])
   const router = useRouter()
@@ -57,13 +46,11 @@ export default function MyCommentsPage() {
   const PER_PAGE = 10
 
   const fetchComments = useCallback(async (p: number, s: string) => {
-    const token = getToken()
-    if (!token) { router.push('/login'); return }
     setLoading(true)
     try {
       const res = await fetch(
         `${API}/api/board/my-comments?page=${p}&per_page=${PER_PAGE}&search=${encodeURIComponent(s)}`,
-        { headers: { Authorization: `Bearer ${token}` } },
+        { credentials: 'include' },
       )
       const data = await res.json()
       if (data.success) {

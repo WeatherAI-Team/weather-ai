@@ -70,29 +70,12 @@ export default function MyPage() {
   useModalKeyboard(permModal, () => setPermModal(false))
   useModalKeyboard(withdrawModal, () => { setWithdrawModal(false); setWithdrawStep(1) })
 
-  const getToken = () => {
-    try {
-      // ✅ access_token 직접 저장된 거 먼저 확인
-      const directToken = localStorage.getItem('access_token')
-      if (directToken) return directToken
-
-      const user = localStorage.getItem('user')
-      if (user) {
-        const parsed = JSON.parse(user)
-        if (parsed?.access_token) return parsed.access_token
-      }
-      return null
-    } catch { return null }
-  }
-
   // ── 프로필 불러오기
   useEffect(() => {
     const load = async () => {
-      const token = getToken()
-      if (!token) { router.replace('/login'); return }
       try {
         const res  = await fetch(`${API}/api/member/me`, {
-          headers: { Authorization: `Bearer ${token}` },
+          credentials: 'include',
         })
         const data = await res.json()
         if (!data.success) { router.replace('/login'); return }
@@ -108,7 +91,7 @@ export default function MyPage() {
         // 알림 설정 별도 조회
         try {
           const notiRes  = await fetch(`${API}/api/member/me/notifications`, {
-            headers: { Authorization: `Bearer ${token}` },
+            credentials: 'include',
           })
           const notiData = await notiRes.json()
           if (notiData.success) setNoti(notiData.data)
@@ -117,7 +100,7 @@ export default function MyPage() {
         // 게시글/댓글 수 별도 조회
         try {
           const statsRes  = await fetch(`${API}/api/board/my-stats`, {
-            headers: { Authorization: `Bearer ${token}` },
+            credentials: 'include',
           })
           const statsData = await statsRes.json()
           if (statsData.success) {
@@ -142,11 +125,11 @@ export default function MyPage() {
   const handleNameSave = async () => {
     if (!newNickname.trim()) return
     setSaving(true)
-    const token = getToken()
     try {
       const res  = await fetch(`${API}/api/member/me`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ nickname: newNickname.trim(), email }),
       })
       const data = await res.json()
@@ -169,11 +152,11 @@ export default function MyPage() {
   const handleRealNameSave = async () => {
     if (!newRealName.trim()) return
     setSaving(true)
-    const token = getToken()
     try {
       const res  = await fetch(`${API}/api/member/me`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ real_name: newRealName.trim(), email }),
       })
       const data = await res.json()
@@ -187,11 +170,10 @@ export default function MyPage() {
   // ── 회원 탈퇴
   const handleWithdraw = async () => {
     setWithdrawing(true)
-    const token = getToken()
     try {
       const res  = await fetch(`${API}/api/member/me/withdraw`, {
         method: 'PATCH',
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
       })
       const data = await res.json()
       if (!data.success) { alert(data.message); return }
@@ -208,11 +190,11 @@ export default function MyPage() {
     if (pwForm.next.length < 8)        { setPwError('비밀번호는 8자 이상이어야 합니다.'); return }
     setPwError('')
     setSaving(true)
-    const token = getToken()
     try {
       const res  = await fetch(`${API}/api/member/me/password`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ current_password: pwForm.current, new_password: pwForm.next }),
       })
       const data = await res.json()
@@ -483,11 +465,11 @@ export default function MyPage() {
             <div className={styles.modalActions}>
               <button className={styles.saveBtn} style={{ flex: 1 }} disabled={saving} onClick={async () => {
                 setSaving(true)
-                const token = getToken()
                 try {
                   const res  = await fetch(`${API}/api/member/me/notifications`, {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
                     body: JSON.stringify(noti),
                   })
                   const data = await res.json()
