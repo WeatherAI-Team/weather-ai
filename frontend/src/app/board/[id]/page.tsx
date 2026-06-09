@@ -41,7 +41,7 @@ type Post = {
 // ─────────────────────────────────────────
 // 로컬 user 정보
 // ─────────────────────────────────────────
-type LocalUser = { id: number; nickname: string; role: string; access_token: string }
+type LocalUser = { id: number; nickname: string; role: string }
 const getLocalUser = (): LocalUser | null => {
   if (typeof window === 'undefined') return null
   try { return JSON.parse(localStorage.getItem('user') ?? 'null') } catch { return null }
@@ -131,7 +131,7 @@ function PostDetail() {
     try {
       await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/board/posts/${postId}`, {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${localUser?.access_token}` },
+        credentials: 'include',
       })
     } catch { /* soft delete 처리 */ }
     router.push('/board')
@@ -143,10 +143,8 @@ function PostDetail() {
     try {
       const res  = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/board/posts/${postId}/comments`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localUser.access_token}`,
-        },
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ content: commentInput.trim() }),
       })
       const data = await res.json()
@@ -162,10 +160,8 @@ function PostDetail() {
     try {
       const res  = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/board/posts/${postId}/comments`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localUser.access_token}`,
-        },
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ content: replyInput.trim(), parent_id: commentId }),
       })
       const data = await res.json()
@@ -183,7 +179,7 @@ function PostDetail() {
     try {
       await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/board/comments/${commentId}`, {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${localUser?.access_token}` },
+        credentials: 'include',
       })
       setComments(prev => prev.filter(c => c.id !== commentId))
     } catch (e: any) { alert(e.message) }
@@ -195,7 +191,7 @@ function PostDetail() {
     try {
       await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/board/comments/${replyId}`, {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${localUser?.access_token}` },
+        credentials: 'include',
       })
       setComments(prev => prev.map(c =>
         c.id === commentId ? { ...c, replies: c.replies.filter(r => r.id !== replyId) } : c

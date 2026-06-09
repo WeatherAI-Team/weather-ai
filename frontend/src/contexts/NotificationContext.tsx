@@ -44,41 +44,6 @@ const NotificationContext = createContext<NotificationContextType>({
   revertNotificationStatus: () => {},
 });
 
-function getToken(): string | null {
-  try {
-    const getTokenFromJson = (key: string) => {
-      const raw = localStorage.getItem(key);
-      if (!raw) return null;
-
-      const obj = JSON.parse(raw);
-
-      return (
-        obj?.access_token ||
-        obj?.accessToken ||
-        obj?.token ||
-        obj?.authToken ||
-        obj?.jwt ||
-        obj?.data?.access_token ||
-        obj?.data?.accessToken ||
-        obj?.data?.token ||
-        null
-      );
-    };
-
-    const jsonToken = getTokenFromJson("loginUser") || getTokenFromJson("user");
-    if (jsonToken) return jsonToken;
-
-    return (
-      localStorage.getItem("access_token") ||
-      localStorage.getItem("token") ||
-      localStorage.getItem("accessToken") ||
-      localStorage.getItem("authToken")
-    );
-  } catch {
-    return null;
-  }
-}
-
 function isAdmin(): boolean {
   try {
     const checkRoleFromJson = (key: string) => {
@@ -104,8 +69,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const lastIdRef = useRef<number>(0);
 
   useEffect(() => {
-    const token = getToken();
-    if (!token || !isAdmin()) return;
+    if (!isAdmin()) return;
 
     const API =
       process.env.NEXT_PUBLIC_API_BASE_URL ||
@@ -113,7 +77,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       "http://localhost:5000";
 
     fetch(`${API}/api/admin/notifications/unread-count`, {
-      headers: { Authorization: `Bearer ${token}` },
+      credentials: 'include',
     })
       .then((r) => r.json())
       .then((data) => {
@@ -122,8 +86,8 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       .catch(() => {});
 
     const connect = (startId: number) => {
-      const url = `${API}/api/admin/notifications/stream?token=${token}&last_id=${startId}`;
-      const es = new EventSource(url);
+      const url = `${API}/api/admin/notifications/stream?last_id=${startId}`;
+      const es = new EventSource(url, { withCredentials: true });
       esRef.current = es;
 
       es.addEventListener("notification", (e) => {
@@ -148,7 +112,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
     // 최신 id 가져온 후 SSE 연결
     fetch(`${API}/api/admin/notifications?per_page=1`, {
-      headers: { Authorization: `Bearer ${token}` },
+      credentials: 'include',
     })
       .then((r) => r.json())
       .then((data) => {
@@ -168,8 +132,6 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const resolveNotification = useCallback(async (id: number) => {
-    const token = getToken();
-    if (!token) return;
     const API =
       process.env.NEXT_PUBLIC_API_BASE_URL ||
       process.env.NEXT_PUBLIC_API_URL ||
@@ -183,7 +145,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     );
     fetch(`${API}/api/admin/notifications/${id}/read`, {
       method: "PATCH",
-      headers: { Authorization: `Bearer ${token}` },
+      credentials: 'include',
     });
   }, []);
 
