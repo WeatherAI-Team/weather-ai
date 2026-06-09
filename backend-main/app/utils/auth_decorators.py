@@ -48,11 +48,20 @@ def login_required(f):
 
             # 토큰 안에 있는 사용자 ID를 request에 저장해.
             # 뒤의 API 함수에서 request.user_id로 사용할 수 있어.
-            request.user_id = payload.get("sub")
+            user_id = payload.get("sub")
 
             # 토큰 안에 있는 사용자 권한을 저장해.
             # 값이 없으면 일반 사용자로 처리해.
-            request.user_role = payload.get("role", "user")
+            user_role = payload.get("role", "user")
+
+            if not user_id:
+                return jsonify({
+                    "success": False,
+                    "message": "유효하지 않은 토큰입니다."
+                }), 401
+
+            request.user_id = int(user_id)
+            request.user_role = user_role
 
         except ExpiredSignatureError:
             # 토큰 시간이 지난 경우야.
@@ -68,7 +77,11 @@ def login_required(f):
                 "success": False,
                 "message": "유효하지 않은 토큰입니다."
             }), 401
-
+        except ValueError:
+            return jsonify({
+                "success": False,
+                "message": "유효하지 않은 사용자 정보입니다."
+            }), 401
         except Exception as e:
             # 예상하지 못한 서버 오류야.
             print(f"[LOGIN REQUIRED ERROR] {e}")
@@ -107,24 +120,41 @@ def admin_required(f):
             )
 
             # 토큰 안의 사용자 ID를 저장해.
-            request.user_id = payload.get("sub")
+            user_id = payload.get("sub")
 
             # 토큰 안의 권한을 저장해.
-            request.user_role = payload.get("role", "user")
+            user_role = payload.get("role", "user")
+
+
 
             # 관리자 권한인지 확인해.
             # 너희 기존 코드 기준으로 admin, manager만 관리자 취급해.
+            if not user_id:
+                return jsonify({
+                    "success": False,
+                    "message": "유효하지 않은 토큰입니다."
+                }), 401
+
+            request.user_id = int(user_id)
+            request.user_role = user_role
+
             if request.user_role not in ("admin", "manager"):
                 return jsonify({
                     "success": False,
                     "message": "관리자 권한이 필요합니다."
                 }), 403
-
+            
         except ExpiredSignatureError:
             # 토큰 시간이 지난 경우야.
             return jsonify({
                 "success": False,
                 "message": "토큰이 만료되었습니다."
+            }), 401
+        
+        except ValueError:
+            return jsonify({
+                "success": False,
+                "message": "유효하지 않은 사용자 정보입니다."
             }), 401
 
         except JWTError as e:

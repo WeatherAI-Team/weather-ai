@@ -3,12 +3,12 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import styles from './page.module.css'
-
 type Tab = 'info' | 'suggest' | 'bug' | 'data'
 type BugStatus = 'pending' | 'in_progress' | 'done'
 
 type Post = {
   id: number
+
   category: string
   title: string
   author_nickname: string
@@ -23,6 +23,8 @@ type BugPost = Post & { status: BugStatus }
 const toCategory = (board_type: string): string => {
   if (board_type === 'NOTICE') return '공지'
   if (board_type === 'INFO')   return '정보'
+  if (board_type === 'BUG')    return '버그'
+  if (board_type === 'DATA')   return '자료'
   return '건의'
 }
 
@@ -47,9 +49,8 @@ export default function BoardPage() {
   useEffect(() => { document.title = 'Weather AI - 게시판' }, [])
   const router = useRouter()
   const searchParams = useSearchParams()
-
   const initialTab = (searchParams.get('tab') as Tab) ?? 'info'
-  const [tab, setTab]               = useState<Tab>(initialTab)
+  const [tab, setTab] = useState<Tab>(initialTab)
   const [searchType, setSearchType] = useState('title')
   const [searchInput, setSearchInput] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
@@ -144,7 +145,18 @@ export default function BoardPage() {
 
   useEffect(() => { fetchPosts() }, [fetchPosts])
 
-  const handleTabChange = (newTab: Tab) => {
+  const handleTabChange = (newTab: 'info' | 'suggest' | 'bug' | 'data') => {
+    // 화면에서 선택된 탭을 바꿔.
+    setTab(newTab)
+
+    // 탭을 바꾸면 1페이지부터 다시 보여줘.
+    setPage(1)
+
+    // 탭이 바뀌면 검색어도 초기화해.
+    setSearchInput('')
+    setSearchQuery('')
+
+    // 주소에도 현재 탭을 표시해.
     router.push(`/board?tab=${newTab}`)
   }
 
@@ -170,6 +182,7 @@ export default function BoardPage() {
     if (cat === '건의') return `${styles.category} ${styles.categorySuggest}`
     if (cat === '버그') return `${styles.category} ${styles.categoryBug}`
     if (cat === '자료') return `${styles.category} ${styles.categoryData}`
+
     return `${styles.category} ${styles.categoryNotice}`
   }
 

@@ -1,40 +1,22 @@
 from flask import Blueprint, request, jsonify, make_response
 from ..services.member_service import MemberService
-from functools import wraps
-from jose import jwt
-import os
+from app.utils.auth_decorators import login_required
 
 member_bp = Blueprint('member', __name__, url_prefix='/api/member')
-SECRET_KEY = os.getenv("SECRET_KEY", "your-fallback-secret-key")
+
 
 member_service = MemberService()
 
-def login_required(f):
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        # ✅ 헤더 또는 쿠키에서 토큰 읽기
-        token = None
-        auth_header = request.headers.get('Authorization')
-        if auth_header:
-            token = auth_header.split(" ")[1] if " " in auth_header else auth_header
-        if not token:
-            token = request.cookies.get('access_token')
-        if not token:
-            return jsonify({"success": False, "message": "토큰이 없습니다."}), 401
-        try:
-            payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
-            request.user_id = payload.get("sub")
-        except:
-            return jsonify({"success": False, "message": "유효하지 않은 토큰입니다."}), 401
-        return f(*args, **kwargs)
-    return decorated
 
 @member_bp.route('/register', methods=['POST'])
 def register():
     data = request.get_json()
     if not data:
-        return jsonify({"success": False, "message": "회원가입 정보를 입력해주세요."}), 400
-    print(f"DEBUG: 프론트에서 온 데이터 -> {data}")
+        return jsonify({
+            "success": False,
+            "message": "회원가입 정보를 입력해주세요."
+        }), 400
+    
     result = member_service.register_member(data)
     if result["success"]:
         return jsonify(result), 201
@@ -75,10 +57,19 @@ def logout():
 
 # 나머지 라우트는 기존 그대로
 @member_bp.route('/<int:member_id>', methods=['GET'])
+@login_required
 def get_profile(member_id):
+    if request.user_id != member_id and request.user_role not in ("admin", "manager"):
+        return jsonify({
+            "success": False,
+            "message": "본인 정보만 조회할 수 있습니다."
+        }), 403
+
     result = member_service.get_member_info(member_id)
+
     if result["success"]:
         return jsonify(result), 200
+
     return jsonify(result), 404
 
 @member_bp.route("/me", methods=["GET"])
