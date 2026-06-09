@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useRef, Suspense } from 'react'
 import { useRouter, useParams, notFound } from 'next/navigation'
+import DOMPurify from 'dompurify'
 import styles from './page.module.css'
 
 // ─────────────────────────────────────────
@@ -250,7 +251,7 @@ function PostDetail() {
         </div>
 
         {/* 본문 */}
-        <div className={styles.content} dangerouslySetInnerHTML={{ __html: post.content }} />
+        <div className={styles.content} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(post.content) }} />
 
         {/* 수정/삭제 */}
         <div className={styles.actions}>

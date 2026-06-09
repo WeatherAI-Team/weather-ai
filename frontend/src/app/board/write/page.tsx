@@ -32,11 +32,9 @@ function WriteForm() {
   const searchParams = useSearchParams()
   const tab = (searchParams.get('tab') || 'suggest') as 'info' | 'suggest' | 'bug' | 'data'
   const editId       = searchParams.get('edit')
-
   const [localUser, setLocalUser]   = useState<LocalUser | null>(null)
   const [isPrivileged, setIsPrivileged] = useState(false)
   const [ready, setReady]           = useState(false)  // 권한 확인 완료 여부
-
   const [boardType, setBoardType]   = useState(TAB_TO_TYPE[tab] ?? 'FREE')
   const [isPinned, setIsPinned]     = useState(false)
   const [title, setTitle]           = useState('')
