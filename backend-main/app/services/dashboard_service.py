@@ -11,12 +11,18 @@ DAY_LABELS = ['월', '화', '수', '목', '금', '토', '일']
 class DashboardService:
     # 이 클래스는 관리자 대시보드에 필요한 통계를 만들어주는 곳이야.
     # 쉽게 말하면 "관리자 화면에 보여줄 숫자들을 계산하는 곳"이야.
-
+    def _to_kst(self, dt):
+        # 시간이 없으면 None으로 돌려줘.
+        if not dt:
+            return None
+        
+        return dt 
+    
     def _format_display_time(self, dt):
         # 시간이 없으면 화면에 "-"로 보여줘.
         if not dt:
             return "-"
-
+        
         # DB에는 이미 한국 시간(KST) 기준으로 저장하기 때문에
         # 여기서는 시간을 더하지 않고 그대로 표시만 해.
         return dt.strftime("%p %I:%M").replace("AM", "오전").replace("PM", "오후")
@@ -118,7 +124,7 @@ class DashboardService:
     def _event_to_dict(self, event):
         # DetectionEvent 객체는 그대로 JSON으로 보내기 어려워.
         # 그래서 필요한 값만 딕셔너리로 바꿔줘.
-
+        kst_detected_at = self._to_kst(event.detected_at)
         return {
             # 탐지 이벤트 고유 번호야.
             "id": event.id,
@@ -149,13 +155,13 @@ class DashboardService:
 
             # 알림 필요 여부야.
             "alert_required": event.alert_required,
-
+            
             # 탐지 발생 시간이야.
-            "detected_at": event.detected_at.isoformat() if event.detected_at else None,
+            "detected_at": kst_detected_at.isoformat() if kst_detected_at else None,
 
             # 화면에 바로 보여줄 한국 시간 값
             # 예: 오후 12:11
-            "display_time": self._format_display_time(event.detected_at)
+            "display_time": self._format_display_time(kst_detected_at)
         }
 
     def get_weekly_counts(self):
