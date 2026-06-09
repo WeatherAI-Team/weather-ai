@@ -100,7 +100,7 @@ def kakao_callback():
             'access_token',
             access_token,
             httponly=True,
-            secure=False,      # ✅ HTTPS니까 True
+            secure=os.getenv("FLASK_ENV") == "production"
             samesite='Lax',
             max_age=60 * 60 * 24 * 7,
             domain='mbc-sw.iptime.org'  # ✅ 도메인 추가

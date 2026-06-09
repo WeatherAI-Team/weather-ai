@@ -44,7 +44,6 @@ export default function LoginPage() {
       // ✅ access_token 제외하고 유저 정보만 저장 (토큰은 쿠키에 자동으로 있음)
       localStorage.setItem("user", JSON.stringify(data.data));
       localStorage.setItem("loginUser", JSON.stringify(data.data));
-      localStorage.setItem("access_token", data.access_token);  // ✅ 추가
 
       window.location.href = "/";
     } catch (error) {
