@@ -4,8 +4,8 @@ import Hls from "hls.js";
 import styles from "./page.module.css";
 
 const BACKEND_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
-const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000";
+  process.env.NEXT_PUBLIC_API_BASE_URL || "http://192.168.0.243:5000";
+const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://192.168.0.243:5000";
 
 type TabType = "cctv" | "upload";
 
@@ -679,8 +679,8 @@ export default function AiPage() {
                 box.confidence > 1 ? box.confidence / 100 : box.confidence,
             })),
           annotated_url: aiResult.annotated_path
-            ? `http://localhost:8000/${aiResult.annotated_path}`
-            : undefined,  // 추가
+            ? `${BACKEND_URL}/ai-static/${aiResult.annotated_path.replace('static/', '')}`
+            : undefined,
         });
 
         const shouldSave =
