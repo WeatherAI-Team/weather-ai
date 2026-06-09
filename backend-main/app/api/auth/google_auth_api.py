@@ -84,7 +84,14 @@ def google_callback():
     if status_code in (200, 201):
         access_token = result.get("access_token")
         # ✅ httpOnly 쿠키로 토큰 발급
-        response = make_response(redirect(f"{FRONTEND_URL}/auth/callback?provider=google"))
+        query = urlencode({
+            "provider": "google",
+            "access_token": access_token,
+        })
+        response = make_response(
+            redirect(f"{FRONTEND_URL}/auth/callback?{query}")
+        )
+
         response.set_cookie(
             'access_token',
             access_token,

@@ -9,8 +9,8 @@ board_repo.py  –  Repository 레이어 (DB 쿼리만)
 
 from sqlalchemy import or_
 from app import db
-from app.models.board import Board, BoardComment, BoardAttachment
-from datetime import datetime
+from app.models.board import Board, BoardComment, BoardAttachment, kst_now
+
 
 
 # ──────────────────────────────────────────────────────────────
@@ -69,7 +69,7 @@ def get_posts_admin(board_types: list[str], search: str, page: int, per_page: in
 
 def create_post(member_id: int, title: str, content: str, board_type: str, pinned: bool) -> Board:
     """게시글 생성"""
-    now  = datetime.utcnow()
+    now  = kst_now()
     post = Board(
         member_id  = member_id,
         title      = title,
@@ -89,7 +89,7 @@ def update_post(post: Board, fields: dict) -> Board:
     for key, value in fields.items():
         if hasattr(post, key):
             setattr(post, key, value)
-    post.updated_at = datetime.utcnow()
+    post.updated_at = kst_now()
     db.session.commit()
     return post
 
@@ -102,7 +102,7 @@ def increment_view_count(post: Board) -> None:
 
 def soft_delete_post(post: Board) -> None:
     """게시글 soft delete"""
-    post.deleted_at = datetime.utcnow()
+    post.deleted_at = kst_now()
     post.active     = False
     db.session.commit()
 
@@ -110,7 +110,7 @@ def soft_delete_post(post: Board) -> None:
 def toggle_post_field(post: Board, field: str) -> Board:
     """boolean 필드 토글 (pinned / active)"""
     setattr(post, field, not getattr(post, field))
-    post.updated_at = datetime.utcnow()
+    post.updated_at = kst_now()
     db.session.commit()
     return post
 
@@ -142,7 +142,7 @@ def get_comment_by_id(comment_id: int) -> BoardComment | None:
 
 def create_comment(board_id: int, member_id: int, content: str, parent_id: int | None) -> BoardComment:
     """댓글/대댓글 생성"""
-    now     = datetime.utcnow()
+    now     = kst_now()
     comment = BoardComment(
         board_id   = board_id,
         member_id  = member_id,
@@ -158,7 +158,7 @@ def create_comment(board_id: int, member_id: int, content: str, parent_id: int |
 
 def soft_delete_comment(comment: BoardComment) -> None:
     """댓글 soft delete"""
-    comment.deleted_at = datetime.utcnow()
+    comment.deleted_at = kst_now()
     comment.active     = False
     db.session.commit()
 
@@ -238,7 +238,7 @@ def get_attachment_by_id(attachment_id: int) -> BoardAttachment | None:
 
 def soft_delete_attachment(file: BoardAttachment) -> None:
     file.active = False
-    file.deleted_at = datetime.utcnow()
+    file.deleted_at = kst_now()
     db.session.commit()
 
 
@@ -249,7 +249,7 @@ def soft_delete_attachments_by_post(board_id: int) -> None:
         .all()
     )
 
-    now = datetime.utcnow()
+    now = kst_now()
     for file in files:
         file.active = False
         file.deleted_at = now
@@ -259,6 +259,6 @@ def soft_delete_attachments_by_post(board_id: int) -> None:
 def update_bug_status(post: Board, status: str) -> Board:
     """버그게시판 상태 변경"""
     post.bug_status = status
-    post.updated_at = datetime.utcnow()
+    post.updated_at = kst_now()
     db.session.commit()
     return post

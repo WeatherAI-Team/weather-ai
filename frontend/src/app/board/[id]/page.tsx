@@ -51,13 +51,30 @@ type Post = {
 // ─────────────────────────────────────────
 // 로컬 user 정보
 // ─────────────────────────────────────────
-type LocalUser = { id: number; nickname: string; role: string };
+type LocalUser = {
+  id: number;
+  nickname: string;
+  role: string;
+  access_token?: string;
+};
+
 const getLocalUser = (): LocalUser | null => {
   if (typeof window === "undefined") return null;
   try {
     return JSON.parse(localStorage.getItem("user") ?? "null");
   } catch {
     return null;
+  }
+};
+
+const getAccessToken = (): string => {
+  if (typeof window === "undefined") return "";
+
+  try {
+    const user = JSON.parse(localStorage.getItem("user") ?? "null");
+    return user?.access_token || localStorage.getItem("access_token") || "";
+  } catch {
+    return localStorage.getItem("access_token") || "";
   }
 };
 
@@ -166,12 +183,20 @@ function PostDetail() {
 
   // ── 게시글 삭제
   const handleDeletePost = async () => {
+    const token = getAccessToken();
+    if (!token) {
+      alert("로그인이 필요합니다.");
+      return;
+    }
+
     try {
       await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/board/posts/${postId}`,
         {
           method: "DELETE",
-          credentials: "include",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         },
       );
     } catch {
@@ -179,47 +204,67 @@ function PostDetail() {
     }
     router.push("/board");
   };
-
   // ── 댓글 작성
   const handleAddComment = async () => {
     if (!commentInput.trim() || !localUser) return;
+
+    const token = getAccessToken();
+    if (!token) {
+      alert("로그인이 필요합니다.");
+      return;
+    }
+
     try {
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/board/posts/${postId}/comments`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
           body: JSON.stringify({ content: commentInput.trim() }),
         },
       );
+
       const data = await res.json();
       if (!data.success) throw new Error(data.message);
+
       setComments((prev) => [...prev, { ...data.comment, replies: [] }]);
       setCommentInput("");
     } catch (e: any) {
       alert(e.message);
     }
   };
-
   // ── 대댓글 작성
   const handleAddReply = async (commentId: number) => {
     if (!replyInput.trim() || !localUser) return;
+
+    const token = getAccessToken();
+    if (!token) {
+      alert("로그인이 필요합니다.");
+      return;
+    }
+
     try {
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/board/posts/${postId}/comments`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
           body: JSON.stringify({
             content: replyInput.trim(),
             parent_id: commentId,
           }),
         },
       );
+
       const data = await res.json();
       if (!data.success) throw new Error(data.message);
+
       setComments((prev) =>
         prev.map((c) =>
           c.id === commentId
@@ -233,15 +278,22 @@ function PostDetail() {
       alert(e.message);
     }
   };
-
   // ── 댓글 삭제
   const handleDeleteComment = async (commentId: number) => {
+    const token = getAccessToken();
+    if (!token) {
+      alert("로그인이 필요합니다.");
+      return;
+    }
+
     try {
       await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/board/comments/${commentId}`,
         {
           method: "DELETE",
-          credentials: "include",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         },
       );
       setComments((prev) => prev.filter((c) => c.id !== commentId));
@@ -253,14 +305,23 @@ function PostDetail() {
 
   // ── 대댓글 삭제
   const handleDeleteReply = async (commentId: number, replyId: number) => {
+    const token = getAccessToken();
+    if (!token) {
+      alert("로그인이 필요합니다.");
+      return;
+    }
+
     try {
       await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/board/comments/${replyId}`,
         {
           method: "DELETE",
-          credentials: "include",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         },
       );
+
       setComments((prev) =>
         prev.map((c) =>
           c.id === commentId

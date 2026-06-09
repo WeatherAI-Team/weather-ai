@@ -10,8 +10,12 @@ Supabase에서 아래 마이그레이션을 한 번 실행하세요:
 """
 
 from app import db
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 
+KST = timezone(timedelta(hours=9))
+
+def kst_now():
+    return datetime.now(KST).replace(tzinfo=None)
 
 class Board(db.Model):
     __tablename__ = "boards"
@@ -32,8 +36,8 @@ class Board(db.Model):
     view_count = db.Column(db.Integer, nullable=False, default=0)
     pinned     = db.Column(db.Boolean, nullable=False, default=False)
     active     = db.Column(db.Boolean, nullable=False, default=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=kst_now)
+    updated_at = db.Column(db.DateTime, default=kst_now, onupdate=kst_now)
     deleted_at = db.Column(db.DateTime, nullable=True)
 
     # relationships

@@ -96,7 +96,13 @@ def kakao_callback():
     if status_code in (200, 201):
         access_token = result.get("access_token")
         # ✅ httpOnly 쿠키로 토큰 발급 (URL 노출 제거)
-        response = make_response(redirect(f"{FRONTEND_URL}/auth/callback?provider=kakao"))
+        query = urlencode({
+            "provider": "kakao",
+            "access_token": access_token,
+        })
+        response = make_response(
+            redirect(f"{FRONTEND_URL}/auth/callback?{query}")
+        )
         response.set_cookie(
             'access_token',
             access_token,
