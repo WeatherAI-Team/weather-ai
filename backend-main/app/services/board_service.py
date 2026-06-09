@@ -22,9 +22,8 @@ MAX_FILE_SIZE = 20 * 1024 * 1024  # 20MB
 
 VALID_BOARD_TYPES = {"FREE", "INFO", "NOTICE", "BUG", "RESOURCE"}
 
-# 자료게시판도 로그인 사용자 작성 허용이면 INFO/NOTICE만 제한
-PRIVILEGED_WRITABLE_TYPES = {"INFO", "NOTICE"}
-
+# 정보/공지/자료게시판은 관리자 또는 매니저만 작성 가능
+PRIVILEGED_WRITABLE_TYPES = {"INFO", "NOTICE", "RESOURCE"}
 VALID_BUG_STATUS = {"pending", "in_progress", "done"}
 
 
