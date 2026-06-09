@@ -81,10 +81,57 @@ export default function UsersPage() {
     u.email.includes(search)
   )
 
-  // 활성 상태 토글 (API 연동 필요 시 PATCH 요청 추가)
-  const handleToggleActive = (id: number) => {
-    setUsers(prev => prev.map(u => u.id === id ? { ...u, active: !u.active } : u))
+  // 활성 상태 토글 
+  // 버튼을 누르면 백엔드에 PATCH 요청을 보내서 DB의 active 값을 바꿈 
+  const handleToggleActive = async (id: number, currentActive: boolean) => {
+  // 지금 활성 상태의 반대로 바꿀 거야.
+  // active가 true면 false로, false면 true로 바뀜.
+  const nextActive = !currentActive
+
+  try {
+    // localStorage에서 로그인한 관리자 정보를 가져와.
+    const saved = localStorage.getItem('user')
+    const token = saved ? JSON.parse(saved).access_token : ''
+
+    // 백엔드에 active 값을 저장해달라고 요청해.
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/admin/members/${id}/active`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        active: nextActive,
+      }),
+    })
+
+    const data = await res.json()
+
+    // 백엔드에서 실패했다고 하면 화면을 바꾸지 않아.
+    if (!data.success) {
+      alert(data.message || '활성 상태 변경에 실패했습니다.')
+      return
+    }
+
+    // DB 저장이 성공했을 때만 화면도 바꿔.
+    setUsers(prev =>
+      prev.map(u =>
+        u.id === id
+          ? { ...u, active: nextActive }
+          : u
+      )
+    )
+
+    // 상세 팝업이 열려 있는 경우에도 active 값을 같이 바꿔줘.
+    setDetailUser(prev =>
+      prev && prev.id === id
+        ? { ...prev, active: nextActive }
+        : prev
+    )
+  } catch {
+    alert('서버 연결 중 오류가 발생했습니다.')
   }
+}
 
   // 날짜 포맷 (ISO → YYYY-MM-DD)
   const formatDate = (iso: string | null) => {
@@ -189,7 +236,8 @@ export default function UsersPage() {
                     <td className={styles.td}>
                       <button
                         className={`${styles.activeBadge} ${u.active ? styles.activeOn : styles.activeOff}`}
-                        onClick={e => { e.stopPropagation(); handleToggleActive(u.id) }}
+                        onClick={e => { e.stopPropagation() 
+                          handleToggleActive(u.id, u.active)}}
                       >
                         {u.active ? '활성' : '비활성'}
                       </button>

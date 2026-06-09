@@ -40,7 +40,7 @@ class ChatbotService:
             "3": "위험도 점수와 LLM 검증 방식",
             "4": "관리자 대시보드에서 확인할 수 있는 내용",
             "5": "팀원 소개와 담당 역할",
-            "6": "강사님 성함",
+            "6": "강사님 정보와 담당 수업",
         }
 
         if message == "7":
@@ -54,7 +54,14 @@ class ChatbotService:
         if message in number_question_map:
             message = number_question_map[message]
 
+        # 특정 팀원 한 명의 업무를 물어본 경우를 먼저 확인해.
+        # 예: "조정화 업무 알려줘", "여민엽 역할 뭐야?"
+        member_task_result = self._handle_member_task(message)
 
+        # 특정 팀원 이름이 들어간 질문이면 그 사람 업무만 바로 답변해.
+        if member_task_result:
+            return member_task_result
+        
         # 질문의 의도를 간단하게 파악해.
         # 예: 위험 상태 질문인지, 사용법 질문인지 구분해.
         intent = self._detect_intent(message)
@@ -111,10 +118,17 @@ class ChatbotService:
         if intent == "greeting":
             return self._handle_greeting()
 
-        # 사용자가 팀원 정보나 선생님 정보를 물어본 경우야.
+        # ppt 피드백 정보 물어본 경우 
+        if intent == "ppt_feedback_info":
+            return self._handle_ppt_feedback_info()
+        
+        # 강사님 정보나 담당 수업을 물어본 경우야.
+        if intent == "instructor_info_help":
+            return self._handle_instructor_info()
+
+        # 사용자가 팀원 정보나 조원 정보를 물어본 경우야.
         if intent == "team_info_help":
             return self._handle_team_info()
-        ### 추가한 부분 여기까지  #### 
 
         # 위 조건에 해당하지 않으면 추천 질문을 포함한 기본 답변을 해.
         return self._handle_unknown()
@@ -865,7 +879,44 @@ class ChatbotService:
         if any(keyword in lower_message for keyword in help_keywords):
             return "service_help"
 
-       
+        ppt_feedback_keywords = [
+                "ppt 피드백",
+                "ppt 발표",
+                "ppt 발표 피드백",
+                "발표 피드백",
+                "피피티 피드백",
+                "피피티 발표",
+                "발표 자료 피드백",
+                "피드백 담당",
+            ]
+
+        if any(keyword in lower_message for keyword in ppt_feedback_keywords):
+            return "ppt_feedback_info"
+
+        # 강사님 정보 질문을 확인해.
+        # 예: "강사님 정보 알려줘", "김기원 강사님은 어떤 수업 담당해?"
+        instructor_keywords = [
+            "강사님 정보",
+            "선생님 정보",
+            "강사 정보",
+            "담당 강사",
+            "김기원 강사님",
+            "김기원 선생님",
+            "강사님 성함",
+            "선생님 성함",
+            "강사님 이름",
+            "선생님 이름",
+            "강사님 알려줘",
+            "선생님 알려줘",
+            "김기원 알려줘",
+            "담당 수업",
+            "무슨 수업",
+            "어떤 수업",
+        ]
+
+        if any(keyword in lower_message for keyword in instructor_keywords):
+            return "instructor_info_help"
+
 
         # 사용자가 팀원, 담당자, 선생님 정보를 물어보는지 확인해.
         # 예: "조원 소개해줘", "팀원 역할 알려줘", "선생님 이름이 뭐야?"
@@ -1064,7 +1115,7 @@ class ChatbotService:
                 "3. 위험도 점수와 LLM 검증 방식\n"
                 "4. 관리자 대시보드에서 확인할 수 있는 내용\n"
                 "5. 팀원 소개와 담당 역할\n"
-                "6. 강사님 성함\n"
+                "6. 강사님 정보와 담당 수업\n"
                 "7. 특정 지역이나 도로의 위험 상태\n\n"
                 "궁금한 내용을 편하게 질문해 주세요!"
             ),
@@ -1078,7 +1129,146 @@ class ChatbotService:
                 ]
             }
         }
-    
+        
+
+    def _handle_instructor_info(self):
+        # 이 함수는 강사님 정보와 담당 수업 내용을 안내하는 곳이야.
+
+        return {
+            "intent": "instructor_info_help",
+            "answer": (
+                "담당 강사님은 김기원 강사님👨🏻‍🏫입니다.\n\n"
+                "김기원 강사님은 Weather-AI 프로젝트 진행 과정에서 기술 지도와 발표 피드백을 담당해주십니다.\n\n"
+                "주요 담당 내용은 아래와 같습니다.\n"
+                "1. PPT 발표 자료의 흐름, 구성, 전달 방식에 대해 피드백을 진행해주십니다.\n"
+                "2. Flask를 활용한 백엔드 구조와 API 개발 방법을 지도해주십니다.\n"
+                "3. Bootstrap과 JavaScript를 활용한 프론트엔드 화면 구성 방법을 안내해주십니다.\n"
+                "4. AI 모델 실행 환경과 AI Machine Running 과정에 대해 지도해주십니다.\n"
+                "5. VS Code, Linux, Oracle VirtualBox를 활용한 개발 환경 구성 방법을 알려주십니다.\n"
+                "6. 백엔드, 프론트엔드, AI 개발을 포함한 풀스택 개발 전반을 수업에서 다뤄주십니다.\n"
+                "7. 프로젝트 진행 중 발생하는 오류 해결, 기능 개선, 발표 준비 등 실무적인 부분도 함께 지도해주십니다."
+            ),
+            "data": {
+                "name": "김기원",
+                "role": "담당 강사님",
+                "topics": [
+                    "PPT 발표 피드백",
+                    "Flask 백엔드",
+                    "Bootstrap",
+                    "JavaScript",
+                    "프론트엔드",
+                    "AI Machine Running",
+                    "AI 개발 환경",
+                    "VS Code",
+                    "Linux",
+                    "Oracle VirtualBox",
+                    "풀스택 개발 전반"
+                ]
+            }
+        }
+
+    def _handle_ppt_feedback_info(self):
+        # 이 함수는 PPT 발표 피드백 정보를 안내하는 곳이야.
+
+        return {
+            "intent": "ppt_feedback_info",
+            "answer": (
+                "PPT 발표 피드백은 김기원 강사님👨🏻‍🏫께서 담당하십니다.\n\n"
+                "강사님께서는 발표 자료의 전체 흐름이 자연스러운지, "
+                "프로젝트 목적과 기능 설명이 잘 드러나는지, "
+                "화면 구성과 발표 순서가 이해하기 쉬운지 확인해주십니다.\n\n"
+                "또한 발표할 때 어떤 부분을 강조하면 좋은지, "
+                "기술 설명을 어떻게 정리하면 전달력이 좋아지는지도 함께 피드백해주십니다."
+            ),
+            "data": {
+                "teacher": "김기원",
+                "topic": "PPT 발표 피드백"
+            }
+        }
+
+    def _handle_member_task(self, message):
+    # 이 함수는 특정 팀원 한 명의 업무만 알려주는 곳이야.
+
+        team_members = {
+            "안건우": {
+                "aliases": ["안건우", "건우"],
+                "role": "조장",
+                "tasks": [
+                    "전체 프로젝트 일정 및 마일스톤 관리",
+                    "DB 설계 및 Flask 프레임워크 구조 설계",
+                    "Git 브랜치 전략 및 코드 리뷰 주도",
+                    "팀원 간 업무 조율 및 이슈 트래킹",
+                    "위험 이벤트 게시판 CRUD 기능 구현 및 게시글 처리 흐름 개발",
+                ],
+            },
+            "여민엽": {
+                "aliases": ["여민엽", "민엽"],
+                "role": "부조장",
+                "tasks": [
+                    "AI 탐지 모델 설계 및 학습 파이프라인 구축",
+                    "AI 추론 API 엔드포인트 개발",
+                    "모델 성능 튜닝 및 결과 후처리 로직",
+                    "AI 서빙 환경 설정 및 배포",
+                    "LLM을 활용한 위험 이벤트 검증 및 위험 상황 판단 로직 개발",
+                ],
+            },
+            "유진설": {
+                "aliases": ["유진설", "진설"],
+                "role": "팀원",
+                "tasks": [
+                    "회원 가입, 로그인, 로그아웃 등 사용자 인증 기능 구현",
+                    "회원 정보 조회, 탈퇴 등 회원 CRUD 기능 개발",
+                    "소셜 로그인 연동 및 소셜 계정 정보 처리",
+                    "로그인 상태에 따른 사용자 식별 및 인증 흐름 구성",
+                    "LLM 연동 과정에서 사용자 질의 처리와 응답 생성 기능",
+                ],
+            },
+            "김소현": {
+                "aliases": ["김소현", "소현"],
+                "role": "팀원",
+                "tasks": [
+                    "전체 UI/UX 설계 및 화면 구현",
+                    "반응형 레이아웃 및 CSS 스타일링",
+                    "백엔드 API 연동 및 데이터 렌더링",
+                    "CCTV API 연동을 통해 도로 영상 및 위치 정보를 화면에서 확인하는 기능 개발",
+                    "관리자 페이지와 사용자 화면의 사용성을 고려한 화면 구성 및 인터랙션 구현",
+                ],
+            },
+            "조정화": {
+                "aliases": ["조정화", "정화"],
+                "role": "팀원",
+                "tasks": [
+                    "관리자 대시보드 및 권한 설정",
+                    "사용자 통계 및 로그 조회 기능",
+                    "데이터 관리 및 백업 정책 수립",
+                    "관리자 페이지 지도 API 구현",
+                    "Weather-AI 상담 챗봇 기능 구현 및 사용자 질문 의도 분류 로직 개발",
+                ],
+            },
+        }
+
+        for name, info in team_members.items():
+            # 풀네임이나 별명 중 하나라도 질문에 들어있으면 그 팀원으로 판단해.
+            if any(alias in message for alias in info["aliases"]):
+                task_text = "\n".join(
+                    [f"{idx + 1}. {task}" for idx, task in enumerate(info["tasks"])]
+                )
+
+                return {
+                    "intent": "member_task_help",
+                    "answer": (
+                        f"{name}님은 Weather-AI 프로젝트에서 {info['role']} 역할을 맡고 있습니다.\n\n"
+                        f"담당 업무는 아래와 같습니다.\n"
+                        f"{task_text}"
+                    ),
+                    "data": {
+                        "name": name,
+                        "role": info["role"],
+                        "tasks": info["tasks"]
+                    }
+                }
+        return None 
+
     def _handle_team_info(self):
         # 이 함수는 팀원 소개, 담당 역할, 선생님 정보를 안내하는 곳이야.
         # 사용자가 "조원 소개해줘", "팀원 역할 알려줘", "선생님 이름 뭐야?"라고 물으면 여기로 와.
@@ -1089,7 +1279,14 @@ class ChatbotService:
                 "Weather-AI 프로젝트 팀 구성원과 담당 역할을 안내해드릴게요.\n\n"
                 "[담당 강사님]\n"
                 "- 김기원 강사님👨🏻‍🏫\n"
-                "- Weather-AI 프로젝트 진행 과정에서 지도와 피드백을 담당해주십니다.\n\n"
+                "- Weather-AI 프로젝트 진행 과정에서 지도와 피드백을 담당해주십니다.\n"
+                "- PPT 발표 자료의 흐름, 구성, 전달 방식에 대해 피드백을 진행해주십니다.\n"
+                "- Flask를 활용한 백엔드 구조와 API 개발 방법을 지도해주십니다.\n"
+                "- Bootstrap과 JavaScript를 활용한 프론트엔드 화면 구성 방법을 안내해주십니다.\n"
+                "- AI 모델 실행 환경과 AI Machine Running 과정에 대해 지도해주십니다.\n"
+                "- VS Code, Linux, Oracle VirtualBox를 활용한 개발 환경 구성 방법을 알려주십니다.\n"
+                "- 백엔드, 프론트엔드, AI 개발을 포함한 풀스택 개발 전반을 수업에서 다뤄주십니다.\n"
+                "- 프로젝트 진행 중 발생하는 오류 해결, 기능 개선, 발표 준비 등 실무적인 부분도 함께 지도해주십니다.\n\n"
 
                 "[팀원 소개]\n"
                 "1. 안건우 (조장)👨🏻‍💻\n"

@@ -66,3 +66,34 @@ def get_member_detail(member_id):
         return jsonify(result), 200
 
     return jsonify(result), 404
+
+# f-006 관리자 사용자 활성/비활성 변경
+# PATCH /api/admin/members/1/active
+@admin_member_bp.route("/<int:member_id>/active", methods=["PATCH"])
+@admin_required
+def update_member_active(member_id):
+    # 프론트에서 보낸 JSON 데이터를 가져와.
+    body = request.get_json() or {}
+
+    # active 값이 없으면 어떤 상태로 바꿀지 모르니까 실패 처리해.
+    if "active" not in body:
+        return jsonify({
+            "success": False,
+            "message": "active 값이 필요합니다."
+        }), 400
+
+    # 프론트에서 받은 active 값을 True/False로 바꿔.
+    active = bool(body.get("active"))
+
+    # 서비스에게 실제 DB 변경을 요청해.
+    result = admin_member_service.update_member_active(
+        member_id=member_id,
+        active=active
+    )
+
+    # 실패하면 404로 응답해.
+    if not result["success"]:
+        return jsonify(result), 404
+
+    # 성공하면 200으로 응답해.
+    return jsonify(result), 200
