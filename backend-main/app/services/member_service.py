@@ -1,4 +1,4 @@
-from datetime import datetime
+
 from werkzeug.security import generate_password_hash, check_password_hash
 from ..repositories.member_repo import MemberRepository
 from ..repositories.social_account_repo import SocialAccountRepository
@@ -6,10 +6,16 @@ from .auth_utils import create_access_token
 from ..models.member import Member
 import os
 import secrets
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from .mail_service import send_password_reset_email
 
 PASSWORD_RESET_TOKEN_MINUTES = int(os.getenv("PASSWORD_RESET_TOKEN_MINUTES", "15"))
+
+KST = timezone(timedelta(hours=9))
+
+def kst_now():
+    return datetime.now(KST).replace(tzinfo=None)
+
 class MemberService:
     def __init__(self):
         self.member_repo = MemberRepository()
@@ -200,7 +206,7 @@ class MemberService:
         token = secrets.token_urlsafe(32)
 
         # 15분 뒤 만료
-        expires_at = datetime.utcnow() + timedelta(minutes=PASSWORD_RESET_TOKEN_MINUTES)
+        expires_at = kst_now() + timedelta(minutes=PASSWORD_RESET_TOKEN_MINUTES)
 
         self.member_repo.update_password_reset_token(
             member=member,
@@ -256,7 +262,7 @@ class MemberService:
             }
         
         # 토큰 만료 확인
-        if member.password_reset_token_expires_at < datetime.utcnow():
+        if member.password_reset_token_expires_at < kst_now():
             return {
                 "success": False,
                 "message": "재설정 링크가 만료되었습니다."

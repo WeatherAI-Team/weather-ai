@@ -1,53 +1,13 @@
 from flask import Blueprint, request, jsonify
 from ..services.member_service import MemberService
-from jose.exceptions import ExpiredSignatureError, JWTError
-from functools import wraps
-from jose import jwt
-import os
+from app.utils.auth_decorators import login_required
 
 # 블루프린트 설정 (url_prefix가 있으니 /api/member/google 로 접속됨)
 member_bp = Blueprint('member', __name__, url_prefix='/api/member')
-SECRET_KEY = os.getenv("SECRET_KEY", "your-fallback-secret-key")
+
 
 member_service = MemberService()
 
-# [보안] 토큰 확인 데코레이터
-def login_required(f):
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        token = request.headers.get("Authorization")
-
-        if not token:
-            return jsonify({"success": False, "message": "토큰이 없습니다."}), 401
-
-        try:
-            auth_token = token.split(" ")[1] if " " in token else token
-
-            payload = jwt.decode(
-                auth_token,
-                SECRET_KEY,
-                algorithms=["HS256"]
-            )
-
-            user_id = payload.get("sub")
-            if not user_id:
-                return jsonify({"success": False, "message": "유효하지 않은 토큰입니다."}), 401
-
-            request.user_id = int(user_id)
-            request.user_role = payload.get("role", "user")
-
-        except ExpiredSignatureError:
-            return jsonify({"success": False, "message": "토큰이 만료되었습니다."}), 401
-
-        except JWTError:
-            return jsonify({"success": False, "message": "유효하지 않은 토큰입니다."}), 401
-
-        except ValueError:
-            return jsonify({"success": False, "message": "유효하지 않은 사용자 정보입니다."}), 401
-
-        return f(*args, **kwargs)
-
-    return decorated
 
 @member_bp.route('/register', methods=['POST'])
 def register():
