@@ -10,7 +10,6 @@ function AuthCallbackContent() {
   const [message, setMessage] = useState('로그인 처리 중...')
 
   useEffect(() => {
-    const token = searchParams.get('token')
     const provider = searchParams.get('provider')
     const error = searchParams.get('error')
 
@@ -21,29 +20,21 @@ function AuthCallbackContent() {
       return
     }
 
-    if (!token) {
-      setStatus('error')
-      setMessage('토큰 정보가 없습니다.')
-      setTimeout(() => router.push('/login'), 2500)
-      return
-    }
+    // ✅ URL에서 토큰 꺼내는 코드 제거 (쿠키에 자동으로 있음)
+    const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'
 
     try {
-      localStorage.setItem('access_token', token)
       if (provider) localStorage.setItem('login_provider', provider)
 
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000'
-
+      // ✅ 토큰 헤더 없이 쿠키로 자동 전송
       fetch(`${API_BASE_URL}/api/member/me`, {
         credentials: 'include',
       })
         .then(res => res.json())
         .then(data => {
           if (data?.data) {
-            localStorage.setItem('user', JSON.stringify({
-              ...data.data,
-              access_token: token,   // URL에서 받은 token 사용
-            }))
+            // ✅ access_token 제외하고 유저 정보만 저장
+            localStorage.setItem('user', JSON.stringify(data.data))
             localStorage.setItem('loginUser', JSON.stringify(data.data))
           }
         })
