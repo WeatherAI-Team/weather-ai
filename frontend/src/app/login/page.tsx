@@ -41,11 +41,10 @@ export default function LoginPage() {
         return;
       }
 
-      localStorage.setItem("user", JSON.stringify({
-        ...data.data,
-        access_token: data.access_token,
-      }));
+      // ✅ access_token 제외하고 유저 정보만 저장 (토큰은 쿠키에 자동으로 있음)
+      localStorage.setItem("user", JSON.stringify(data.data));
       localStorage.setItem("loginUser", JSON.stringify(data.data));
+      localStorage.setItem("access_token", data.access_token);  // ✅ 추가
 
       window.location.href = "/";
     } catch (error) {
@@ -94,7 +93,7 @@ export default function LoginPage() {
             로그인
           </button>
         </form>
-        
+
         <div className={styles.links}>
           <Link href="/find-id">아이디 찾기</Link>
           <span />

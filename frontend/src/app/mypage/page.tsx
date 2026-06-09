@@ -72,12 +72,16 @@ export default function MyPage() {
 
   const getToken = () => {
     try {
+      // ✅ access_token 직접 저장된 거 먼저 확인
+      const directToken = localStorage.getItem('access_token')
+      if (directToken) return directToken
+
       const user = localStorage.getItem('user')
       if (user) {
         const parsed = JSON.parse(user)
         if (parsed?.access_token) return parsed.access_token
       }
-      return localStorage.getItem('access_token')
+      return null
     } catch { return null }
   }
 
