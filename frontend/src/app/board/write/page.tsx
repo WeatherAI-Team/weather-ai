@@ -4,7 +4,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import styles from './page.module.css'
 
 type Role = 'admin' | 'manager' | 'user' | ''
-type LocalUser = { id: number; nickname: string; role: Role; access_token: string }
+type LocalUser = { id: number; nickname: string; role: Role }
 
 const getLocalUser = (): LocalUser | null => {
   if (typeof window === 'undefined') return null
@@ -92,10 +92,8 @@ function WriteForm() {
 
       const res  = await fetch(url, {
         method,
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localUser.access_token}`,
-        },
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           title,
           content,

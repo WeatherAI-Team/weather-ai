@@ -32,10 +32,6 @@ type Post = {
   created_at: string
 }
 
-const getToken = (): string => {
-  try { return JSON.parse(localStorage.getItem('user') ?? 'null')?.access_token ?? '' } catch { return '' }
-}
-
 export default function InfoBoardPage() {
   useEffect(() => { document.title = 'Weather AI - 정보게시판' }, [])
   const pathname = usePathname()
@@ -51,7 +47,7 @@ export default function InfoBoardPage() {
   const fetchPosts = async () => {
     try {
       const res = await fetch(`${API}/api/board/admin/posts?board_type=INFO,NOTICE&per_page=200`, {
-        headers: { Authorization: `Bearer ${getToken()}` },
+        credentials: 'include',
       })
       const data = await res.json()
       if (data.success) setPosts(data.posts)
@@ -69,7 +65,7 @@ export default function InfoBoardPage() {
   const handleToggleActive = async (id: number) => {
     const res = await fetch(`${API}/api/board/admin/posts/${id}/toggle-active`, {
       method: 'PATCH',
-      headers: { Authorization: `Bearer ${getToken()}` },
+      credentials: 'include',
     })
     const data = await res.json()
     if (data.success) {
@@ -82,7 +78,7 @@ export default function InfoBoardPage() {
   const handleTogglePinned = async (id: number) => {
     const res = await fetch(`${API}/api/board/admin/posts/${id}/toggle-pinned`, {
       method: 'PATCH',
-      headers: { Authorization: `Bearer ${getToken()}` },
+      credentials: 'include',
     })
     const data = await res.json()
     if (data.success) {
@@ -96,7 +92,8 @@ export default function InfoBoardPage() {
     if (!selectedPost) return
     const res = await fetch(`${API}/api/board/posts/${selectedPost.id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify({
         title: selectedPost.title,
         content: selectedPost.content,

@@ -415,37 +415,6 @@ export default function AiPage() {
   useEffect(() => {
     document.title = "Weather AI - AI 탐지";
   }, []);
-  const getAuthToken = () => {
-    const directToken =
-      localStorage.getItem("access_token") ||
-      localStorage.getItem("token") ||
-      localStorage.getItem("accessToken") ||
-      localStorage.getItem("authToken");
-
-    if (directToken) return directToken;
-
-    const getTokenFromJson = (key: string) => {
-      try {
-        const obj = JSON.parse(localStorage.getItem(key) || "null");
-
-        return (
-          obj?.access_token ||
-          obj?.accessToken ||
-          obj?.token ||
-          obj?.authToken ||
-          obj?.jwt ||
-          obj?.data?.access_token ||
-          obj?.data?.accessToken ||
-          obj?.data?.token ||
-          null
-        );
-      } catch {
-        return null;
-      }
-    };
-
-    return getTokenFromJson("loginUser") || getTokenFromJson("user");
-  };
   const [tab, setTab] = useState<TabType>("cctv");
   const [selectedCctv, setSelectedCctv] = useState<number | null>(null);
   const [cctvList, setCctvList] = useState<CctvItem[]>([]);
@@ -462,24 +431,12 @@ export default function AiPage() {
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    const token = getAuthToken();
-
-    console.log("[Auth token exists]", !!token);
-
-    if (!token) {
-      setIsAdmin(false);
-      return;
-    }
-
     try {
-      const payload = JSON.parse(atob(token.split(".")[1]));
-
-      console.log("[Auth payload]", payload);
-
-      setIsAdmin(payload.role === "admin");
-    } catch (e) {
-      console.error("토큰 role 확인 실패:", e);
-      setIsAdmin(false);
+      const userStr = localStorage.getItem('user') || localStorage.getItem('loginUser')
+      const user = userStr ? JSON.parse(userStr) : null
+      setIsAdmin(user?.role === 'admin')
+    } catch {
+      setIsAdmin(false)
     }
   }, []);
 
@@ -511,21 +468,16 @@ export default function AiPage() {
     if (tab !== "cctv") return;
 
     const fetchCctvGate = async () => {
-      const token = getAuthToken();
-
       console.log("[CCTV Gate] isAdmin:", isAdmin);
-      console.log("[CCTV Gate] token exists:", !!token);
 
-      if (!token || !isAdmin) {
+      if (!isAdmin) {
         setCctvGate(null);
         return;
       }
 
       try {
         const res = await fetch(`${BACKEND_URL}/api/cctv/gate`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          credentials: 'include',
         });
 
         console.log("[CCTV Gate status]", res.status);
