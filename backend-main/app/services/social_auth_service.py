@@ -162,7 +162,8 @@ class SocialAuthService:
             # 5. JWT 발급
             # sub에는 사용자 PK를 문자열로 넣음
             access_token = create_access_token({
-                "sub": str(member.id)
+                "sub": str(member.id),
+                "role": str(member.role),
             })
 
             # 6. 로그인 성공 응답 반환

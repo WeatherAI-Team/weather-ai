@@ -16,18 +16,30 @@ import os
 
 
 # 로그인할 때 토큰을 만들었던 SECRET_KEY와 같아야 해.
-SECRET_KEY = os.getenv("SECRET_KEY", "your-fallback-secret-key")
+SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key")
 
 # 프론트엔드와 약속한 쿠키 이름을 적어줘. (기본값으로 많이 쓰는 "access_token" 설정)
 COOKIE_NAME = "access_token"
 
+def get_auth_token():
+    # 1순위: 쿠키에서 토큰 확인
+    token = request.cookies.get(COOKIE_NAME)
+    if token:
+        return token
+
+    # 2순위: Authorization 헤더에서 토큰 확인
+    auth_header = request.headers.get("Authorization", "")
+    if auth_header.startswith("Bearer "):
+        return auth_header.split(" ", 1)[1]
+
+    return None
 
 def login_required(f):
     # 로그인한 사용자만 API를 사용할 수 있게 막아주는 함수야.
     @wraps(f)
     def decorated(*args, **kwargs):
         # [수정] 요청 헤더 대신 브라우저 쿠키에서 토큰을 가져와.
-        auth_token = request.cookies.get(COOKIE_NAME)
+        auth_token = get_auth_token()
 
         # 토큰이 없으면 로그인하지 않은 상태야.
         if not auth_token:
@@ -101,7 +113,7 @@ def admin_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
         # [수정] 요청 헤더 대신 브라우저 쿠키에서 토큰을 가져와.
-        auth_token = request.cookies.get(COOKIE_NAME)
+        auth_token = get_auth_token()
 
         # 토큰이 없으면 로그인하지 않은 상태야.
         if not auth_token:
