@@ -9,6 +9,7 @@ import secrets
 from datetime import datetime, timedelta
 from .mail_service import send_password_reset_email
 
+PASSWORD_RESET_TOKEN_MINUTES = int(os.getenv("PASSWORD_RESET_TOKEN_MINUTES", "15"))
 class MemberService:
     def __init__(self):
         self.member_repo = MemberRepository()
@@ -199,7 +200,7 @@ class MemberService:
         token = secrets.token_urlsafe(32)
 
         # 15분 뒤 만료
-        expires_at = datetime.now() + timedelta(minutes=15)
+        expires_at = datetime.utcnow() + timedelta(minutes=PASSWORD_RESET_TOKEN_MINUTES)
 
         self.member_repo.update_password_reset_token(
             member=member,

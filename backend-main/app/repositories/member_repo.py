@@ -142,9 +142,8 @@ class MemberRepository:
 
      # 10. 회원 탈퇴 처리 - 실제 삭제 없이 비활성화
     def deactivate_member(self, member):
-        # 회원을 실제로 삭제하지 않고 비활성화 처리해.
-        print("DEBUG 탈퇴 처리 함수 들어옴")
-        print("DEBUG 탈퇴 전 deleted_at:", member.deleted_at)
+        # 회원을 실제로 삭제하지 않고 비활성화 처리
+
         member.active = False
 
         # 탈퇴한 시간을 deleted_at에 저장해.

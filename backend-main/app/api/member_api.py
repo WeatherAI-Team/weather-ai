@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
 from ..services.member_service import MemberService
+from jose.exceptions import ExpiredSignatureError, JWTError
 from functools import wraps
 from jose import jwt
 import os
@@ -14,16 +15,38 @@ member_service = MemberService()
 def login_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
-        token = request.headers.get('Authorization')
+        token = request.headers.get("Authorization")
+
         if not token:
             return jsonify({"success": False, "message": "토큰이 없습니다."}), 401
+
         try:
             auth_token = token.split(" ")[1] if " " in token else token
-            payload = jwt.decode(auth_token, SECRET_KEY, algorithms=["HS256"])
-            request.user_id = payload.get("sub")
-        except:
+
+            payload = jwt.decode(
+                auth_token,
+                SECRET_KEY,
+                algorithms=["HS256"]
+            )
+
+            user_id = payload.get("sub")
+            if not user_id:
+                return jsonify({"success": False, "message": "유효하지 않은 토큰입니다."}), 401
+
+            request.user_id = int(user_id)
+            request.user_role = payload.get("role", "user")
+
+        except ExpiredSignatureError:
+            return jsonify({"success": False, "message": "토큰이 만료되었습니다."}), 401
+
+        except JWTError:
             return jsonify({"success": False, "message": "유효하지 않은 토큰입니다."}), 401
+
+        except ValueError:
+            return jsonify({"success": False, "message": "유효하지 않은 사용자 정보입니다."}), 401
+
         return f(*args, **kwargs)
+
     return decorated
 
 @member_bp.route('/register', methods=['POST'])
@@ -36,7 +59,6 @@ def register():
             "message": "회원가입 정보를 입력해주세요."
         }), 400
     
-    print(f"DEBUG: 프론트에서 온 데이터 -> {data}")  # <--- 이 줄만 추가!
     result = member_service.register_member(data)
     
     if result["success"]:
@@ -63,11 +85,19 @@ def login():
 
 # GET http://localhost:5000/api/member/1
 @member_bp.route('/<int:member_id>', methods=['GET'])
+@login_required
 def get_profile(member_id):
+    if request.user_id != member_id and request.user_role not in ("admin", "manager"):
+        return jsonify({
+            "success": False,
+            "message": "본인 정보만 조회할 수 있습니다."
+        }), 403
+
     result = member_service.get_member_info(member_id)
-    
+
     if result["success"]:
         return jsonify(result), 200
+
     return jsonify(result), 404
 
 @member_bp.route("/me", methods=["GET"])

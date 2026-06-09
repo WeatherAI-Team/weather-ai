@@ -9,8 +9,60 @@ from app.services.hybrid_alert_service import run_hybrid_detection_flow
 from app.services.ai_detection_save_service import save_ai_detection_result
 from app.services.ai_service import analyze_video
 from app import db
+import os
+from functools import wraps
+from jose import jwt
+from jose.exceptions import ExpiredSignatureError, JWTError
+
 # 탐지 결과 기능을 처리하는 Service를 가져와.
 from ..services.detection_service import DetectionService
+
+
+SECRET_KEY = os.getenv("SECRET_KEY", "your-fallback-secret-key")
+
+
+def admin_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = request.headers.get("Authorization")
+
+        if not token:
+            return jsonify({"success": False, "message": "토큰이 없습니다."}), 401
+
+        try:
+            auth_token = token.split(" ")[1] if " " in token else token
+
+            payload = jwt.decode(
+                auth_token,
+                SECRET_KEY,
+                algorithms=["HS256"]
+            )
+
+            user_id = payload.get("sub")
+            user_role = payload.get("role", "user")
+            current_app.logger.info(f"[AUTH] role={user_role}")
+
+            if not user_id:
+                return jsonify({"success": False, "message": "유효하지 않은 토큰입니다."}), 401
+
+            if user_role not in ("admin", "manager"):
+                return jsonify({"success": False, "message": "관리자 권한이 필요합니다."}), 403
+
+            request.user_id = int(user_id)
+            request.user_role = user_role
+
+        except ExpiredSignatureError:
+            return jsonify({"success": False, "message": "토큰이 만료되었습니다."}), 401
+
+        except JWTError:
+            return jsonify({"success": False, "message": "유효하지 않은 토큰입니다."}), 401
+
+        except ValueError:
+            return jsonify({"success": False, "message": "유효하지 않은 사용자 정보입니다."}), 401
+
+        return f(*args, **kwargs)
+
+    return decorated
 
 # detection API 묶음을 만들어.
 # 이 파일의 API 주소는 /api/detections 로 시작해.
@@ -22,6 +74,7 @@ detection_service = DetectionService()
 
 
 @detection_bp.route("", methods=["GET"])
+@admin_required
 def get_detections():
     # 이 함수는 GET /api/detections 요청이 들어오면 실행돼.
     # 예: /api/detections?risk_level=high
@@ -94,6 +147,7 @@ def get_detections():
     }), 200
 
 @detection_bp.route("/analyze", methods=["POST"])
+@admin_required
 def analyze_detection():
     try:
         from app.services.weather_service import is_dangerous
@@ -315,10 +369,18 @@ def analyze_detection():
             "message": "탐지 분석 처리 중 오류가 발생했습니다.",
         }), 500
 
+
 @detection_bp.route("/save-result", methods=["POST"])
+@admin_required
 def save_detection_result():
     try:
-        data = request.get_json() or {}
+        data = request.get_json(silent=True)
+
+        if not data:
+            return jsonify({
+                "success": False,
+                "message": "저장할 탐지 결과가 없습니다.",
+            }), 400
 
         result = save_ai_detection_result(data)
 
@@ -326,7 +388,14 @@ def save_detection_result():
             "success": True,
             "message": "AI 탐지 결과 저장 성공",
             "data": result,
-        }), 200
+        }), 201
+
+    except ValueError as e:
+        db.session.rollback()
+        return jsonify({
+            "success": False,
+            "message": str(e),
+        }), 400
 
     except Exception:
         db.session.rollback()
@@ -338,6 +407,7 @@ def save_detection_result():
         }), 500
         
 @detection_bp.route("/<int:detection_id>", methods=["GET"])
+@admin_required
 def get_detection_detail(detection_id):
     # 이 함수는 GET /api/detections/<id> 요청이 들어오면 실행돼.
     # 예: /api/detections/1 로 접속하면 detection_id에는 1이 들어와.

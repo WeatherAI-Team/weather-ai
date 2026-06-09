@@ -1,11 +1,61 @@
 # app/services/ai_detection_save_service.py
 
 from datetime import datetime, timezone, timedelta 
-
+import os
 from app.services.detection_event_save_service import save_detection_event_result
 from app.services.gemma_service import generate_final_alert
 from app.services.alert_save_service import save_alert_to_db
 
+YOLO_CONF_THRESHOLD = float(os.getenv("YOLO_CONF_THRESHOLD", "0.65"))
+
+ALLOWED_WEATHER_TYPES = {
+    "HEAVY_RAIN",
+    "HEAVY_SNOW",
+    "RAIN",
+    "SNOW",
+    "FOG",
+    "CLEAR",
+    "UNKNOWN",
+}
+
+def _to_int_or_none(value, field_name: str):
+    if value is None or value == "":
+        return None
+
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        raise ValueError(f"{field_name} 값이 올바르지 않습니다.")
+
+
+def _to_float_or_none(value, field_name: str):
+    if value is None or value == "":
+        return None
+
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        raise ValueError(f"{field_name} 값이 올바르지 않습니다.")
+
+
+def _validate_ai_result(ai_result):
+    if not isinstance(ai_result, dict):
+        raise ValueError("ai_result 형식이 올바르지 않습니다.")
+
+    yolo_boxes = ai_result.get("yolo_boxes", [])
+
+    if yolo_boxes is None:
+        yolo_boxes = []
+
+    if not isinstance(yolo_boxes, list):
+        raise ValueError("yolo_boxes 형식이 올바르지 않습니다.")
+
+    weather_type = _normalize_weather_type(ai_result.get("weather"))
+
+    if weather_type not in ALLOWED_WEATHER_TYPES:
+        raise ValueError("weather 값이 올바르지 않습니다.")
+
+    return yolo_boxes
 
 # 한국 시간은 UTC보다 9시간 빨라.
 KST = timezone(timedelta(hours=9))
@@ -22,6 +72,7 @@ DANGEROUS_VEHICLE_LABELS = {
     "Gas_Truck",
     "gas_truck",
     "RMC",
+    "rmc",
 }
 
 VEHICLE_NAME_MAP = {
@@ -47,6 +98,7 @@ WEATHER_NAME_MAP = {
     "FOG": "안개",
     "CLEAR": "맑음",
 }
+
 
 def _normalize_weather_type(weather: str | None) -> str:
     if not weather:
@@ -92,6 +144,9 @@ def _normalize_yolo_result(ai_result: dict) -> dict:
     objects = []
 
     for box in yolo_boxes:
+        if not isinstance(box, dict):
+            continue
+
         label = (
             box.get("class_name")
             or box.get("label")
@@ -100,8 +155,12 @@ def _normalize_yolo_result(ai_result: dict) -> dict:
         )
 
         confidence = _to_ratio(box.get("confidence"))
-
         vehicle_name = VEHICLE_NAME_MAP.get(label, label)
+
+        is_dangerous = (
+            label in DANGEROUS_VEHICLE_LABELS
+            and confidence >= YOLO_CONF_THRESHOLD
+        )
 
         obj = {
             "label": label,
@@ -109,7 +168,7 @@ def _normalize_yolo_result(ai_result: dict) -> dict:
             "vehicle_name": vehicle_name,
             "confidence": confidence,
             "bbox": box.get("box_coords") or box.get("bbox"),
-            "dangerous": label in DANGEROUS_VEHICLE_LABELS,
+            "dangerous": is_dangerous,
         }
 
         objects.append(obj)
@@ -355,18 +414,23 @@ def _generate_final_alert_with_gemma_or_fallback(
         return _build_final_alert(ai_result, risk_result, yolo_result)
 
 def save_ai_detection_result(data: dict) -> dict:
-    ai_result = data.get("ai_result") or {}
+    if not isinstance(data, dict):
+        raise ValueError("요청 데이터 형식이 올바르지 않습니다.")
+
+    ai_result = data.get("ai_result")
+
+    _validate_ai_result(ai_result)
 
     # 중요:
     # cctv_source_id는 실제 cctv_sources.id일 때만 넣어야 한다.
     # 프론트의 selectedCctv + 1은 DB FK와 맞지 않을 수 있으므로 기본은 None 권장.
-    cctv_source_id = data.get("cctv_source_id")
-    weather_log_id = data.get("weather_log_id")
+    cctv_source_id = _to_int_or_none(data.get("cctv_source_id"), "cctv_source_id")
+    weather_log_id = _to_int_or_none(data.get("weather_log_id"), "weather_log_id")
     image_url = data.get("image_url")
 
     location_name = data.get("cctv_name")
-    latitude = data.get("latitude")
-    longitude = data.get("longitude")
+    latitude = _to_float_or_none(data.get("latitude"), "latitude")
+    longitude = _to_float_or_none(data.get("longitude"), "longitude")
 
     weather = ai_result.get("weather") or "UNKNOWN"
     weather_type = _normalize_weather_type(weather)
@@ -375,6 +439,7 @@ def save_ai_detection_result(data: dict) -> dict:
     yolo_result = _normalize_yolo_result(ai_result)
     weather_alerts = _build_weather_alerts(ai_result, cctv_source_id)
     risk_result = _build_risk_result(ai_result, yolo_result)
+
     final_alert = _generate_final_alert_with_gemma_or_fallback(
         ai_result=ai_result,
         weather_type=weather_type,
@@ -429,13 +494,16 @@ def _pick_representative_vehicle(ai_result: dict) -> str:
     grouped = {}
 
     for box in boxes:
+        if not isinstance(box, dict):
+            continue
+
         class_name = (
             box.get("class_name")
             or box.get("label")
             or "UNKNOWN"
         )
 
-        confidence = float(box.get("confidence") or 0)
+        confidence = _to_ratio(box.get("confidence"))
 
         if class_name not in grouped:
             grouped[class_name] = {
@@ -453,6 +521,9 @@ def _pick_representative_vehicle(ai_result: dict) -> str:
 
     # 1순위: 많이 나온 차종
     # 2순위: 최고 신뢰도 높은 차종
+    if not grouped:
+        return "UNKNOWN"
+
     representative = max(
         grouped.items(),
         key=lambda item: (
