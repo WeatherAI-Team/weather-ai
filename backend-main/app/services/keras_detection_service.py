@@ -5,7 +5,7 @@ import requests
 from dotenv import load_dotenv
 
 
-load_dotenv()
+load_dotenv(os.path.join(os.path.dirname(__file__), '../../.env'))
 
 # backend-ai FastAPI 서버 주소.
 # 같은 서버에서 실행 중이면 127.0.0.1:8000 사용 가능.

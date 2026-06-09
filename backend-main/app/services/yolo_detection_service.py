@@ -3,7 +3,7 @@ import requests
 from dotenv import load_dotenv
 
 
-load_dotenv()
+load_dotenv(os.path.join(os.path.dirname(__file__), '../../.env'))
 
 
 AI_SERVER_URL = os.getenv("AI_SERVER_URL", "http://127.0.0.1:8000")

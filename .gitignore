@@ -53,3 +53,6 @@ Thumbs.db
 *.avi
 *.mkv
 *.mov
+
+# 로그
+*.log
