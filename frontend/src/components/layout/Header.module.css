@@ -59,6 +59,72 @@
   background:var(--secondary);
   border-radius:2px;
 }
+/* 게시판 드롭다운 */
+.boardMenu {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+/* navLink 아래쪽 틈을 채워 hover가 끊기지 않게 하는 투명 브릿지 */
+.boardMenu::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: -16px;
+  right: -16px;
+  height: 10px;
+  background: transparent;
+}
+.boardArrow {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  transition: transform 0.2s;
+}
+.boardMenu:hover .boardArrow {
+  transform: rotate(180deg);
+}
+.boardDropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: white;
+  border-radius: 12px;
+  border: 1.5px solid var(--border);
+  box-shadow: var(--shadow-lg);
+  min-width: 120px;
+  overflow: hidden;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+  transform: translateX(-50%) translateY(-6px);
+  z-index: 200;
+}
+.boardMenu:hover .boardDropdown {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateX(-50%) translateY(0);
+}
+.boardDropdownItem {
+  display: block;
+  padding: 10px 18px;
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+.boardDropdownItem:hover {
+  background: rgba(7, 85, 157, 0.06);
+  color: var(--primary);
+}
+.boardDropdownItem + .boardDropdownItem {
+  border-top: 1px solid var(--border);
+}
+
 .adminLink { color:var(--primary) !important; }
 .adminBadge {
   font-size:0.6rem; font-weight:700;
