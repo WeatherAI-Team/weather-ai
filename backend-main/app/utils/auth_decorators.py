@@ -1,4 +1,4 @@
-# 요청에서 Authorization 헤더를 꺼내기 위해 request를 가져와.
+# 요청에서 쿠키나 정보를 가져오기 위해 request를 가져와.
 # 응답을 JSON으로 보내기 위해 jsonify를 가져와.
 from flask import request, jsonify
 
@@ -18,25 +18,26 @@ import os
 # 로그인할 때 토큰을 만들었던 SECRET_KEY와 같아야 해.
 SECRET_KEY = os.getenv("SECRET_KEY", "your-fallback-secret-key")
 
+# 프론트엔드와 약속한 쿠키 이름을 적어줘. (기본값으로 많이 쓰는 "access_token" 설정)
+COOKIE_NAME = "access_token"
+
 
 def login_required(f):
     # 로그인한 사용자만 API를 사용할 수 있게 막아주는 함수야.
     @wraps(f)
     def decorated(*args, **kwargs):
-        # 요청 헤더에서 Authorization 값을 가져와.
-        token = request.headers.get("Authorization")
+        # [수정] 요청 헤더 대신 브라우저 쿠키에서 토큰을 가져와.
+        auth_token = request.cookies.get(COOKIE_NAME)
 
         # 토큰이 없으면 로그인하지 않은 상태야.
-        if not token:
+        if not auth_token:
             return jsonify({
                 "success": False,
                 "message": "토큰이 없습니다."
             }), 401
 
         try:
-            # 토큰이 "Bearer 토큰값" 형태면 실제 토큰값만 꺼내.
-            auth_token = token.split(" ")[1] if " " in token else token
-
+            # [수정] 쿠키 방식을 쓸 때는 보통 "Bearer " 접두사 없이 토큰값만 들어있으므로 split 과정이 필요 없어.
             # JWT 토큰을 해석해.
             # JWT 기본 만료 시간 검증을 그대로 사용해.
             payload = jwt.decode(
@@ -86,20 +87,17 @@ def admin_required(f):
     # 관리자만 API를 사용할 수 있게 막아주는 함수야.
     @wraps(f)
     def decorated(*args, **kwargs):
-        # 요청 헤더에서 Authorization 값을 가져와.
-        token = request.headers.get("Authorization")
+        # [수정] 요청 헤더 대신 브라우저 쿠키에서 토큰을 가져와.
+        auth_token = request.cookies.get(COOKIE_NAME)
 
         # 토큰이 없으면 로그인하지 않은 상태야.
-        if not token:
+        if not auth_token:
             return jsonify({
                 "success": False,
                 "message": "토큰이 없습니다."
             }), 401
 
         try:
-            # 토큰이 "Bearer 토큰값" 형태면 실제 토큰값만 꺼내.
-            auth_token = token.split(" ")[1] if " " in token else token
-
             # JWT 토큰을 해석해.
             # 만료된 토큰은 자동으로 차단돼.
             payload = jwt.decode(
