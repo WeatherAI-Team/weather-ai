@@ -23,6 +23,31 @@
 
 .main { max-width: 1200px; margin: 0 auto; padding: 30px 24px; }
 
+/* 그룹 탭 */
+.groupTabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 0;
+}
+.groupTab {
+  padding: 8px 20px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #8aadcc;
+  background: #f5f9ff;
+  border: 1.5px solid rgba(7,85,157,0.12);
+  border-bottom: none;
+  border-radius: 10px 10px 0 0;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.groupTab:hover { color: #07559d; }
+.groupTabActive {
+  color: #07559d;
+  background: white;
+  border-color: rgba(7,85,157,0.2);
+}
+
 /* 탭 */
 .tabs {
   display: flex;
@@ -101,8 +126,8 @@
 }
 .listHeader {
   display: grid;
-  grid-template-columns: 50px 80px 1fr 90px 100px 60px 70px;
-  gap: 16px;
+  grid-template-columns: 50px 80px 1fr 90px 100px 50px 60px;
+  gap: 8px;
   padding: 10px 20px;
   background: #f5f9ff;
   border-bottom: 1.5px solid rgba(7,85,157,0.12);
@@ -114,8 +139,8 @@
 
 .postRow {
   display: grid;
-  grid-template-columns: 50px 80px 1fr 90px 100px 60px 70px;
-  gap: 16px; align-items: center;
+  grid-template-columns: 50px 80px 1fr 90px 100px 50px 60px;
+  gap: 8px; align-items: center;
   padding: 14px 20px;
   border-bottom: 1px solid rgba(7,85,157,0.08);
   text-decoration: none;
@@ -130,9 +155,108 @@
   padding: 3px 10px; border-radius: 999px;
   font-size: 0.72rem; font-weight: 700; text-align: center;
 }
-.categoryNotice { background: #e8f0ff; color: #3b5bdb; }
+.categoryNotice  { background: #e8f0ff; color: #3b5bdb; }
 .categoryInfo    { background: #e8fff4; color: #2b8a3e; }
 .categorySuggest { background: #f8e8ff; color: #7c3aed; }
+.categoryBug     { background: #fff0f0; color: #e43b3b; }
+.categoryData    { background: #fff8e8; color: #d97706; }
+
+/* 필터 버튼 행 */
+.filterRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.filterBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 16px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: #5a85a8;
+  background: white;
+  border: 1.5px solid rgba(7,85,157,0.15);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.filterBtn:hover { border-color: #1b9bd1; color: #07559d; }
+.filterBtnActive {
+  background: #07559d;
+  color: white;
+  border-color: #07559d;
+}
+.filterBtnActive:hover { color: white; }
+.filterCount {
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: rgba(255,255,255,0.25);
+  border-radius: 999px;
+  padding: 0 6px;
+  min-width: 18px;
+  text-align: center;
+}
+.filterBtnActive .filterCount { background: rgba(255,255,255,0.3); }
+
+/* 버그 목록 그리드 — 6열: 번호|제목|작성자|날짜|조회|상태 */
+.listHeaderBug {
+  grid-template-columns: 50px 1fr 90px 100px 70px 110px !important;
+}
+/* 전역 nth-child(3)=left, last-child=right 규칙을 버그 헤더에서 재정의 */
+.listHeaderBug span:nth-child(2) { text-align: left; }
+.listHeaderBug span:nth-child(3) { text-align: center; }
+.listHeaderBug span:last-child   { text-align: center; }
+
+.postRowBug {
+  grid-template-columns: 50px 1fr 90px 100px 70px 110px !important;
+}
+
+/* 자료 목록 그리드 — 6열: 번호|제목|작성자|날짜|첨부|조회 */
+.listHeaderData {
+  grid-template-columns: 50px 1fr 90px 100px 60px 70px !important;
+}
+.listHeaderData span:nth-child(2) { text-align: left; }
+.listHeaderData span:nth-child(3) { text-align: center; }
+
+.postRowData {
+  grid-template-columns: 50px 1fr 90px 100px 60px 70px !important;
+}
+.postTitleLink {
+  font-size: 0.9rem;
+  color: #20436d;
+  font-weight: 500;
+  text-decoration: none;
+  word-break: keep-all;
+}
+.postTitleLink:hover { color: #07559d; text-decoration: underline; }
+
+/* 상태 셀 */
+.statusCell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.statusBadge {
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+.statusSelect {
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border: 1.5px solid;
+  cursor: pointer;
+  outline: none;
+}
+.status_pending     { background: #fff0f0; color: #e43b3b; border-color: #fca5a5; }
+.status_in_progress { background: #fff8e8; color: #d97706; border-color: #fcd34d; }
+.status_done        { background: #e8fff4; color: #2b8a3e; border-color: #86efac; }
 
 .postTitle {
   font-size: 0.9rem; color: #20436d; font-weight: 500;
@@ -141,7 +265,7 @@
 }
 .pin { font-size: 0.8rem; }
 .postNum    { font-size: 0.8rem;  color: #8aadcc; text-align: center; }
-.author     { font-size: 0.82rem; color: #5a85a8; text-align: center; }
+.author     { font-size: 0.82rem; color: #5a85a8; text-align: center; display: flex; align-items: center; justify-content: center; }
 .date       { font-size: 0.8rem;  color: #5a85a8; text-align: center; }
 .commentCol { font-size: 0.8rem;  color: #5a85a8; text-align: center; }
 .views      { font-size: 0.8rem;  color: #5a85a8; text-align: right; }
@@ -183,6 +307,13 @@
   .listHeader span:nth-child(6),
   .listHeader span:nth-child(7) { display: none; }
   .search { width: 140px; }
+  .groupTabs { gap: 4px; }
+  .groupTab { padding: 6px 12px; font-size: 0.78rem; }
+  .filterRow { gap: 6px; }
+  .filterBtn { padding: 5px 10px; font-size: 0.78rem; }
+  .listHeaderBug, .listHeaderData { grid-template-columns: 1fr 80px !important; }
+  .listHeaderBug span:not(:nth-child(2)):not(:nth-child(6)) { display: none; }
+  .listHeaderData span:not(:nth-child(2)):not(:nth-child(5)) { display: none; }
 }
 
 /* 로그인 안내 모달 */

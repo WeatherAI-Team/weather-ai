@@ -53,7 +53,10 @@ export default function UsersPage() {
       setError(null)
       const query = new URLSearchParams({ per_page: '100' })
       if (keyword) query.append('keyword', keyword)
-      const res = await fetch(`${API_URL}/api/admin/members?${query}`)
+      const token = JSON.parse(localStorage.getItem('user') ?? 'null')?.access_token ?? ''
+      const res = await fetch(`${API_URL}/api/admin/members?${query}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
       const json = await res.json()
       if (json.success) {
         setUsers(json.data.members)
@@ -112,7 +115,7 @@ export default function UsersPage() {
             </Link>
           ))}
           <button className={`${styles.sideItem} ${styles.sideDropBtn}`} onClick={() => setBoardOpen(!boardOpen)}>
-            <span className={styles.sideIcon}>📝</span>게시글
+            <span className={styles.sideIcon}>📝</span>게시글 관리
             <span className={`${styles.arrow} ${boardOpen ? styles.arrowOpen : ''}`}>▾</span>
           </button>
           {boardOpen && (

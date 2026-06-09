@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from ..services.admin_member_service import AdminMemberService
-
+from app.utils.auth_decorators import admin_required
 
 # 관리자 사용자 조회 전용 Blueprint
 admin_member_bp = Blueprint("admin_member", __name__)
@@ -16,6 +16,7 @@ admin_member_service = AdminMemberService()
 # GET /api/admin/members?role=user
 # GET /api/admin/members?active=true
 @admin_member_bp.route("", methods=["GET"])
+@admin_required
 def get_members():
     # 주소에서 page 값을 가져와.
     # 없으면 기본값 1을 사용해.
@@ -56,6 +57,7 @@ def get_members():
 # f-006 관리자 사용자 상세 조회
 # GET /api/admin/members/1
 @admin_member_bp.route("/<int:member_id>", methods=["GET"])
+@admin_required
 def get_member_detail(member_id):
     # 서비스에게 해당 id의 사용자 정보를 가져오라고 요청해.
     result = admin_member_service.get_member_detail(member_id)
