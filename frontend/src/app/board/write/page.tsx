@@ -14,17 +14,21 @@ const getLocalUser = (): LocalUser | null => {
 const TAB_TO_TYPE: Record<string, string> = {
   suggest: 'FREE',
   info:    'INFO',
+  bug:     'BUG',
+  data:    'DATA',
 }
 const TAB_LABEL: Record<string, string> = {
   suggest: '건의게시판',
   info:    '정보게시판',
+  bug:     '버그게시판',
+  data:    '자료게시판',
 }
 
 function WriteForm() {
   useEffect(() => { document.title = 'Weather AI - 글쓰기' }, [])
   const router       = useRouter()
   const searchParams = useSearchParams()
-  const tab          = (searchParams.get('tab') || 'suggest') as 'info' | 'suggest'
+  const tab          = (searchParams.get('tab') || 'suggest') as 'info' | 'suggest' | 'bug' | 'data'
   const editId       = searchParams.get('edit')
 
   const [localUser, setLocalUser]   = useState<LocalUser | null>(null)

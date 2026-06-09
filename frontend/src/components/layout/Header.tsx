@@ -68,7 +68,15 @@ export default function Header() {
         <nav className={styles.nav}>
           <Link href="/intro" className={`${styles.navLink} ${pathname?.startsWith("/intro") ? styles.active : ""}`}>소개</Link>
           <Link href="/ai" className={`${styles.navLink} ${pathname?.startsWith("/ai") ? styles.active : ""}`}>CCTV 관제</Link>
-          <Link href="/board" className={`${styles.navLink} ${pathname?.startsWith("/board") ? styles.active : ""}`}>게시판</Link>
+          <div className={styles.boardMenu}>
+            <Link href="/board" className={`${styles.navLink} ${pathname?.startsWith("/board") ? styles.active : ""}`}>
+              게시판 <span className={styles.boardArrow}>▾</span>
+            </Link>
+            <div className={styles.boardDropdown}>
+              <Link href="/board?tab=info" className={styles.boardDropdownItem}>정보 &amp; 건의</Link>
+              <Link href="/board?tab=bug" className={styles.boardDropdownItem}>버그 &amp; 자료</Link>
+            </div>
+          </div>
 
           {/* 로그인 후 마이페이지, 로그아웃 네비에 바로 표시 */}
           {user && (
