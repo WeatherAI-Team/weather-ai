@@ -7,7 +7,7 @@ from flask import Blueprint, request, jsonify
 # 알림 기능을 처리하는 AlertService를 가져와.
 from ..services.alert_service import AlertService
 
-
+from app.utils.auth_decorators import admin_required
 # 관리자 알림 API 묶음을 만들어.
 # 이 파일의 API 주소는 /api/admin/alerts 로 시작해.
 alert_bp = Blueprint("alert", __name__, url_prefix="/api/admin/alerts")
@@ -18,6 +18,7 @@ alert_service = AlertService()
 
 
 @alert_bp.route("", methods=["GET"])
+@admin_required
 def get_admin_alerts():
     # 이 함수는 GET /api/admin/alerts 요청이 들어오면 실행돼.
     # 예: /api/admin/alerts?risk_level=high
@@ -79,6 +80,7 @@ def get_admin_alerts():
 
 # f-014 관리자 알림 위치 표시 API
 @alert_bp.route("/map", methods=["GET"])
+@admin_required
 def get_admin_alert_map_markers():
     # 이 함수는 GET /api/admin/alerts/map 요청이 들어오면 실행돼.
     # 쉽게 말하면 "지도에 찍을 알림 위치 목록을 주세요"라는 요청이야.
@@ -95,6 +97,7 @@ def get_admin_alert_map_markers():
 
 # f-013 지역별 알림 현황
 @alert_bp.route("/locations", methods=["GET"])
+@admin_required
 def get_admin_alert_location_summary():
     # 이 함수는 GET /api/admin/alerts/locations 요청이 들어오면 실행돼.
     # 쉽게 말하면 "지역별 알림 현황을 보여줘"라는 요청이야.
@@ -110,6 +113,7 @@ def get_admin_alert_location_summary():
     }), 200
 
 @alert_bp.route("/<int:alert_id>", methods=["GET"])
+@admin_required
 def get_admin_alert_detail(alert_id):
     # 이 함수는 GET /api/admin/alerts/<id> 요청이 들어오면 실행돼.
     # 예: /api/admin/alerts/1 로 접속하면 alert_id에는 1이 들어와.
