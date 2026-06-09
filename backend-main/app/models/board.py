@@ -21,9 +21,14 @@ class Board(db.Model):
     title      = db.Column(db.String(200), nullable=False)
     content    = db.Column(db.Text, nullable=False)
     board_type = db.Column(db.String(50), nullable=False, default="FREE")
+    bug_status = db.Column(db.String(20), nullable=False, default="pending")
+    
     # FREE  → 건의게시판 (일반 사용자)
     # INFO  → 정보게시판 (관리자 작성)
+    # BUG      → 버그게시판
+    # RESOURCE → 자료게시판
     # NOTICE→ 공지 (pinned=True 와 함께 사용)
+    
     view_count = db.Column(db.Integer, nullable=False, default=0)
     pinned     = db.Column(db.Boolean, nullable=False, default=False)
     active     = db.Column(db.Boolean, nullable=False, default=True)
@@ -63,3 +68,22 @@ class BoardComment(db.Model):
         lazy="dynamic",
         foreign_keys=[parent_id],
     )
+
+class BoardAttachment(db.Model):
+    __tablename__ = "board_attachments"
+
+    id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
+    board_id = db.Column(db.BigInteger, db.ForeignKey("boards.id", ondelete="CASCADE"), nullable=False)
+
+    original_filename = db.Column(db.String(255), nullable=False)
+    stored_filename = db.Column(db.String(255), nullable=False)
+    file_url = db.Column(db.Text, nullable=False)
+    file_path = db.Column(db.Text, nullable=False)
+    mime_type = db.Column(db.String(100), nullable=True)
+    file_size = db.Column(db.BigInteger, nullable=True)
+
+    active = db.Column(db.Boolean, nullable=False, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    deleted_at = db.Column(db.DateTime, nullable=True)
+
+    board = db.relationship("Board", backref=db.backref("attachments", lazy="dynamic"))

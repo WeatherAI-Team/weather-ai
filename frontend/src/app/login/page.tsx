@@ -10,7 +10,9 @@ import NaverLoginButton from "@/components/auth/NaverLoginButton";
 import GoogleLoginButton from "@/components/auth/GoogleLoginButton";
 
 export default function LoginPage() {
-  useEffect(() => { document.title = 'Weather AI - 로그인' }, [])
+  useEffect(() => {
+    document.title = "Weather AI - 로그인";
+  }, []);
   const [loginId, setLoginId] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
@@ -41,7 +43,8 @@ export default function LoginPage() {
         return;
       }
 
-      // ✅ access_token 제외하고 유저 정보만 저장 (토큰은 쿠키에 자동으로 있음)
+      // 백엔드는 access_token을 JSON으로 내려주므로 localStorage에 저장
+      localStorage.setItem("access_token", data.access_token);
       localStorage.setItem("user", JSON.stringify(data.data));
       localStorage.setItem("loginUser", JSON.stringify(data.data));
 
@@ -57,7 +60,12 @@ export default function LoginPage() {
       <section className={styles.loginCard}>
         <div className={styles.header}>
           <div className={styles.eyebrow}>
-            <Image src="/logo.png" alt="WeatherGuard AI 로고" width={120} height={63} />
+            <Image
+              src="/logo.png"
+              alt="WeatherGuard AI 로고"
+              width={120}
+              height={63}
+            />
           </div>
           <h1>로그인</h1>
           <p>로그인하고 다양한 서비스를 이용하세요.</p>

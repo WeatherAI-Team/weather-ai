@@ -9,7 +9,7 @@ board_repo.py  –  Repository 레이어 (DB 쿼리만)
 
 from sqlalchemy import or_
 from app import db
-from app.models.board import Board, BoardComment
+from app.models.board import Board, BoardComment, BoardAttachment
 from datetime import datetime
 
 
@@ -191,3 +191,74 @@ def get_comments_by_member(member_id, search: str, page: int, per_page: int):
     total = q.count()
     comments = q.order_by(BoardComment.created_at.desc()).offset((page - 1) * per_page).limit(per_page).all()
     return comments, total
+
+# ──────────────────────────────────────────────────────────────
+# BoardAttachment
+# ──────────────────────────────────────────────────────────────
+
+def create_attachment(
+    board_id: int,
+    original_filename: str,
+    stored_filename: str,
+    file_url: str,
+    file_path: str,
+    mime_type: str | None,
+    file_size: int | None,
+) -> BoardAttachment:
+    file = BoardAttachment(
+        board_id=board_id,
+        original_filename=original_filename,
+        stored_filename=stored_filename,
+        file_url=file_url,
+        file_path=file_path,
+        mime_type=mime_type,
+        file_size=file_size,
+    )
+    db.session.add(file)
+    db.session.commit()
+    return file
+
+
+def get_attachments_by_post(board_id: int) -> list[BoardAttachment]:
+    return (
+        BoardAttachment.query
+        .filter_by(board_id=board_id, active=True, deleted_at=None)
+        .order_by(BoardAttachment.created_at.asc())
+        .all()
+    )
+
+
+def get_attachment_by_id(attachment_id: int) -> BoardAttachment | None:
+    return (
+        BoardAttachment.query
+        .filter_by(id=attachment_id, active=True, deleted_at=None)
+        .first()
+    )
+
+
+def soft_delete_attachment(file: BoardAttachment) -> None:
+    file.active = False
+    file.deleted_at = datetime.utcnow()
+    db.session.commit()
+
+
+def soft_delete_attachments_by_post(board_id: int) -> None:
+    files = (
+        BoardAttachment.query
+        .filter_by(board_id=board_id, active=True, deleted_at=None)
+        .all()
+    )
+
+    now = datetime.utcnow()
+    for file in files:
+        file.active = False
+        file.deleted_at = now
+
+    db.session.commit()
+
+def update_bug_status(post: Board, status: str) -> Board:
+    """버그게시판 상태 변경"""
+    post.bug_status = status
+    post.updated_at = datetime.utcnow()
+    db.session.commit()
+    return post
