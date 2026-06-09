@@ -27,7 +27,7 @@ def login_required(f):
             return jsonify({"success": False, "message": "토큰이 없습니다."}), 401
         try:
             auth_token = token.split(" ")[1] if " " in token else token
-            payload = jwt.decode(auth_token, SECRET_KEY, algorithms=["HS256"])  # ✅ verify_exp 제거
+            payload = jwt.decode(auth_token, SECRET_KEY, algorithms=["HS256"], options={"verify_exp": False})
             request.user_id   = payload.get("sub")
             request.user_role = payload.get("role", "user")
         except Exception as e:
@@ -45,7 +45,7 @@ def admin_required(f):
             return jsonify({"success": False, "message": "토큰이 없습니다."}), 401
         try:
             auth_token = token.split(" ")[1] if " " in token else token
-            payload = jwt.decode(auth_token, SECRET_KEY, algorithms=["HS256"])  # ✅ verify_exp 제거
+            payload = jwt.decode(auth_token, SECRET_KEY, algorithms=["HS256"], options={"verify_exp": False})
             request.user_id   = payload.get("sub")
             request.user_role = payload.get("role", "user")
             if request.user_role not in ("admin", "manager"):
