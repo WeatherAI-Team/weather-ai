@@ -261,6 +261,30 @@ def analyze_video():
         current_app.logger.error(f"영상 분석 실패: {e}")
         return jsonify({"error": str(e)}), 500
 
+# ── CCTV Gemma Gate 상태 조회 관리자 전용 ─────────────────────────
+@cctv_bp.route("/cctv/gate", methods=["GET"])
+def cctv_gate():
+    _payload, error_response = _require_admin()
+
+    if error_response:
+        return error_response
+
+    try:
+        result = get_cctv_monitoring_gate()
+
+        return jsonify({
+            "success": True,
+            "data": result,
+        }), 200
+
+    except Exception as e:
+        current_app.logger.exception("CCTV Gate 판단 실패")
+
+        return jsonify({
+            "success": False,
+            "message": "CCTV Gate 판단 중 오류가 발생했습니다.",
+            "error": str(e),
+        }), 500
 
 # ── 세그먼트 경로 프록시 (레거시 호환) ──────────────────────────
 @cctv_bp.route("/cctv/<path:segment_path>", methods=["GET"])
@@ -305,27 +329,3 @@ def analyze_video_only():
         current_app.logger.error(f"영상 분석 실패: {e}")
         return jsonify({"error": str(e)}), 500
     
-# ── CCTV Gemma Gate 상태 조회 관리자 전용 ─────────────────────────
-@cctv_bp.route("/cctv/gate", methods=["GET"])
-def cctv_gate():
-    _payload, error_response = _require_admin()
-
-    if error_response:
-        return error_response
-
-    try:
-        result = get_cctv_monitoring_gate()
-
-        return jsonify({
-            "success": True,
-            "data": result,
-        }), 200
-
-    except Exception as e:
-        current_app.logger.exception("CCTV Gate 판단 실패")
-
-        return jsonify({
-            "success": False,
-            "message": "CCTV Gate 판단 중 오류가 발생했습니다.",
-            "error": str(e),
-        }), 500
