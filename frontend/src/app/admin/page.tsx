@@ -49,14 +49,6 @@ function eventTitle(e: Event) {
 const URGENT_LEVELS = ['HIGH', 'CRITICAL', 'DANGER']
 function isHighRisk(level: string | null) { return (level ?? '').toUpperCase() === 'DANGER' }
 
-function getToken(): string | null {
-  try {
-    const raw = localStorage.getItem('user')
-    if (raw) { const p = JSON.parse(raw); if (p?.access_token) return p.access_token }
-    return localStorage.getItem('access_token')
-  } catch { return null }
-}
-
 type Event = {
   id: number
   event_title: string
@@ -106,18 +98,13 @@ export default function ControlPage() {
   const [loading, setLoading]       = useState(true)
 
   useEffect(() => {
-    const token = getToken()
-    if (!token) { router.push('/login'); return }
-
-    const headers = { Authorization: `Bearer ${token}` }
-
     Promise.all([
-      fetch(`${API}/api/admin/dashboard/summary`, { headers }).then(r => r.json()),
-      fetch(`${API}/api/admin/members?per_page=1`, { headers }).then(r => r.json()),
-      fetch(`${API}/api/admin/dashboard/weekly`,   { headers }).then(r => r.json()),
-      fetch(`${API}/api/admin/notifications?per_page=1`, { headers }).then(r => r.json()),
-      fetch(`${API}/api/admin/notifications?per_page=1&status=READ`, { headers }).then(r => r.json()),
-      fetch(`${API}/api/admin/notifications?per_page=200`, { headers }).then(r => r.json()),
+      fetch(`${API}/api/admin/dashboard/summary`, { credentials: 'include' }).then(r => r.json()),
+      fetch(`${API}/api/admin/members?per_page=1`, { credentials: 'include' }).then(r => r.json()),
+      fetch(`${API}/api/admin/dashboard/weekly`,   { credentials: 'include' }).then(r => r.json()),
+      fetch(`${API}/api/admin/notifications?per_page=1`, { credentials: 'include' }).then(r => r.json()),
+      fetch(`${API}/api/admin/notifications?per_page=1&status=READ`, { credentials: 'include' }).then(r => r.json()),
+      fetch(`${API}/api/admin/notifications?per_page=200`, { credentials: 'include' }).then(r => r.json()),
     ]).then(([dash, members, weekly, allNotifs, readNotifs, recentNotifs]) => {
       if (dash.success)    setSummary(dash.data)
       if (members.success) setMemberCount(members.data?.pagination?.total ?? null)
@@ -186,7 +173,7 @@ export default function ControlPage() {
             onClick={() => setBoardOpen(!boardOpen)}
           >
             <span className={styles.sideIcon}>📝</span>
-            게시글
+            게시글 관리
             <span className={`${styles.arrow} ${boardOpen ? styles.arrowOpen : ''}`}>▾</span>
           </button>
           {boardOpen && (

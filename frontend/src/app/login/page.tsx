@@ -10,7 +10,9 @@ import NaverLoginButton from "@/components/auth/NaverLoginButton";
 import GoogleLoginButton from "@/components/auth/GoogleLoginButton";
 
 export default function LoginPage() {
-  useEffect(() => { document.title = 'Weather AI - 로그인' }, [])
+  useEffect(() => {
+    document.title = "Weather AI - 로그인";
+  }, []);
   const [loginId, setLoginId] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
@@ -41,10 +43,9 @@ export default function LoginPage() {
         return;
       }
 
-      localStorage.setItem("user", JSON.stringify({
-        ...data.data,
-        access_token: data.access_token,
-      }));
+      // 백엔드는 access_token을 JSON으로 내려주므로 localStorage에 저장
+      localStorage.setItem("access_token", data.access_token);
+      localStorage.setItem("user", JSON.stringify(data.data));
       localStorage.setItem("loginUser", JSON.stringify(data.data));
 
       window.location.href = "/";
@@ -59,7 +60,12 @@ export default function LoginPage() {
       <section className={styles.loginCard}>
         <div className={styles.header}>
           <div className={styles.eyebrow}>
-            <Image src="/logo.png" alt="WeatherGuard AI 로고" width={120} height={63} />
+            <Image
+              src="/logo.png"
+              alt="WeatherGuard AI 로고"
+              width={120}
+              height={63}
+            />
           </div>
           <h1>로그인</h1>
           <p>로그인하고 다양한 서비스를 이용하세요.</p>
@@ -94,7 +100,7 @@ export default function LoginPage() {
             로그인
           </button>
         </form>
-        
+
         <div className={styles.links}>
           <Link href="/find-id">아이디 찾기</Link>
           <span />

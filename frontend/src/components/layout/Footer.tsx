@@ -157,7 +157,7 @@ export default function Footer() {
                 <polyline points="14 2 14 8 20 8"/>
                 <path d="M9 13h1.5a1.5 1.5 0 010 3H9v-3zm0 3v2m4-5h2m-2 2h1.5"/>
               </svg>
-              발표 자료 (PDF)
+              Presentation(PDF)
             </a>
           </div>
         </div>
@@ -185,7 +185,7 @@ export default function Footer() {
             <div className={styles.stackGroup}>
               <span className={styles.stackLabel}>AI</span>
               <div className={styles.stackTags}>
-                {['FastAPI', 'YOLOv8', 'OpenCV'].map(t => (
+                {['FastAPI', 'YOLOv11', 'OpenCV'].map(t => (
                   <span key={t} className={styles.stackTag}>{t}</span>
                 ))}
               </div>

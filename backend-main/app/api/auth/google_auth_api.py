@@ -1,16 +1,15 @@
 import os
 import requests
-from flask import Blueprint, redirect, request, jsonify
+from flask import Blueprint, redirect, request, jsonify, make_response
 from urllib.parse import urlencode
 from dotenv import load_dotenv
 from app.services.social_auth_service import SocialAuthService
 
-
 load_dotenv()
 
 google_auth_bp = Blueprint("google_auth", __name__, url_prefix="/api/auth/google")
+domain = 'mbc-sw.iptime.org' if os.getenv("FLASK_ENV") == "production" else None
 
-# .env 파일에 아래 설정들이 들어있어야 합니다.
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
 GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI")
@@ -18,8 +17,8 @@ FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
 
 social_auth_service = SocialAuthService()
 
-@google_auth_bp.route("/login")
 
+@google_auth_bp.route("/login")
 def google_login():
     params = {
         "client_id": GOOGLE_CLIENT_ID,
@@ -28,15 +27,10 @@ def google_login():
         "scope": "openid email profile",
         "access_type": "offline",
     }
-
-    google_auth_url = (
-        "https://accounts.google.com/o/oauth2/v2/auth?"
-        + urlencode(params)
-    )
-
+    google_auth_url = "https://accounts.google.com/o/oauth2/v2/auth?" + urlencode(params)
     print("[GOOGLE AUTH URL]", google_auth_url)
-
     return redirect(google_auth_url)
+
 
 @google_auth_bp.route("/callback")
 def google_callback():
@@ -44,11 +38,9 @@ def google_callback():
         return redirect(f"{FRONTEND_URL}/auth/callback?error=login_cancelled")
 
     code = request.args.get("code")
-
     if not code:
         return redirect(f"{FRONTEND_URL}/auth/callback?error=login_cancelled")
 
-    # 1. 인가 코드로 access_token 받기
     token_url = "https://oauth2.googleapis.com/token"
     data = {
         "code": code,
@@ -57,7 +49,6 @@ def google_callback():
         "redirect_uri": GOOGLE_REDIRECT_URI,
         "grant_type": "authorization_code",
     }
-
     token_response = requests.post(token_url, data=data)
     token_json = token_response.json()
 
@@ -66,37 +57,50 @@ def google_callback():
 
     google_access_token = token_json["access_token"]
 
-    # 2. access_token으로 구글 사용자 정보 가져오기
-    user_info_url = "https://www.googleapis.com/oauth2/v3/userinfo"
-
     user_response = requests.get(
-        user_info_url,
+        "https://www.googleapis.com/oauth2/v3/userinfo",
         headers={"Authorization": f"Bearer {google_access_token}"}
     )
     google_user = user_response.json()
 
-    # 구글 유저 데이터 추출 (카카오와 대응되는 필드)
-    google_id = google_user.get("sub")  # 구글의 고유 식별자
+    google_id = google_user.get("sub")
     email = google_user.get("email")
     nickname = google_user.get("name") or "구글회원"
     profile_img_url = google_user.get("picture")
 
     if not google_id:
         return jsonify({"error": "구글 고유 ID가 없습니다."}), 400
-
     if not email:
         return jsonify({"error": "구글 이메일 정보가 없습니다."}), 400
 
     result, status_code = social_auth_service.login_or_register(
-    provider="google",
-    social_id=str(google_id),
-    email=email,
-    nickname=nickname,
-    profile_img_url=profile_img_url,
+        provider="google",
+        social_id=str(google_id),
+        email=email,
+        nickname=nickname,
+        profile_img_url=profile_img_url,
     )
 
     if status_code in (200, 201):
         access_token = result.get("access_token")
-        return redirect(f"{FRONTEND_URL}/auth/callback?token={access_token}&provider=google")
-    else:
-        return redirect(f"{FRONTEND_URL}/auth/callback?error=login_failed")
+        # ✅ httpOnly 쿠키로 토큰 발급
+        query = urlencode({
+            "provider": "google",
+            "access_token": access_token,
+        })
+        response = make_response(
+            redirect(f"{FRONTEND_URL}/auth/callback?{query}")
+        )
+
+        response.set_cookie(
+            'access_token',
+            access_token,
+            httponly=True,
+            secure=os.getenv("FLASK_ENV") == "production",
+            samesite='Lax',
+            max_age=60 * 60 * 24 * 7,
+            domain=domain  # ✅ 도메인 추가
+        )
+        return response
+
+    return redirect(f"{FRONTEND_URL}/auth/callback?error=login_failed")

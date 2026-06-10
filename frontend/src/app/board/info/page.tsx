@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import styles from '../suggest/page.module.css'
 import { useModalKeyboard } from '@/hooks/useModalKeyboard'
+import { useNotification } from '@/contexts/NotificationContext'
 
 const API = process.env.NEXT_PUBLIC_API_URL
 
@@ -31,13 +32,10 @@ type Post = {
   created_at: string
 }
 
-const getToken = (): string => {
-  try { return JSON.parse(localStorage.getItem('user') ?? 'null')?.access_token ?? '' } catch { return '' }
-}
-
 export default function InfoBoardPage() {
   useEffect(() => { document.title = 'Weather AI - 정보게시판' }, [])
   const pathname = usePathname()
+  const { unreadCount } = useNotification()
   const [boardOpen, setBoardOpen] = useState(true)
   const [posts, setPosts] = useState<Post[]>([])
   const [search, setSearch] = useState('')
@@ -49,7 +47,7 @@ export default function InfoBoardPage() {
   const fetchPosts = async () => {
     try {
       const res = await fetch(`${API}/api/board/admin/posts?board_type=INFO,NOTICE&per_page=200`, {
-        headers: { Authorization: `Bearer ${getToken()}` },
+        credentials: 'include',
       })
       const data = await res.json()
       if (data.success) setPosts(data.posts)
@@ -67,7 +65,7 @@ export default function InfoBoardPage() {
   const handleToggleActive = async (id: number) => {
     const res = await fetch(`${API}/api/board/admin/posts/${id}/toggle-active`, {
       method: 'PATCH',
-      headers: { Authorization: `Bearer ${getToken()}` },
+      credentials: 'include',
     })
     const data = await res.json()
     if (data.success) {
@@ -80,7 +78,7 @@ export default function InfoBoardPage() {
   const handleTogglePinned = async (id: number) => {
     const res = await fetch(`${API}/api/board/admin/posts/${id}/toggle-pinned`, {
       method: 'PATCH',
-      headers: { Authorization: `Bearer ${getToken()}` },
+      credentials: 'include',
     })
     const data = await res.json()
     if (data.success) {
@@ -94,7 +92,8 @@ export default function InfoBoardPage() {
     if (!selectedPost) return
     const res = await fetch(`${API}/api/board/posts/${selectedPost.id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify({
         title: selectedPost.title,
         content: selectedPost.content,
@@ -122,10 +121,13 @@ export default function InfoBoardPage() {
             <Link key={m.href} href={m.href}
               className={`${styles.sideItem} ${pathname === m.href ? styles.sideActive : ''}`}>
               <span className={styles.sideIcon}>{m.icon}</span>{m.label}
+              {m.href === '/admin/notifications' && unreadCount > 0 && (
+                <span className={styles.notiBadge}>{unreadCount > 99 ? '99+' : unreadCount}</span>
+              )}
             </Link>
           ))}
           <button className={`${styles.sideItem} ${styles.sideDropBtn}`} onClick={() => setBoardOpen(!boardOpen)}>
-            <span className={styles.sideIcon}>📝</span>게시글
+            <span className={styles.sideIcon}>📝</span>게시글 관리
             <span className={`${styles.arrow} ${boardOpen ? styles.arrowOpen : ''}`}>▾</span>
           </button>
           {boardOpen && (

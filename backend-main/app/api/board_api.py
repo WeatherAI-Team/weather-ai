@@ -3,59 +3,12 @@ board_api.py  –  API 레이어 (요청/응답만)
 위치: backend-main/app/api/board_api.py
 """
 
-from flask import Blueprint, request, jsonify
+import os
+from flask import Blueprint, request, jsonify, send_from_directory
 from app.services import board_service
 from app.repositories import board_repo
-from functools import wraps
-from jose import jwt
-import os
-
+from app.utils.auth_decorators import login_required, admin_required
 board_bp = Blueprint("board", __name__, url_prefix="/api/board")
-
-SECRET_KEY = os.getenv("SECRET_KEY", "your-fallback-secret-key")
-
-
-# ──────────────────────────────────────────────────────────────
-# 데코레이터 (기존 member_api.py 패턴과 동일)
-# ──────────────────────────────────────────────────────────────
-
-def login_required(f):
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        token = request.headers.get('Authorization')
-        if not token:
-            return jsonify({"success": False, "message": "토큰이 없습니다."}), 401
-        try:
-            auth_token = token.split(" ")[1] if " " in token else token
-            payload = jwt.decode(auth_token, SECRET_KEY, algorithms=["HS256"], options={"verify_exp": False})
-            request.user_id   = payload.get("sub")
-            request.user_role = payload.get("role", "user")
-        except Exception as e:
-            print(f"[JWT ERROR] {e}")
-            return jsonify({"success": False, "message": "유효하지 않은 토큰입니다."}), 401
-        return f(*args, **kwargs)
-    return decorated
-
-
-def admin_required(f):
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        token = request.headers.get('Authorization')
-        if not token:
-            return jsonify({"success": False, "message": "토큰이 없습니다."}), 401
-        try:
-            auth_token = token.split(" ")[1] if " " in token else token
-            payload = jwt.decode(auth_token, SECRET_KEY, algorithms=["HS256"], options={"verify_exp": False})
-            request.user_id   = payload.get("sub")
-            request.user_role = payload.get("role", "user")
-            if request.user_role not in ("admin", "manager"):
-                return jsonify({"success": False, "message": "관리자 권한이 필요합니다."}), 403
-        except Exception as e:
-            print(f"[JWT ERROR] {e}")
-            return jsonify({"success": False, "message": "유효하지 않은 토큰입니다."}), 401
-        return f(*args, **kwargs)
-    return decorated
-
 
 # ──────────────────────────────────────────────────────────────
 # 게시글 목록
@@ -104,7 +57,7 @@ def increment_view(post_id):
 @board_bp.route("/posts", methods=["POST"])
 @login_required
 def create_post():
-    body = request.get_json()
+    body = request.get_json(silent=True) or {}
     post, error, status = board_service.create_post(
         member_id  = request.user_id,
         title      = body.get("title", ""),
@@ -125,7 +78,7 @@ def create_post():
 @board_bp.route("/posts/<int:post_id>", methods=["PUT"])
 @login_required
 def update_post(post_id):
-    body = request.get_json()
+    body = request.get_json(silent=True) or {}
     post, error, status = board_service.update_post(
         post_id     = post_id,
         update_data = body,
@@ -162,7 +115,7 @@ def delete_post(post_id):
 @board_bp.route("/posts/<int:post_id>/comments", methods=["POST"])
 @login_required
 def create_comment(post_id):
-    body = request.get_json()
+    body = request.get_json(silent=True) or {}
     comment, error, status = board_service.create_comment(
         post_id   = post_id,
         member_id = request.user_id,
@@ -275,3 +228,76 @@ def admin_toggle_active(post_id):
     if error:
         return jsonify({"success": False, "message": error}), 404
     return jsonify({"success": True, **data})
+
+# ──────────────────────────────────────────────────────────────
+# [관리자] 버그게시판 상태 변경
+# PATCH /api/board/posts/<post_id>/status
+# Body: { status: "pending" | "in_progress" | "done" }
+# ──────────────────────────────────────────────────────────────
+@board_bp.route("/posts/<int:post_id>/status", methods=["PATCH"])
+@admin_required
+def update_bug_status(post_id):
+    body = request.get_json(silent=True) or {}
+
+    post, error, status_code = board_service.update_bug_status(
+        post_id=post_id,
+        status=body.get("status", ""),
+        user_role=request.user_role,
+    )
+
+    if error:
+        return jsonify({"success": False, "message": error}), status_code
+
+    return jsonify({"success": True, "post": post})
+
+# ──────────────────────────────────────────────────────────────
+# 첨부파일 업로드
+# POST /api/board/posts/<post_id>/attachments
+# form-data: file
+# ──────────────────────────────────────────────────────────────
+@board_bp.route("/posts/<int:post_id>/attachments", methods=["POST"])
+@login_required
+def upload_attachment(post_id):
+    file = request.files.get("file")
+
+    attachment, error, status = board_service.upload_attachment(
+        post_id=post_id,
+        user_id=request.user_id,
+        user_role=request.user_role,
+        file=file,
+    )
+
+    if error:
+        return jsonify({"success": False, "message": error}), status
+
+    return jsonify({"success": True, "attachment": attachment}), status
+
+
+# ──────────────────────────────────────────────────────────────
+# 첨부파일 삭제
+# DELETE /api/board/attachments/<attachment_id>
+# ──────────────────────────────────────────────────────────────
+@board_bp.route("/attachments/<int:attachment_id>", methods=["DELETE"])
+@login_required
+def delete_attachment(attachment_id):
+    error, status = board_service.delete_attachment(
+        attachment_id=attachment_id,
+        user_id=request.user_id,
+        user_role=request.user_role,
+    )
+
+    if error:
+        return jsonify({"success": False, "message": error}), status
+
+    return jsonify({"success": True, "message": "첨부파일이 삭제되었습니다."})
+
+
+# ──────────────────────────────────────────────────────────────
+# 첨부파일 다운로드/조회
+# GET /api/board/files/<post_id>/<filename>
+# ──────────────────────────────────────────────────────────────
+@board_bp.route("/files/<int:post_id>/<path:filename>", methods=["GET"])
+def serve_attachment_file(post_id, filename):
+    upload_root = os.path.join(os.getcwd(), "uploads", "board")
+    directory = os.path.join(upload_root, str(post_id))
+    return send_from_directory(directory, filename, as_attachment=False)

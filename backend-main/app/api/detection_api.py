@@ -9,6 +9,8 @@ from app.services.hybrid_alert_service import run_hybrid_detection_flow
 from app.services.ai_detection_save_service import save_ai_detection_result
 from app.services.ai_service import analyze_video
 from app import db
+from app.utils.auth_decorators import admin_required
+
 # 탐지 결과 기능을 처리하는 Service를 가져와.
 from ..services.detection_service import DetectionService
 
@@ -22,6 +24,7 @@ detection_service = DetectionService()
 
 
 @detection_bp.route("", methods=["GET"])
+@admin_required
 def get_detections():
     # 이 함수는 GET /api/detections 요청이 들어오면 실행돼.
     # 예: /api/detections?risk_level=high
@@ -94,6 +97,7 @@ def get_detections():
     }), 200
 
 @detection_bp.route("/analyze", methods=["POST"])
+@admin_required
 def analyze_detection():
     try:
         from app.services.weather_service import is_dangerous
@@ -315,10 +319,18 @@ def analyze_detection():
             "message": "탐지 분석 처리 중 오류가 발생했습니다.",
         }), 500
 
+
 @detection_bp.route("/save-result", methods=["POST"])
+@admin_required
 def save_detection_result():
     try:
-        data = request.get_json() or {}
+        data = request.get_json(silent=True)
+
+        if not data:
+            return jsonify({
+                "success": False,
+                "message": "저장할 탐지 결과가 없습니다.",
+            }), 400
 
         result = save_ai_detection_result(data)
 
@@ -326,7 +338,14 @@ def save_detection_result():
             "success": True,
             "message": "AI 탐지 결과 저장 성공",
             "data": result,
-        }), 200
+        }), 201
+
+    except ValueError as e:
+        db.session.rollback()
+        return jsonify({
+            "success": False,
+            "message": str(e),
+        }), 400
 
     except Exception:
         db.session.rollback()
@@ -338,6 +357,7 @@ def save_detection_result():
         }), 500
         
 @detection_bp.route("/<int:detection_id>", methods=["GET"])
+@admin_required
 def get_detection_detail(detection_id):
     # 이 함수는 GET /api/detections/<id> 요청이 들어오면 실행돼.
     # 예: /api/detections/1 로 접속하면 detection_id에는 1이 들어와.

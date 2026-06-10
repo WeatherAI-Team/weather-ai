@@ -1,3 +1,4 @@
+from app import db 
 from ..repositories.member_repo import MemberRepository
 from ..models.member_social_account import MemberSocialAccount
 
@@ -60,6 +61,32 @@ class AdminMemberService:
             "data": self._member_to_dict(member)
         }
     
+        # 관리자용 사용자 활성/비활성 변경
+    def update_member_active(self, member_id: int, active: bool):
+        # member_id로 회원 한 명을 찾아.
+        member = self.member_repo.find_by_id(member_id)
+
+        # 회원이 없으면 실패 응답을 돌려줘.
+        if not member:
+            return {
+                "success": False,
+                "message": "존재하지 않는 회원입니다."
+            }
+
+        # 회원의 활성 상태를 프론트에서 보낸 값으로 바꿔.
+        # active=True면 활성, active=False면 비활성이야.
+        member.active = active
+
+        # 바뀐 내용을 DB에 저장해.
+        db.session.commit()
+
+        # 프론트가 바로 화면을 갱신할 수 있게 바뀐 회원 정보를 돌려줘.
+        return {
+            "success": True,
+            "message": "사용자 활성 상태가 변경되었습니다.",
+            "data": self._member_to_dict(member)
+        }
+
     def _get_display_login_id(self, member):
         if member.login_id:
             return member.login_id

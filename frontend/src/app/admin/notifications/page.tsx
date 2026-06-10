@@ -40,14 +40,6 @@ const DECISION_LABEL: Record<string, { label: string; color: string }> = {
   uncertain: { label: '불확실',    color: '#f39c12' },
 }
 
-function getToken(): string | null {
-  try {
-    const raw = localStorage.getItem('user')
-    if (raw) { const p = JSON.parse(raw); if (p?.access_token) return p.access_token }
-    return localStorage.getItem('access_token')
-  } catch { return null }
-}
-
 type ApiNotification = {
   id: number
   target_type: string
@@ -360,13 +352,11 @@ function NotificationsContent() {
 
   useEffect(() => {
     if (!openId) return
-    const token = getToken()
-    if (!token) return
     setModalOpen(true)
     setDetail(null)
     setDetailLoading(true)
     fetch(`${API}/api/admin/notifications/${openId}`, {
-      headers: { Authorization: `Bearer ${token}` },
+      credentials: 'include',
     })
       .then(r => r.json())
       .then(json => { if (json.success) setDetail(json.data) })
@@ -377,8 +367,6 @@ function NotificationsContent() {
   const URGENT_LEVELS = ['HIGH', 'CRITICAL', 'DANGER']
 
   const fetchNotifications = useCallback(async (p = 1, f = filters) => {
-    const token = getToken()
-    if (!token) { router.push('/login'); return }
     setLoading(true)
     // is_urgent 필터는 백엔드 risk_level 값 불일치 이슈로 클라이언트에서 처리
     const isUrgentFilter = !!f.is_urgent
@@ -389,7 +377,7 @@ function NotificationsContent() {
     if (f.is_confirmed) q.set('is_confirmed', f.is_confirmed)
     try {
       const res  = await fetch(`${API}/api/admin/notifications?${q}`, {
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
       })
       const json = await res.json()
       if (json.success) {
@@ -446,10 +434,9 @@ function NotificationsContent() {
     setModalOpen(true)
     setDetail(null)
     setDetailLoading(true)
-    const token = getToken()
     try {
       const res  = await fetch(`${API}/api/admin/notifications/${n.id}`, {
-        headers: { Authorization: `Bearer ${token ?? ''}` },
+        credentials: 'include',
       })
       const json = await res.json()
       if (json.success) setDetail(json.data)
@@ -464,33 +451,27 @@ function NotificationsContent() {
   }
 
   const handleUnread = async (id: number) => {
-    const token = getToken()
-    if (!token) return
     await fetch(`${API}/api/admin/notifications/${id}/unread`, {
       method: 'PATCH',
-      headers: { Authorization: `Bearer ${token}` },
+      credentials: 'include',
     })
     setApiItems(prev => prev.map(n => n.id === id ? { ...n, status: 'SENT' } : n))
     setDetail(prev => prev ? { ...prev, status: 'SENT' } : prev)
   }
 
   const handleConfirm = async (id: number) => {
-    const token = getToken()
-    if (!token) return
     await fetch(`${API}/api/admin/notifications/${id}/confirm`, {
       method: 'PATCH',
-      headers: { Authorization: `Bearer ${token}` },
+      credentials: 'include',
     })
     setApiItems(prev => prev.map(n => n.id === id ? { ...n, is_confirmed: true } : n))
     setDetail(prev => prev ? { ...prev, is_confirmed: true } : prev)
   }
 
   const handleUnconfirm = async (id: number) => {
-    const token = getToken()
-    if (!token) return
     await fetch(`${API}/api/admin/notifications/${id}/unconfirm`, {
       method: 'PATCH',
-      headers: { Authorization: `Bearer ${token}` },
+      credentials: 'include',
     })
     setApiItems(prev => prev.map(n => n.id === id ? { ...n, is_confirmed: false } : n))
     setDetail(prev => prev ? { ...prev, is_confirmed: false } : prev)
@@ -526,7 +507,7 @@ function NotificationsContent() {
             onClick={() => setBoardOpen(!boardOpen)}
           >
             <span className={styles.sideIcon}>📝</span>
-            게시글
+            게시글 관리
             <span className={`${styles.arrow} ${boardOpen ? styles.arrowOpen : ''}`}>▾</span>
           </button>
           {boardOpen && (

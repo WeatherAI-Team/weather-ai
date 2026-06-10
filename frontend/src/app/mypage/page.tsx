@@ -1,226 +1,375 @@
-'use client'
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import Link from 'next/link'
-import styles from './page.module.css'
-import { useModalKeyboard } from '@/hooks/useModalKeyboard'
+"use client";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import styles from "./page.module.css";
+import { useModalKeyboard } from "@/hooks/useModalKeyboard";
 
-const API = process.env.NEXT_PUBLIC_API_URL
+const API = process.env.NEXT_PUBLIC_API_URL;
 
-const GRADE_INFO: Record<string, { label: string; color: string; permissions: string[] }> = {
+const GRADE_INFO: Record<
+  string,
+  { label: string; color: string; permissions: string[] }
+> = {
   ADMIN: {
-    label: 'ADMIN', color: '#20436d',
-    permissions: ['CCTV 분석 결과 확인', '리포트 생성', '탐지 이력 조회', '게시글 관리', '회원 관리'],
+    label: "ADMIN",
+    color: "#20436d",
+    permissions: [
+      "CCTV 분석 결과 확인",
+      "리포트 생성",
+      "탐지 이력 조회",
+      "게시글 관리",
+      "회원 관리",
+    ],
   },
   MANAGER: {
-    label: 'MANAGER', color: '#07559d',
-    permissions: ['CCTV 분석 결과 확인', '리포트 생성', '탐지 이력 조회', '게시글 관리', '회원 관리'],
+    label: "MANAGER",
+    color: "#07559d",
+    permissions: [
+      "CCTV 분석 결과 확인",
+      "리포트 생성",
+      "탐지 이력 조회",
+      "게시글 관리",
+      "회원 관리",
+    ],
   },
   USER: {
-    label: 'USER', color: '#1b9bd1',
-    permissions: ['건의 게시글 작성/수정', '댓글 작성', '마이페이지 조회'],
+    label: "USER",
+    color: "#1b9bd1",
+    permissions: ["건의 게시글 작성/수정", "댓글 작성", "마이페이지 조회"],
   },
-}
+};
 
 const PROVIDER_LABEL: Record<string, string> = {
-  local: '일반', google: '구글', kakao: '카카오', naver: '네이버',
-}
+  local: "일반",
+  google: "구글",
+  kakao: "카카오",
+  naver: "네이버",
+};
 
 const roleToGrade = (role: string) => {
-  if (role === 'admin')   return 'ADMIN'
-  if (role === 'manager') return 'MANAGER'
-  return 'USER'
-}
+  if (role === "admin") return "ADMIN";
+  if (role === "manager") return "MANAGER";
+  return "USER";
+};
 
 export default function MyPage() {
-  useEffect(() => { document.title = 'Weather AI - 마이페이지' }, [])
-  const router = useRouter()
-
-  const [nickname, setNickname]     = useState('')
-  const [realName, setRealName]     = useState('')
-  const [email, setEmail]           = useState('')
-  const [role, setRole]             = useState('user')
-  const [provider, setProvider]     = useState('local')
-  const [joinedAt, setJoinedAt]     = useState('')
-  const [loading, setLoading]       = useState(true)
-  const [isSocial, setIsSocial]     = useState(false)
-
-  const [nameModal, setNameModal]       = useState(false)
-  const [realNameModal, setRealNameModal] = useState(false)
-  const [pwModal, setPwModal]           = useState(false)
-  const [notiModal, setNotiModal]       = useState(false)
-  const [permModal, setPermModal]       = useState(false)
-
-  const [newNickname, setNewNickname]   = useState('')
-  const [newRealName, setNewRealName]   = useState('')
-  const [pwForm, setPwForm]           = useState({ current: '', next: '', confirm: '' })
-  const [pwError, setPwError]         = useState('')
-  const [noti, setNoti]               = useState({ email: true, sms: false, app: true })
-  const [saving, setSaving]           = useState(false)
-  const [postCount, setPostCount]     = useState(0)
-  const [commentCount, setCommentCount] = useState(0)
-  const [withdrawModal, setWithdrawModal] = useState(false)
-  const [withdrawStep, setWithdrawStep]   = useState(1)
-  const [withdrawing, setWithdrawing]     = useState(false)
-
-  useModalKeyboard(nameModal, () => setNameModal(false))
-  useModalKeyboard(realNameModal, () => setRealNameModal(false))
-  useModalKeyboard(pwModal, () => setPwModal(false))
-  useModalKeyboard(notiModal, () => setNotiModal(false))
-  useModalKeyboard(permModal, () => setPermModal(false))
-  useModalKeyboard(withdrawModal, () => { setWithdrawModal(false); setWithdrawStep(1) })
-
+  useEffect(() => {
+    document.title = "Weather AI - 마이페이지";
+  }, []);
+  const router = useRouter();
   const getToken = () => {
-    try {
-      const user = localStorage.getItem('user')
-      if (user) {
-        const parsed = JSON.parse(user)
-        if (parsed?.access_token) return parsed.access_token
-      }
-      return localStorage.getItem('access_token')
-    } catch { return null }
-  }
+    return localStorage.getItem("access_token") ?? "";
+  };
+  const [nickname, setNickname] = useState("");
+  const [realName, setRealName] = useState("");
+  const [email, setEmail] = useState("");
+  const [role, setRole] = useState("user");
+  const [provider, setProvider] = useState("local");
+  const [joinedAt, setJoinedAt] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [isSocial, setIsSocial] = useState(false);
+
+  const [nameModal, setNameModal] = useState(false);
+  const [realNameModal, setRealNameModal] = useState(false);
+  const [pwModal, setPwModal] = useState(false);
+  const [notiModal, setNotiModal] = useState(false);
+  const [permModal, setPermModal] = useState(false);
+
+  const [newNickname, setNewNickname] = useState("");
+  const [newRealName, setNewRealName] = useState("");
+  const [pwForm, setPwForm] = useState({ current: "", next: "", confirm: "" });
+  const [pwError, setPwError] = useState("");
+  const [noti, setNoti] = useState({ email: true, sms: false, app: true });
+  const [saving, setSaving] = useState(false);
+  const [postCount, setPostCount] = useState(0);
+  const [commentCount, setCommentCount] = useState(0);
+  const [withdrawModal, setWithdrawModal] = useState(false);
+  const [withdrawStep, setWithdrawStep] = useState(1);
+  const [withdrawing, setWithdrawing] = useState(false);
+
+  useModalKeyboard(nameModal, () => setNameModal(false));
+  useModalKeyboard(realNameModal, () => setRealNameModal(false));
+  useModalKeyboard(pwModal, () => setPwModal(false));
+  useModalKeyboard(notiModal, () => setNotiModal(false));
+  useModalKeyboard(permModal, () => setPermModal(false));
+  useModalKeyboard(withdrawModal, () => {
+    setWithdrawModal(false);
+    setWithdrawStep(1);
+  });
 
   // ── 프로필 불러오기
   useEffect(() => {
     const load = async () => {
-      const token = getToken()
-      if (!token) { router.replace('/login'); return }
+      const token = localStorage.getItem("access_token");
+
+      if (!token) {
+        router.replace("/login");
+        return;
+      }
+
       try {
-        const res  = await fetch(`${API}/api/member/me`, {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-        const data = await res.json()
-        if (!data.success) { router.replace('/login'); return }
-        const m = data.data
-        setNickname(m.nickname ?? '')
-        setRealName(m.real_name ?? '')
-        setEmail(m.email ?? '')
-        setRole(m.role ?? 'user')
-        setProvider(m.provider ?? 'local')
-        setJoinedAt(m.created_at ? m.created_at.slice(0, 10) : '')
-        setIsSocial(m.provider !== 'local')
+        const res = await fetch(`${API}/api/member/me`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          credentials: "include",
+        });
+        const data = await res.json();
+        if (!data.success) {
+          router.replace("/login");
+          return;
+        }
+        const m = data.data;
+        setNickname(m.nickname ?? "");
+        setRealName(m.real_name ?? "");
+        setEmail(m.email ?? "");
+        setRole(m.role ?? "user");
+        setProvider(m.provider ?? "local");
+        setJoinedAt(m.created_at ? m.created_at.slice(0, 10) : "");
+        setIsSocial(m.provider !== "local");
 
         // 알림 설정 별도 조회
         try {
-          const notiRes  = await fetch(`${API}/api/member/me/notifications`, {
-            headers: { Authorization: `Bearer ${token}` },
-          })
-          const notiData = await notiRes.json()
-          if (notiData.success) setNoti(notiData.data)
-        } catch { /* 실패 시 기본값 유지 */ }
+          const notiRes = await fetch(`${API}/api/member/me/notifications`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+            credentials: "include",
+          });
+          const notiData = await notiRes.json();
+          if (notiData.success) setNoti(notiData.data);
+        } catch {
+          /* 실패 시 기본값 유지 */
+        }
 
         // 게시글/댓글 수 별도 조회
         try {
-          const statsRes  = await fetch(`${API}/api/board/my-stats`, {
-            headers: { Authorization: `Bearer ${token}` },
-          })
-          const statsData = await statsRes.json()
+          const statsRes = await fetch(`${API}/api/board/my-stats`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+            credentials: "include",
+          });
+          const statsData = await statsRes.json();
           if (statsData.success) {
-            setPostCount(statsData.post_count ?? 0)
-            setCommentCount(statsData.comment_count ?? 0)
+            setPostCount(statsData.post_count ?? 0);
+            setCommentCount(statsData.comment_count ?? 0);
           }
-        } catch { /* 통계 실패 시 0 유지 */ }
+        } catch {
+          /* 통계 실패 시 0 유지 */
+        }
       } catch {
-        router.replace('/login')
+        router.replace("/login");
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
-    load()
-  }, [router])
+    };
+    load();
+  }, [router]);
 
-  const grade    = roleToGrade(role)
-  const gradeInfo = GRADE_INFO[grade]
-  const displayName = nickname || realName || '사용자'
+  const grade = roleToGrade(role);
+  const gradeInfo = GRADE_INFO[grade];
+  const displayName = nickname || realName || "사용자";
 
-  // ── 닉네임 변경
   const handleNameSave = async () => {
-    if (!newNickname.trim()) return
-    setSaving(true)
-    const token = getToken()
+    if (!newNickname.trim()) return;
+
+    const token = getToken();
+
+    if (!token) {
+      alert("토큰이 없습니다. 다시 로그인해주세요.");
+      router.replace("/login");
+      return;
+    }
+
+    setSaving(true);
+
     try {
-      const res  = await fetch(`${API}/api/member/me`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      const res = await fetch(`${API}/api/member/me`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        credentials: "include",
         body: JSON.stringify({ nickname: newNickname.trim(), email }),
-      })
-      const data = await res.json()
-      if (!data.success) { alert(data.message); return }
-      setNickname(data.data.nickname)
-      // localStorage user 동기화
-      const saved = localStorage.getItem('user')
+      });
+
+      const data = await res.json();
+
+      if (!data.success) {
+        alert(data.message);
+        return;
+      }
+
+      setNickname(data.data.nickname);
+
+      const saved = localStorage.getItem("user");
       if (saved) {
         try {
-          const u = JSON.parse(saved)
-          localStorage.setItem('user', JSON.stringify({ ...u, nickname: data.data.nickname }))
-        } catch { /* ignore */ }
+          const u = JSON.parse(saved);
+          localStorage.setItem(
+            "user",
+            JSON.stringify({ ...u, nickname: data.data.nickname }),
+          );
+          localStorage.setItem(
+            "loginUser",
+            JSON.stringify({ ...u, nickname: data.data.nickname }),
+          );
+        } catch {
+          /* ignore */
+        }
       }
-      setNameModal(false)
-    } catch { alert('오류가 발생했습니다.') }
-    finally { setSaving(false) }
-  }
+
+      setNameModal(false);
+    } catch {
+      alert("오류가 발생했습니다.");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   // ── 이름 변경
   const handleRealNameSave = async () => {
-    if (!newRealName.trim()) return
-    setSaving(true)
-    const token = getToken()
+    if (!newRealName.trim()) return;
+
+    const token = getToken();
+
+    if (!token) {
+      alert("토큰이 없습니다. 다시 로그인해주세요.");
+      router.replace("/login");
+      return;
+    }
+
+    setSaving(true);
+
     try {
-      const res  = await fetch(`${API}/api/member/me`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      const res = await fetch(`${API}/api/member/me`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        credentials: "include",
         body: JSON.stringify({ real_name: newRealName.trim(), email }),
-      })
-      const data = await res.json()
-      if (!data.success) { alert(data.message); return }
-      setRealName(data.data.real_name ?? newRealName.trim())
-      setRealNameModal(false)
-    } catch { alert('오류가 발생했습니다.') }
-    finally { setSaving(false) }
-  }
+      });
+
+      const data = await res.json();
+
+      if (!data.success) {
+        alert(data.message);
+        return;
+      }
+
+      setRealName(data.data.real_name ?? newRealName.trim());
+      setRealNameModal(false);
+    } catch {
+      alert("오류가 발생했습니다.");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   // ── 회원 탈퇴
   const handleWithdraw = async () => {
-    setWithdrawing(true)
-    const token = getToken()
+    const token = getToken();
+
+    if (!token) {
+      alert("토큰이 없습니다. 다시 로그인해주세요.");
+      router.replace("/login");
+      return;
+    }
+
+    setWithdrawing(true);
+
     try {
-      const res  = await fetch(`${API}/api/member/me/withdraw`, {
-        method: 'PATCH',
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      const data = await res.json()
-      if (!data.success) { alert(data.message); return }
-      localStorage.removeItem('user')
-      localStorage.removeItem('access_token')
-      router.replace('/login')
-    } catch { alert('오류가 발생했습니다.') }
-    finally { setWithdrawing(false) }
-  }
+      const res = await fetch(`${API}/api/member/me/withdraw`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        credentials: "include",
+      });
+
+      const data = await res.json();
+
+      if (!data.success) {
+        alert(data.message);
+        return;
+      }
+
+      localStorage.removeItem("user");
+      localStorage.removeItem("loginUser");
+      localStorage.removeItem("access_token");
+      router.replace("/login");
+    } catch {
+      alert("오류가 발생했습니다.");
+    } finally {
+      setWithdrawing(false);
+    }
+  };
 
   // ── 비밀번호 변경
   const handlePwSave = async () => {
-    if (pwForm.next !== pwForm.confirm) { setPwError('새 비밀번호가 일치하지 않습니다.'); return }
-    if (pwForm.next.length < 8)        { setPwError('비밀번호는 8자 이상이어야 합니다.'); return }
-    setPwError('')
-    setSaving(true)
-    const token = getToken()
-    try {
-      const res  = await fetch(`${API}/api/member/me/password`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ current_password: pwForm.current, new_password: pwForm.next }),
-      })
-      const data = await res.json()
-      if (!data.success) { setPwError(data.message); return }
-      alert('비밀번호가 변경되었습니다.')
-      setPwForm({ current: '', next: '', confirm: '' })
-      setPwModal(false)
-    } catch { setPwError('오류가 발생했습니다.') }
-    finally { setSaving(false) }
-  }
+    if (pwForm.next !== pwForm.confirm) {
+      setPwError("새 비밀번호가 일치하지 않습니다.");
+      return;
+    }
 
-  if (loading) return <div style={{ padding: '80px', textAlign: 'center', color: '#5a85a8' }}>불러오는 중...</div>
+    if (pwForm.next.length < 8) {
+      setPwError("비밀번호는 8자 이상이어야 합니다.");
+      return;
+    }
+
+    const token = getToken();
+
+    if (!token) {
+      alert("토큰이 없습니다. 다시 로그인해주세요.");
+      router.replace("/login");
+      return;
+    }
+
+    setPwError("");
+    setSaving(true);
+
+    try {
+      const res = await fetch(`${API}/api/member/me/password`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          current_password: pwForm.current,
+          new_password: pwForm.next,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!data.success) {
+        setPwError(data.message);
+        return;
+      }
+
+      alert("비밀번호가 변경되었습니다.");
+      setPwForm({ current: "", next: "", confirm: "" });
+      setPwModal(false);
+    } catch {
+      setPwError("오류가 발생했습니다.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading)
+    return (
+      <div style={{ padding: "80px", textAlign: "center", color: "#5a85a8" }}>
+        불러오는 중...
+      </div>
+    );
 
   return (
     <div className={styles.page}>
@@ -234,7 +383,6 @@ export default function MyPage() {
       <section className={styles.main}>
         <div className="container">
           <div className={styles.grid}>
-
             {/* 프로필 카드 */}
             <div className={styles.profileCard}>
               <div className={styles.avatar}>{displayName[0]}</div>
@@ -242,9 +390,19 @@ export default function MyPage() {
               <p className={styles.profileEmail}>{email}</p>
               <div className={styles.badges}>
                 <span className={styles.roleBadge}>
-                  {role === 'admin' ? '관리자' : role === 'manager' ? '매니저' : '일반회원'}
+                  {role === "admin"
+                    ? "관리자"
+                    : role === "manager"
+                      ? "매니저"
+                      : "일반회원"}
                 </span>
-                <span className={styles.gradeBadge} style={{ borderColor: gradeInfo.color, color: gradeInfo.color }}>
+                <span
+                  className={styles.gradeBadge}
+                  style={{
+                    borderColor: gradeInfo.color,
+                    color: gradeInfo.color,
+                  }}
+                >
                   {grade}
                 </span>
               </div>
@@ -255,14 +413,15 @@ export default function MyPage() {
                 </div>
                 <div className={styles.metaItem}>
                   <span className={styles.metaLabel}>가입유형</span>
-                  <span className={styles.metaValue}>{PROVIDER_LABEL[provider] ?? provider}</span>
+                  <span className={styles.metaValue}>
+                    {PROVIDER_LABEL[provider] ?? provider}
+                  </span>
                 </div>
               </div>
             </div>
 
             {/* 우측 패널 */}
             <div className={styles.infoPanel}>
-
               {/* 활동 통계 */}
               <div className={styles.section}>
                 <h3 className={styles.sectionTitle}>활동 통계</h3>
@@ -282,8 +441,13 @@ export default function MyPage() {
               <div className={styles.section}>
                 <h3 className={styles.sectionTitle}>계정 설정</h3>
                 <div className={styles.settingsList}>
-
-                  <button className={styles.settingItem} onClick={() => { setNewNickname(nickname); setNameModal(true) }}>
+                  <button
+                    className={styles.settingItem}
+                    onClick={() => {
+                      setNewNickname(nickname);
+                      setNameModal(true);
+                    }}
+                  >
                     <div className={styles.settingLeft}>
                       <span className={styles.settingIcon}>✏️</span>
                       <span className={styles.settingName}>닉네임 변경</span>
@@ -291,7 +455,13 @@ export default function MyPage() {
                     <span className={styles.settingArrow}>›</span>
                   </button>
 
-                  <button className={styles.settingItem} onClick={() => { setNewRealName(realName); setRealNameModal(true) }}>
+                  <button
+                    className={styles.settingItem}
+                    onClick={() => {
+                      setNewRealName(realName);
+                      setRealNameModal(true);
+                    }}
+                  >
                     <div className={styles.settingLeft}>
                       <span className={styles.settingIcon}>👤</span>
                       <span className={styles.settingName}>이름 변경</span>
@@ -300,16 +470,28 @@ export default function MyPage() {
                   </button>
 
                   {!isSocial && (
-                    <button className={styles.settingItem} onClick={() => { setPwForm({ current: '', next: '', confirm: '' }); setPwError(''); setPwModal(true) }}>
+                    <button
+                      className={styles.settingItem}
+                      onClick={() => {
+                        setPwForm({ current: "", next: "", confirm: "" });
+                        setPwError("");
+                        setPwModal(true);
+                      }}
+                    >
                       <div className={styles.settingLeft}>
                         <span className={styles.settingIcon}>🔒</span>
-                        <span className={styles.settingName}>비밀번호 변경</span>
+                        <span className={styles.settingName}>
+                          비밀번호 변경
+                        </span>
                       </div>
                       <span className={styles.settingArrow}>›</span>
                     </button>
                   )}
 
-                  <button className={styles.settingItem} onClick={() => setNotiModal(true)}>
+                  <button
+                    className={styles.settingItem}
+                    onClick={() => setNotiModal(true)}
+                  >
                     <div className={styles.settingLeft}>
                       <span className={styles.settingIcon}>🔔</span>
                       <span className={styles.settingName}>알림 설정</span>
@@ -317,7 +499,10 @@ export default function MyPage() {
                     <span className={styles.settingArrow}>›</span>
                   </button>
 
-                  <button className={styles.settingItem} onClick={() => setPermModal(true)}>
+                  <button
+                    className={styles.settingItem}
+                    onClick={() => setPermModal(true)}
+                  >
                     <div className={styles.settingLeft}>
                       <span className={styles.settingIcon}>🛡️</span>
                       <span className={styles.settingName}>접근 권한 확인</span>
@@ -325,17 +510,22 @@ export default function MyPage() {
                     <span className={styles.settingArrow}>›</span>
                   </button>
 
-                  <button className={`${styles.settingItem} ${styles.settingItemDanger}`} onClick={() => setWithdrawModal(true)}>
+                  <button
+                    className={`${styles.settingItem} ${styles.settingItemDanger}`}
+                    onClick={() => setWithdrawModal(true)}
+                  >
                     <div className={styles.settingLeft}>
                       <span className={styles.settingIcon}>🚪</span>
-                      <span className={`${styles.settingName} ${styles.settingNameDanger}`}>회원 탈퇴</span>
+                      <span
+                        className={`${styles.settingName} ${styles.settingNameDanger}`}
+                      >
+                        회원 탈퇴
+                      </span>
                     </div>
                     <span className={styles.settingArrow}>›</span>
                   </button>
-
                 </div>
               </div>
-
             </div>
           </div>
         </div>
@@ -344,10 +534,15 @@ export default function MyPage() {
       {/* 닉네임 변경 모달 */}
       {nameModal && (
         <div className={styles.overlay} onClick={() => setNameModal(false)}>
-          <div className={styles.modal} onClick={e => e.stopPropagation()}>
+          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
             <div className={styles.modalHeader}>
               <h2>닉네임 변경</h2>
-              <button className={styles.modalClose} onClick={() => setNameModal(false)}>✕</button>
+              <button
+                className={styles.modalClose}
+                onClick={() => setNameModal(false)}
+              >
+                ✕
+              </button>
             </div>
             <div className={styles.modalBody}>
               <div className={styles.currentInfo}>
@@ -359,16 +554,25 @@ export default function MyPage() {
                 <input
                   className={styles.input}
                   value={newNickname}
-                  onChange={e => setNewNickname(e.target.value)}
+                  onChange={(e) => setNewNickname(e.target.value)}
                   placeholder="새 닉네임을 입력하세요"
-                  onKeyDown={e => e.key === 'Enter' && handleNameSave()}
+                  onKeyDown={(e) => e.key === "Enter" && handleNameSave()}
                 />
               </div>
             </div>
             <div className={styles.modalActions}>
-              <button className={styles.cancelBtn} onClick={() => setNameModal(false)}>취소</button>
-              <button className={styles.saveBtn} onClick={handleNameSave} disabled={saving}>
-                {saving ? '저장 중...' : '저장'}
+              <button
+                className={styles.cancelBtn}
+                onClick={() => setNameModal(false)}
+              >
+                취소
+              </button>
+              <button
+                className={styles.saveBtn}
+                onClick={handleNameSave}
+                disabled={saving}
+              >
+                {saving ? "저장 중..." : "저장"}
               </button>
             </div>
           </div>
@@ -378,31 +582,47 @@ export default function MyPage() {
       {/* 이름 변경 모달 */}
       {realNameModal && (
         <div className={styles.overlay} onClick={() => setRealNameModal(false)}>
-          <div className={styles.modal} onClick={e => e.stopPropagation()}>
+          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
             <div className={styles.modalHeader}>
               <h2>이름 변경</h2>
-              <button className={styles.modalClose} onClick={() => setRealNameModal(false)}>✕</button>
+              <button
+                className={styles.modalClose}
+                onClick={() => setRealNameModal(false)}
+              >
+                ✕
+              </button>
             </div>
             <div className={styles.modalBody}>
               <div className={styles.currentInfo}>
                 <span className={styles.currentLabel}>현재 이름</span>
-                <span className={styles.currentValue}>{realName || '(미설정)'}</span>
+                <span className={styles.currentValue}>
+                  {realName || "(미설정)"}
+                </span>
               </div>
               <div className={styles.field}>
                 <label>변경할 이름</label>
                 <input
                   className={styles.input}
                   value={newRealName}
-                  onChange={e => setNewRealName(e.target.value)}
+                  onChange={(e) => setNewRealName(e.target.value)}
                   placeholder="새 이름을 입력하세요"
-                  onKeyDown={e => e.key === 'Enter' && handleRealNameSave()}
+                  onKeyDown={(e) => e.key === "Enter" && handleRealNameSave()}
                 />
               </div>
             </div>
             <div className={styles.modalActions}>
-              <button className={styles.cancelBtn} onClick={() => setRealNameModal(false)}>취소</button>
-              <button className={styles.saveBtn} onClick={handleRealNameSave} disabled={saving}>
-                {saving ? '저장 중...' : '저장'}
+              <button
+                className={styles.cancelBtn}
+                onClick={() => setRealNameModal(false)}
+              >
+                취소
+              </button>
+              <button
+                className={styles.saveBtn}
+                onClick={handleRealNameSave}
+                disabled={saving}
+              >
+                {saving ? "저장 중..." : "저장"}
               </button>
             </div>
           </div>
@@ -412,33 +632,68 @@ export default function MyPage() {
       {/* 비밀번호 변경 모달 */}
       {pwModal && (
         <div className={styles.overlay} onClick={() => setPwModal(false)}>
-          <div className={styles.modal} onClick={e => e.stopPropagation()}>
+          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
             <div className={styles.modalHeader}>
               <h2>비밀번호 변경</h2>
-              <button className={styles.modalClose} onClick={() => setPwModal(false)}>✕</button>
+              <button
+                className={styles.modalClose}
+                onClick={() => setPwModal(false)}
+              >
+                ✕
+              </button>
             </div>
             <div className={styles.modalBody}>
               <div className={styles.field}>
                 <label>현재 비밀번호</label>
-                <input type="password" className={styles.input} value={pwForm.current}
-                  onChange={e => setPwForm(p => ({ ...p, current: e.target.value }))} placeholder="현재 비밀번호 입력" />
+                <input
+                  type="password"
+                  className={styles.input}
+                  value={pwForm.current}
+                  onChange={(e) =>
+                    setPwForm((p) => ({ ...p, current: e.target.value }))
+                  }
+                  placeholder="현재 비밀번호 입력"
+                />
               </div>
               <div className={styles.field}>
                 <label>새 비밀번호</label>
-                <input type="password" className={styles.input} value={pwForm.next}
-                  onChange={e => setPwForm(p => ({ ...p, next: e.target.value }))} placeholder="8자 이상" />
+                <input
+                  type="password"
+                  className={styles.input}
+                  value={pwForm.next}
+                  onChange={(e) =>
+                    setPwForm((p) => ({ ...p, next: e.target.value }))
+                  }
+                  placeholder="8자 이상"
+                />
               </div>
               <div className={styles.field}>
                 <label>새 비밀번호 확인</label>
-                <input type="password" className={`${styles.input} ${pwError ? styles.inputError : ''}`} value={pwForm.confirm}
-                  onChange={e => setPwForm(p => ({ ...p, confirm: e.target.value }))} placeholder="새 비밀번호 재입력" />
+                <input
+                  type="password"
+                  className={`${styles.input} ${pwError ? styles.inputError : ""}`}
+                  value={pwForm.confirm}
+                  onChange={(e) =>
+                    setPwForm((p) => ({ ...p, confirm: e.target.value }))
+                  }
+                  placeholder="새 비밀번호 재입력"
+                />
                 {pwError && <p className={styles.errorMsg}>{pwError}</p>}
               </div>
             </div>
             <div className={styles.modalActions}>
-              <button className={styles.cancelBtn} onClick={() => setPwModal(false)}>취소</button>
-              <button className={styles.saveBtn} onClick={handlePwSave} disabled={saving}>
-                {saving ? '변경 중...' : '변경'}
+              <button
+                className={styles.cancelBtn}
+                onClick={() => setPwModal(false)}
+              >
+                취소
+              </button>
+              <button
+                className={styles.saveBtn}
+                onClick={handlePwSave}
+                disabled={saving}
+              >
+                {saving ? "변경 중..." : "변경"}
               </button>
             </div>
           </div>
@@ -448,17 +703,37 @@ export default function MyPage() {
       {/* 알림 설정 모달 */}
       {notiModal && (
         <div className={styles.overlay} onClick={() => setNotiModal(false)}>
-          <div className={styles.modal} onClick={e => e.stopPropagation()}>
+          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
             <div className={styles.modalHeader}>
               <h2>알림 설정</h2>
-              <button className={styles.modalClose} onClick={() => setNotiModal(false)}>✕</button>
+              <button
+                className={styles.modalClose}
+                onClick={() => setNotiModal(false)}
+              >
+                ✕
+              </button>
             </div>
             <div className={styles.modalBody}>
               {[
-                { key: 'email', icon: '📧', label: '이메일 알림', desc: '위험 탐지 시 이메일로 알림을 받습니다' },
-                { key: 'sms',   icon: '📱', label: 'SMS 알림',   desc: '위험 탐지 시 문자로 알림을 받습니다' },
-                { key: 'app',   icon: '🔔', label: '앱 푸시 알림', desc: '앱에서 실시간 알림을 받습니다' },
-              ].map(n => (
+                {
+                  key: "email",
+                  icon: "📧",
+                  label: "이메일 알림",
+                  desc: "위험 탐지 시 이메일로 알림을 받습니다",
+                },
+                {
+                  key: "sms",
+                  icon: "📱",
+                  label: "SMS 알림",
+                  desc: "위험 탐지 시 문자로 알림을 받습니다",
+                },
+                {
+                  key: "app",
+                  icon: "🔔",
+                  label: "앱 푸시 알림",
+                  desc: "앱에서 실시간 알림을 받습니다",
+                },
+              ].map((n) => (
                 <div key={n.key} className={styles.notiRow}>
                   <div className={styles.notiLeft}>
                     <span className={styles.notiIcon}>{n.icon}</span>
@@ -469,28 +744,64 @@ export default function MyPage() {
                   </div>
                   <button
                     className={`${styles.toggle} ${noti[n.key as keyof typeof noti] ? styles.toggleOn : styles.toggleOff}`}
-                    onClick={() => setNoti(prev => ({ ...prev, [n.key]: !prev[n.key as keyof typeof noti] }))}
+                    onClick={() =>
+                      setNoti((prev) => ({
+                        ...prev,
+                        [n.key]: !prev[n.key as keyof typeof noti],
+                      }))
+                    }
                   >
-                    {noti[n.key as keyof typeof noti] ? 'ON' : 'OFF'}
+                    {noti[n.key as keyof typeof noti] ? "ON" : "OFF"}
                   </button>
                 </div>
               ))}
             </div>
             <div className={styles.modalActions}>
-              <button className={styles.saveBtn} style={{ flex: 1 }} disabled={saving} onClick={async () => {
-                setSaving(true)
-                const token = getToken()
-                try {
-                  const res  = await fetch(`${API}/api/member/me/notifications`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                    body: JSON.stringify(noti),
-                  })
-                  const data = await res.json()
-                  if (!data.success) { alert(data.message); return }
-                } catch { alert('오류가 발생했습니다.') }
-                finally { setSaving(false); setNotiModal(false) }
-              }}>{saving ? '저장 중...' : '저장'}</button>
+              <button
+                className={styles.saveBtn}
+                style={{ flex: 1 }}
+                disabled={saving}
+                onClick={async () => {
+                  const token = getToken();
+
+                  if (!token) {
+                    alert("토큰이 없습니다. 다시 로그인해주세요.");
+                    router.replace("/login");
+                    return;
+                  }
+
+                  setSaving(true);
+
+                  try {
+                    const res = await fetch(
+                      `${API}/api/member/me/notifications`,
+                      {
+                        method: "PUT",
+                        headers: {
+                          "Content-Type": "application/json",
+                          Authorization: `Bearer ${token}`,
+                        },
+                        credentials: "include",
+                        body: JSON.stringify(noti),
+                      },
+                    );
+
+                    const data = await res.json();
+
+                    if (!data.success) {
+                      alert(data.message);
+                      return;
+                    }
+                  } catch {
+                    alert("오류가 발생했습니다.");
+                  } finally {
+                    setSaving(false);
+                    setNotiModal(false);
+                  }
+                }}
+              >
+                {saving ? "저장 중..." : "저장"}
+              </button>
             </div>
           </div>
         </div>
@@ -498,43 +809,88 @@ export default function MyPage() {
 
       {/* 회원 탈퇴 확인 모달 */}
       {withdrawModal && (
-        <div className={styles.overlay} onClick={() => { setWithdrawModal(false); setWithdrawStep(1) }}>
-          <div className={styles.modal} onClick={e => e.stopPropagation()}>
+        <div
+          className={styles.overlay}
+          onClick={() => {
+            setWithdrawModal(false);
+            setWithdrawStep(1);
+          }}
+        >
+          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
             <div className={styles.modalHeader}>
               <h2>회원 탈퇴</h2>
-              <button className={styles.modalClose} onClick={() => { setWithdrawModal(false); setWithdrawStep(1) }}>✕</button>
+              <button
+                className={styles.modalClose}
+                onClick={() => {
+                  setWithdrawModal(false);
+                  setWithdrawStep(1);
+                }}
+              >
+                ✕
+              </button>
             </div>
 
             {withdrawStep === 1 ? (
               <>
                 <div className={styles.modalBody}>
                   <div className={styles.withdrawWarning}>
-                    <p className={styles.withdrawWarningTitle}>정말 탈퇴하시겠습니까?</p>
-                    <p className={styles.withdrawWarningDesc}>탈퇴를 진행하기 전에 아래 안내 사항을 반드시 확인해 주세요.</p>
+                    <p className={styles.withdrawWarningTitle}>
+                      정말 탈퇴하시겠습니까?
+                    </p>
+                    <p className={styles.withdrawWarningDesc}>
+                      탈퇴를 진행하기 전에 아래 안내 사항을 반드시 확인해
+                      주세요.
+                    </p>
                   </div>
                 </div>
                 <div className={styles.modalActions}>
-                  <button className={styles.cancelBtn} onClick={() => { setWithdrawModal(false); setWithdrawStep(1) }}>취소</button>
-                  <button className={styles.withdrawBtn} onClick={() => setWithdrawStep(2)}>다음</button>
+                  <button
+                    className={styles.cancelBtn}
+                    onClick={() => {
+                      setWithdrawModal(false);
+                      setWithdrawStep(1);
+                    }}
+                  >
+                    취소
+                  </button>
+                  <button
+                    className={styles.withdrawBtn}
+                    onClick={() => setWithdrawStep(2)}
+                  >
+                    다음
+                  </button>
                 </div>
               </>
             ) : (
               <>
                 <div className={styles.modalBody}>
                   <div className={styles.withdrawWarning}>
-                    <p className={styles.withdrawWarningTitle}>탈퇴 시 아래 사항이 적용됩니다.</p>
+                    <p className={styles.withdrawWarningTitle}>
+                      탈퇴 시 아래 사항이 적용됩니다.
+                    </p>
                     <ul className={styles.withdrawWarningList}>
                       <li>계정이 즉시 비활성화되며 로그인이 불가합니다.</li>
                       <li>작성한 게시글 및 댓글이 모두 삭제됩니다.</li>
                       <li>모든 개인정보가 삭제되며 복구할 수 없습니다.</li>
                     </ul>
-                    <p className={styles.withdrawWarningFinal}>이 작업은 되돌릴 수 없습니다. 그래도 탈퇴하시겠습니까?</p>
+                    <p className={styles.withdrawWarningFinal}>
+                      이 작업은 되돌릴 수 없습니다. 그래도 탈퇴하시겠습니까?
+                    </p>
                   </div>
                 </div>
                 <div className={styles.modalActions}>
-                  <button className={styles.cancelBtn} onClick={() => setWithdrawStep(1)}>이전</button>
-                  <button className={styles.withdrawBtn} onClick={handleWithdraw} disabled={withdrawing}>
-                    {withdrawing ? '처리 중...' : '탈퇴하기'}
+                  <button
+                    className={styles.cancelBtn}
+                    onClick={() => setWithdrawStep(1)}
+                  >
+                    이전
+                  </button>
+                  <button
+                    className={styles.withdrawBtn}
+                    onClick={handleWithdraw}
+                    disabled={withdrawing}
+                  >
+                    {withdrawing ? "처리 중..." : "탈퇴하기"}
                   </button>
                 </div>
               </>
@@ -546,21 +902,42 @@ export default function MyPage() {
       {/* 접근 권한 확인 모달 */}
       {permModal && (
         <div className={styles.overlay} onClick={() => setPermModal(false)}>
-          <div className={styles.modal} onClick={e => e.stopPropagation()}>
+          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
             <div className={styles.modalHeader}>
               <h2>접근 권한 확인</h2>
-              <button className={styles.modalClose} onClick={() => setPermModal(false)}>✕</button>
+              <button
+                className={styles.modalClose}
+                onClick={() => setPermModal(false)}
+              >
+                ✕
+              </button>
             </div>
             <div className={styles.modalBody}>
-              <div className={styles.gradeCard} style={{ borderColor: gradeInfo.color }}>
+              <div
+                className={styles.gradeCard}
+                style={{ borderColor: gradeInfo.color }}
+              >
                 <div className={styles.gradeTop}>
-                  <span className={styles.gradeBig} style={{ color: gradeInfo.color }}>{grade}</span>
-                  <span className={styles.roleTag}>{role === 'admin' ? '관리자' : role === 'manager' ? '매니저' : '일반회원'}</span>
+                  <span
+                    className={styles.gradeBig}
+                    style={{ color: gradeInfo.color }}
+                  >
+                    {grade}
+                  </span>
+                  <span className={styles.roleTag}>
+                    {role === "admin"
+                      ? "관리자"
+                      : role === "manager"
+                        ? "매니저"
+                        : "일반회원"}
+                  </span>
                 </div>
-                <p className={styles.gradeDesc}>현재 {gradeInfo.label} 등급으로 아래 기능을 이용할 수 있습니다</p>
+                <p className={styles.gradeDesc}>
+                  현재 {gradeInfo.label} 등급으로 아래 기능을 이용할 수 있습니다
+                </p>
               </div>
               <div className={styles.permList}>
-                {gradeInfo.permissions.map(p => (
+                {gradeInfo.permissions.map((p) => (
                   <div key={p} className={styles.permItem}>
                     <span className={styles.permCheck}>✓</span>
                     <span>{p}</span>
@@ -569,11 +946,17 @@ export default function MyPage() {
               </div>
             </div>
             <div className={styles.modalActions}>
-              <button className={styles.saveBtn} style={{ flex: 1 }} onClick={() => setPermModal(false)}>확인</button>
+              <button
+                className={styles.saveBtn}
+                style={{ flex: 1 }}
+                onClick={() => setPermModal(false)}
+              >
+                확인
+              </button>
             </div>
           </div>
         </div>
       )}
     </div>
-  )
+  );
 }
