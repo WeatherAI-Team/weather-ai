@@ -6,11 +6,18 @@ board_service.py  –  Service 레이어 (비즈니스 로직)
 import os
 import uuid
 from werkzeug.utils import secure_filename
+from supabase import create_client
 
 from app.repositories import board_repo
 from app.models.board import Board, BoardComment, BoardAttachment
 
+BUCKET_NAME = "board-attachments"
 
+def _get_supabase():
+    return create_client(
+        os.environ.get("SUPABASE_URL"),
+        os.environ.get("SUPABASE_SERVICE_KEY")
+    )
 UPLOAD_ROOT = os.path.join(os.getcwd(), "uploads", "board")
 
 ALLOWED_EXTENSIONS = {
@@ -377,22 +384,24 @@ def upload_attachment(post_id: int, user_id: str, user_role: str, file) -> tuple
 
     original_filename = secure_filename(file.filename)
     ext = original_filename.rsplit(".", 1)[1].lower()
-    stored_filename = f"{uuid.uuid4().hex}.{ext}"
+    stored_filename = f"{post_id}/{uuid.uuid4().hex}.{ext}"
 
-    save_dir = os.path.join(UPLOAD_ROOT, str(post_id))
-    os.makedirs(save_dir, exist_ok=True)
+    file_bytes = file.read()
 
-    file_path = os.path.join(save_dir, stored_filename)
-    file.save(file_path)
+    _get_supabase().storage.from_(BUCKET_NAME).upload(
+        path=stored_filename,
+        file=file_bytes,
+        file_options={"content-type": file.mimetype}
+    )
 
-    file_url = f"/api/board/files/{post_id}/{stored_filename}"
+    file_url = _get_supabase().storage.from_(BUCKET_NAME).get_public_url(stored_filename)
 
     attachment = board_repo.create_attachment(
         board_id=post_id,
         original_filename=original_filename,
         stored_filename=stored_filename,
         file_url=file_url,
-        file_path=file_path,
+        file_path=stored_filename,
         mime_type=file.mimetype,
         file_size=file_size,
     )
@@ -420,8 +429,7 @@ def delete_attachment(attachment_id: int, user_id: str, user_role: str) -> tuple
     board_repo.soft_delete_attachment(file)
 
     try:
-        if file.file_path and os.path.exists(file.file_path):
-            os.remove(file.file_path)
+        _get_supabase().storage.from_(BUCKET_NAME).remove([file.stored_filename])
     except Exception as e:
         print(f"[FILE DELETE ERROR] {e}")
 
