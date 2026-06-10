@@ -422,7 +422,7 @@ function PostDetail() {
               {post.attachments.map((file) => (
                 <li key={file.id} className={styles.attachmentItem}>
                   <a
-                    href={`${process.env.NEXT_PUBLIC_API_URL}${file.file_url}`}
+                    href={file.file_url}
                     target="_blank"
                     rel="noopener noreferrer"
                     className={styles.attachmentLink}
