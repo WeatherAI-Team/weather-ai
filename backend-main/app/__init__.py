@@ -29,6 +29,7 @@ def create_app():
     app.config["SESSION_COOKIE_SECURE"] = False      # 추가 (localhost라서 False)
     app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "dev-jwt-secret-key")
     app.config["ITS_API_KEY"] = os.getenv("ITS_API_KEY")
+    app.config["AI_SERVER_URL"] = os.getenv("AI_SERVER_URL", "http://127.0.0.1:8000")  # 추가
 
 
     # 메일 설정
@@ -53,14 +54,22 @@ def create_app():
     # CORS: 프론트 주소만 허용
     CORS(
         app,
-        resources={r"/api/*": {"origins": [
-            "http://localhost:3000",
-            "http://172.25.181.79:3000",
-            "http://172.23.176.1:3000",
-        ]}},
+        resources={
+            r"/api/admin/notifications/stream": {
+                "origins": "*",
+                "supports_credentials": False
+            },
+            r"/api/*": {"origins": [
+                "http://localhost:3000",
+                "http://172.25.181.79:3000",
+                "http://192.168.0.242:3000",
+                "http://mbc-sw.iptime.org:3231",
+            ]},
+        },
         supports_credentials=True,
         methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
         allow_headers=["Content-Type", "Authorization"],
+        expose_headers=["Content-Type", "X-Accel-Buffering"],
     )
 
     # SocketIO (dev에서 가져옴)

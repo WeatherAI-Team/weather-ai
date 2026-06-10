@@ -115,7 +115,7 @@ export default function Footer() {
             </a> */}
 
             {/* <a
-              href="https://your-api-docs-link.com"
+              href="링크넣기"
               target="_blank"
               rel="noopener noreferrer"
               className={styles.linkItem}
