@@ -17,8 +17,26 @@ socketio = SocketIO(
 )
 
 def create_app():
-    
     app = Flask(__name__)
+    
+    # 접속 로그 설정
+    import logging
+    from logging.handlers import RotatingFileHandler
+    log_dir = os.path.join(os.path.dirname(__file__), '../../logs')
+    os.makedirs(log_dir, exist_ok=True)
+    access_logger = logging.getLogger('access')
+    if not access_logger.handlers:
+        handler = RotatingFileHandler(
+            os.path.join(log_dir, 'access.log'),
+            maxBytes=10*1024*1024,
+            backupCount=30
+        )
+        handler.setFormatter(logging.Formatter('%(asctime)s %(message)s'))
+        access_logger.addHandler(handler)
+        access_logger.setLevel(logging.INFO)
+    app.config['ACCESS_LOGGER'] = access_logger
+
+
     app.json.ensure_ascii = False
     app.config["JSON_AS_ASCII"] = False
     app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "dev-jwt-secret-key")
