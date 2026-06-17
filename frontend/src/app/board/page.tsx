@@ -446,19 +446,15 @@ export default function BoardPage() {
                     )}
                   </button>
                 ))}
-                <button
-                  className={styles.writeBtn}
-                  style={{ marginLeft: "auto" }}
-                  onClick={() => {
-                    if (!userRole) {
-                      setLoginAlert(true);
-                      return;
-                    }
-                    router.push("/board/write?tab=data");
-                  }}
-                >
-                  ✏️ 자료 올리기
-                </button>
+                {isAdmin(userRole) && (
+                  <button
+                    className={styles.writeBtn}
+                    style={{ marginLeft: "auto" }}
+                    onClick={() => router.push("/board/write?tab=data")}
+                  >
+                    ✏️ 자료 올리기
+                  </button>
+                )}
               </div>
 
               <div className={styles.postList}>
