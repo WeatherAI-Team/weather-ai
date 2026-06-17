@@ -35,7 +35,13 @@ export default function Header() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const handleLogout = () => {
+const handleLogout = async () => {
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/member/logout`, {
+        method: "POST",
+        credentials: "include",
+      });
+    } catch (e) {}
     localStorage.removeItem("user");
     localStorage.removeItem("loginUser");
     localStorage.removeItem("access_token");
