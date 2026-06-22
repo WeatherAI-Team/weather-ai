@@ -3,7 +3,6 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import styles from './page.module.css'
-import { useModalKeyboard } from '@/hooks/useModalKeyboard'
 import { useNotification } from '@/contexts/NotificationContext'
 
 const API = process.env.NEXT_PUBLIC_API_URL
@@ -18,6 +17,7 @@ const sideMenus = [
 const boardMenus = [
   { label: '건의게시판', href: '/board/suggest', icon: '💬' },
   { label: '정보게시판', href: '/board/info', icon: '📋' },
+  { label: '버그게시판', href: '/board/bug', icon: '🐛' },
 ]
 
 type Post = {
@@ -32,6 +32,12 @@ type Post = {
   created_at: string
 }
 
+const previewContent = (content: string) => {
+  if (content.includes('data:image') || content.includes('<img')) return '[이미지 첨부]'
+  const text = content.replace(/<[^>]*>/g, '')
+  return text.length > 50 ? text.slice(0, 50) + '...' : text
+}
+
 export default function SuggestBoardPage() {
   useEffect(() => { document.title = 'Weather AI - 건의게시판' }, [])
   const pathname = usePathname()
@@ -39,10 +45,6 @@ export default function SuggestBoardPage() {
   const [boardOpen, setBoardOpen] = useState(true)
   const [posts, setPosts] = useState<Post[]>([])
   const [search, setSearch] = useState('')
-  const [selectedPost, setSelectedPost] = useState<Post | null>(null)
-  const [modalOpen, setModalOpen] = useState(false)
-
-  useModalKeyboard(modalOpen, () => setModalOpen(false))
 
   const fetchPosts = async () => {
     try {
@@ -59,8 +61,6 @@ export default function SuggestBoardPage() {
   const filtered = posts.filter(p =>
     p.title.includes(search) || p.author_nickname.includes(search) || p.content.includes(search)
   )
-
-  const handleEdit = (post: Post) => { setSelectedPost({ ...post }); setModalOpen(true) }
 
   const handleToggleActive = async (id: number) => {
     const res = await fetch(`${API}/api/board/admin/posts/${id}/toggle-active`, {
@@ -85,28 +85,6 @@ export default function SuggestBoardPage() {
       setPosts(prev => prev.map(p => p.id === id ? { ...p, pinned: data.pinned } : p))
     } else {
       alert(data.message ?? '오류가 발생했습니다.')
-    }
-  }
-
-  const handleSave = async () => {
-    if (!selectedPost) return
-    const res = await fetch(`${API}/api/board/posts/${selectedPost.id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({
-        title: selectedPost.title,
-        content: selectedPost.content,
-        pinned: selectedPost.pinned,
-        active: selectedPost.active,
-      }),
-    })
-    const data = await res.json()
-    if (data.success) {
-      setPosts(prev => prev.map(p => p.id === selectedPost.id ? data.post : p))
-      setModalOpen(false)
-    } else {
-      alert(data.message ?? '수정에 실패했습니다.')
     }
   }
 
@@ -175,7 +153,7 @@ export default function SuggestBoardPage() {
           <table className={styles.table}>
             <thead>
               <tr>
-                {['ID', '작성자', '제목', '내용', '조회수', '공지여부', '활성여부', '작성일', '관리'].map(h => (
+                {['ID', '작성자', '제목', '내용', '조회수', '공지여부', '활성여부', '작성일'].map(h => (
                   <th key={h} className={styles.th}>{h}</th>
                 ))}
               </tr>
@@ -191,7 +169,9 @@ export default function SuggestBoardPage() {
                       {p.title}
                     </span>
                   </td>
-                  <td className={styles.td}><span className={styles.content}>{p.content}</span></td>
+                  <td className={styles.td}>
+                    <span className={styles.content}>{previewContent(p.content)}</span>
+                  </td>
                   <td className={styles.td}>{p.view_count}</td>
                   <td className={styles.td}>
                     <button
@@ -210,62 +190,14 @@ export default function SuggestBoardPage() {
                     </button>
                   </td>
                   <td className={styles.td}>{p.created_at}</td>
-                  <td className={styles.td}>
-                    <div className={styles.actions}>
-                      <button className={styles.editBtn} onClick={() => handleEdit(p)}>수정</button>
-                    </div>
-                  </td>
                 </tr>
               )) : (
-                <tr><td colSpan={9} className={styles.noData}>검색 결과가 없습니다</td></tr>
+                <tr><td colSpan={8} className={styles.noData}>검색 결과가 없습니다</td></tr>
               )}
             </tbody>
           </table>
         </div>
       </main>
-
-      {modalOpen && selectedPost && (
-        <div className={styles.modalOverlay} onClick={() => setModalOpen(false)}>
-          <div className={styles.modal} onClick={e => e.stopPropagation()}>
-            <div className={styles.modalHeader}>
-              <h2 className={styles.modalTitle}>게시글 수정</h2>
-              <button className={styles.modalClose} onClick={() => setModalOpen(false)}>✕</button>
-            </div>
-            <div className={styles.modalBody}>
-              <div className={styles.modalField}>
-                <label className={styles.modalLabel}>제목</label>
-                <input className={styles.modalInput} value={selectedPost.title}
-                  onChange={e => setSelectedPost({ ...selectedPost, title: e.target.value })} />
-              </div>
-              <div className={styles.modalField}>
-                <label className={styles.modalLabel}>내용</label>
-                <textarea className={styles.modalTextarea} value={selectedPost.content}
-                  onChange={e => setSelectedPost({ ...selectedPost, content: e.target.value })} />
-              </div>
-              <div className={styles.modalField}>
-                <label className={styles.modalLabel}>공지 여부</label>
-                <select className={styles.modalInput} value={selectedPost.pinned ? 'true' : 'false'}
-                  onChange={e => setSelectedPost({ ...selectedPost, pinned: e.target.value === 'true' })}>
-                  <option value="false">일반</option>
-                  <option value="true">공지</option>
-                </select>
-              </div>
-              <div className={styles.modalField}>
-                <label className={styles.modalLabel}>활성 여부</label>
-                <select className={styles.modalInput} value={selectedPost.active ? 'true' : 'false'}
-                  onChange={e => setSelectedPost({ ...selectedPost, active: e.target.value === 'true' })}>
-                  <option value="true">활성</option>
-                  <option value="false">비활성</option>
-                </select>
-              </div>
-            </div>
-            <div className={styles.modalActions}>
-              <button className={styles.modalCancel} onClick={() => setModalOpen(false)}>취소</button>
-              <button className={styles.modalSave} onClick={handleSave}>저장</button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

@@ -32,8 +32,14 @@ def login():
     result = member_service.login_member(data)
 
     if result["success"]:
+        # 로그인 로그 기록
+        from flask import current_app
+        logger = current_app.config.get('ACCESS_LOGGER')
+        if logger:
+            user_data = result.get("data", {})
+            logger.info(f"LOGIN | user_id={user_data.get('id')} | email={user_data.get('email')} | ip={request.remote_addr}")
+
         access_token = result.get("access_token")
-        # ✅ httpOnly 쿠키로 토큰 발급
         response = make_response(jsonify(result), 200)
         response.set_cookie(
             'access_token',
@@ -42,7 +48,7 @@ def login():
             secure=os.getenv("FLASK_ENV") == "production",
             samesite='Lax',
             max_age=60 * 60 * 24 * 7,
-            domain=domain  # ✅ 도메인 추가
+            domain=domain
         )
         return response
 
@@ -51,6 +57,11 @@ def login():
 @member_bp.route('/logout', methods=['POST'])
 @login_required
 def logout():
+    from flask import current_app
+    logger = current_app.config.get('ACCESS_LOGGER')
+    if logger:
+        logger.info(f"LOGOUT | user_id={request.user_id} | ip={request.remote_addr}")
+    
     # ✅ 쿠키 삭제
     response = make_response(jsonify({"success": True, "message": "로그아웃되었습니다."}), 200)
     response.delete_cookie('access_token')

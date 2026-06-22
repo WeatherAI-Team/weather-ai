@@ -67,8 +67,8 @@ function WriteForm() {
       router.replace("/login");
       return;
     }
-    if ((tab === "info" || tab === "bug" || tab === "data") && !isPrivileged) {
-      router.replace(`/board?tab=${tab}`);
+    if ((tab === "info" || tab === "data") && !isPrivileged) {
+      router.replace("/board");
       return;
     }
   }, [ready, localUser, tab, isPrivileged, router]);

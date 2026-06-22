@@ -16,6 +16,7 @@ const sideMenus = [
 const boardMenus = [
   { label: '건의게시판', href: '/board/suggest', icon: '💬' },
   { label: '정보게시판', href: '/board/info',    icon: '📋' },
+  { label: '버그게시판', href: '/board/bug', icon: '🐛' },  // 추가
 ]
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? ''
@@ -238,6 +239,12 @@ function NotificationModal({
                       src={`${process.env.NEXT_PUBLIC_API_BASE_URL}/ai-static/${detail.clip_url?.replace('static/', '')}`}
                       controls
                       style={{ width: '100%', borderRadius: '8px' }}
+                      onError={(e) => {
+                        const parent = e.currentTarget.parentElement;
+                        if (parent) {
+                          parent.innerHTML = '<div style="text-align:center;padding:40px;color:#888"><span style="font-size:2rem">📹</span><p>영상을 불러올 수 없습니다</p></div>';
+                        }
+                      }}
                     />
                   ) : (
                   <div className={styles.cctvPlaceholder}>

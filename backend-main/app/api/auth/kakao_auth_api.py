@@ -94,6 +94,12 @@ def kakao_callback():
     )
 
     if status_code in (200, 201):
+        from flask import current_app
+        logger = current_app.config.get('ACCESS_LOGGER')
+        if logger:
+            user_data = result.get("user", {})
+            logger.info(f"LOGIN(google) | user_id={user_data.get('id')} | email={email} | ip={request.remote_addr}")
+            
         access_token = result.get("access_token")
         # ✅ httpOnly 쿠키로 토큰 발급 (URL 노출 제거)
         query = urlencode({

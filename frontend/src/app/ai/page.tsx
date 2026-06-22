@@ -375,7 +375,7 @@ function HlsPlayer({
       }
     };
 
-    intervalRef.current = setInterval(analyzeFrame, 500);
+    intervalRef.current = setInterval(analyzeFrame, 3000); // 500 → 3000
 
     return () => {
       // ✅ CCTV 전환 시 정리

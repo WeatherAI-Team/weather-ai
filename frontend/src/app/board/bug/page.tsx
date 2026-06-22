@@ -20,6 +20,20 @@ const boardMenus = [
   { label: '버그게시판', href: '/board/bug', icon: '🐛' },
 ]
 
+type BugStatus = 'pending' | 'in_progress' | 'done'
+
+const BUG_STATUS_LABELS: Record<BugStatus, string> = {
+  pending: '미처리',
+  in_progress: '진행중',
+  done: '처리완료',
+}
+
+const BUG_STATUS_COLORS: Record<BugStatus, string> = {
+  pending: '#e43b3b',
+  in_progress: '#f59e0b',
+  done: '#2b8a3e',
+}
+
 type Post = {
   id: number
   author_nickname: string
@@ -29,6 +43,7 @@ type Post = {
   view_count: number
   pinned: boolean
   active: boolean
+  status: BugStatus
   created_at: string
 }
 
@@ -38,17 +53,18 @@ const previewContent = (content: string) => {
   return text.length > 50 ? text.slice(0, 50) + '...' : text
 }
 
-export default function InfoBoardPage() {
-  useEffect(() => { document.title = 'Weather AI - 정보게시판' }, [])
+export default function BugBoardPage() {
+  useEffect(() => { document.title = 'Weather AI - 버그게시판' }, [])
   const pathname = usePathname()
   const { unreadCount } = useNotification()
   const [boardOpen, setBoardOpen] = useState(true)
   const [posts, setPosts] = useState<Post[]>([])
   const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState<BugStatus | 'all'>('all')
 
   const fetchPosts = async () => {
     try {
-      const res = await fetch(`${API}/api/board/admin/posts?board_type=INFO,NOTICE&per_page=200`, {
+      const res = await fetch(`${API}/api/board/admin/posts?board_type=BUG&per_page=200`, {
         credentials: 'include',
       })
       const data = await res.json()
@@ -58,9 +74,11 @@ export default function InfoBoardPage() {
 
   useEffect(() => { fetchPosts() }, [])
 
-  const filtered = posts.filter(p =>
-    p.title.includes(search) || p.author_nickname.includes(search) || p.content.includes(search)
-  )
+  const filtered = posts
+    .filter(p => statusFilter === 'all' || p.status === statusFilter)
+    .filter(p =>
+      p.title.includes(search) || p.author_nickname.includes(search) || p.content.includes(search)
+    )
 
   const handleToggleActive = async (id: number) => {
     const res = await fetch(`${API}/api/board/admin/posts/${id}/toggle-active`, {
@@ -75,16 +93,19 @@ export default function InfoBoardPage() {
     }
   }
 
-  const handleTogglePinned = async (id: number) => {
-    const res = await fetch(`${API}/api/board/admin/posts/${id}/toggle-pinned`, {
-      method: 'PATCH',
-      credentials: 'include',
-    })
-    const data = await res.json()
-    if (data.success) {
-      setPosts(prev => prev.map(p => p.id === id ? { ...p, pinned: data.pinned } : p))
-    } else {
-      alert(data.message ?? '오류가 발생했습니다.')
+  const handleStatusChange = async (id: number, status: BugStatus) => {
+    try {
+      const res = await fetch(`${API}/api/board/posts/${id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ status }),
+      })
+      const data = await res.json()
+      if (!data.success) throw new Error(data.message)
+      setPosts(prev => prev.map(p => p.id === id ? { ...p, status: data.post?.status ?? status } : p))
+    } catch (e: any) {
+      alert(e.message ?? '상태 변경 실패')
     }
   }
 
@@ -123,16 +144,16 @@ export default function InfoBoardPage() {
 
       <main className={styles.main}>
         <div className={styles.topBar}>
-          <h1 className={styles.pageTitle}>정보게시판</h1>
+          <h1 className={styles.pageTitle}>버그게시판</h1>
         </div>
 
         <div className={styles.toolbar}>
           <div className={styles.statsRow}>
             {[
               { label: '전체 게시글', value: posts.length, color: '#07559d' },
-              { label: '공지 게시글', value: posts.filter(p => p.pinned).length, color: '#1b9bd1' },
-              { label: '활성 게시글', value: posts.filter(p => p.active).length, color: '#2b8a3e' },
-              { label: '비활성 게시글', value: posts.filter(p => !p.active).length, color: '#e43b3b' },
+              { label: '미처리', value: posts.filter(p => p.status === 'pending').length, color: '#e43b3b' },
+              { label: '진행중', value: posts.filter(p => p.status === 'in_progress').length, color: '#f59e0b' },
+              { label: '처리완료', value: posts.filter(p => p.status === 'done').length, color: '#2b8a3e' },
             ].map(s => (
               <div key={s.label} className={styles.statCard}>
                 <span className={styles.statValue} style={{ color: s.color }}>{s.value}</span>
@@ -140,37 +161,60 @@ export default function InfoBoardPage() {
               </div>
             ))}
           </div>
-          <input type="text" placeholder="제목, 작성자, 내용 검색..." className={styles.search}
-            value={search} onChange={e => setSearch(e.target.value)} />
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <select
+              value={statusFilter}
+              onChange={e => setStatusFilter(e.target.value as BugStatus | 'all')}
+              className={styles.search}
+              style={{ width: 'auto' }}
+            >
+              <option value="all">전체 상태</option>
+              <option value="pending">미처리</option>
+              <option value="in_progress">진행중</option>
+              <option value="done">처리완료</option>
+            </select>
+            <input type="text" placeholder="제목, 작성자, 내용 검색..." className={styles.search}
+              value={search} onChange={e => setSearch(e.target.value)} />
+          </div>
         </div>
 
         <div className={styles.tableWrap}>
           <table className={styles.table}>
             <thead>
               <tr>
-                {['ID', '작성자', '제목', '내용', '조회수', '공지여부', '활성여부', '작성일'].map(h => (
+                {['ID', '작성자', '제목', '내용', '조회수', '처리상태', '활성여부', '작성일'].map(h => (
                   <th key={h} className={styles.th}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {filtered.length > 0 ? filtered.map(p => (
-                <tr key={p.id} className={`${styles.tr} ${p.pinned ? styles.noticeRow : ''}`}>
+                <tr key={p.id} className={styles.tr}>
                   <td className={styles.td}>{p.id}</td>
                   <td className={styles.td}>{p.author_nickname}</td>
-                  <td className={styles.td}>
-                    <span className={styles.title}>
-                      {p.pinned && <span className={styles.noticeBadge}>공지</span>}
-                      {p.title}
-                    </span>
-                  </td>
+                  <td className={styles.td}><span className={styles.title}>{p.title}</span></td>
                   <td className={styles.td}>
                     <span className={styles.content}>{previewContent(p.content)}</span>
                   </td>
                   <td className={styles.td}>{p.view_count}</td>
                   <td className={styles.td}>
-                    <button className={`${styles.toggleBtn} ${p.pinned ? styles.toggleOn : styles.toggleOff}`}
-                      onClick={() => handleTogglePinned(p.id)}>{p.pinned ? '공지' : '일반'}</button>
+                    <select
+                      value={p.status ?? 'pending'}
+                      onChange={e => handleStatusChange(p.id, e.target.value as BugStatus)}
+                      style={{
+                        padding: '3px 8px',
+                        borderRadius: '6px',
+                        border: '1px solid #ddd',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        color: BUG_STATUS_COLORS[p.status ?? 'pending'],
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <option value="pending">미처리</option>
+                      <option value="in_progress">진행중</option>
+                      <option value="done">처리완료</option>
+                    </select>
                   </td>
                   <td className={styles.td}>
                     <button className={`${styles.toggleBtn} ${p.active ? styles.activeOn : styles.activeOff}`}

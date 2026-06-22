@@ -16,6 +16,7 @@ const sideMenus = [
 const boardMenus = [
   { label: '건의게시판', href: '/board/suggest', icon: '💬' },
   { label: '정보게시판', href: '/board/info', icon: '📋' },
+  { label: '버그게시판', href: '/board/bug', icon: '🐛' },  // 추가
 ]
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL
