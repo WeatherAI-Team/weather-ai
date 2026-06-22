@@ -452,8 +452,8 @@ function BoardPageInner() {
                     style={{ marginLeft: "auto" }}
                     onClick={() => router.push("/board/write?tab=data")}
                   >
-                  ✏️ 자료 올리기
-                </button>
+                    ✏️ 자료 올리기
+                  </button>
                 )}
               </div>
 
