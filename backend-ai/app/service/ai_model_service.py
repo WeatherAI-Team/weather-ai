@@ -49,6 +49,7 @@ class AIModelService:
         print("[AI] 모델 로딩 중...")
         self.keras_model = keras.models.load_model('weather_classifier_model.keras')
         self.yolo_model = YOLO('best.pt')
+        self.yolo_model.to('cuda')  # GPU 사용
         print("[AI] 모든 모델 로딩 완료!")
 
         self.is_analyzing = False

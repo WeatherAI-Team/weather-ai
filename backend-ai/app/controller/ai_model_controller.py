@@ -190,3 +190,29 @@ async def detect_yolo_by_path(body: ImagePathRequest):
             "error": str(e),
         }
     
+
+@router.post("/clip/save")
+async def save_hls_clip(body: dict):
+    """HLS 스트림에서 3초 클립 저장"""
+    import subprocess, os
+    from datetime import datetime
+    stream_url = body.get("stream_url")
+    if not stream_url:
+        return {"success": False, "message": "stream_url 필요"}
+    try:
+        clips_dir = os.path.join(os.path.dirname(__file__), '..', '..', 'static', 'clips')
+        os.makedirs(clips_dir, exist_ok=True)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"clip_{timestamp}.mp4"
+        output_path = os.path.join(clips_dir, filename)
+        cmd = ["ffmpeg", "-y", "-i", stream_url, "-t", "3", "-c", "copy", output_path]
+        result = subprocess.run(cmd, timeout=15, capture_output=True)
+        if result.returncode == 0 and os.path.exists(output_path):
+            print(f"[CLIP] HLS 클립 저장 완료: {filename}")
+            return {"success": True, "clip_path": f"static/clips/{filename}"}
+        else:
+            print(f"[CLIP] ffmpeg 실패: {result.stderr.decode()[:200]}")
+            return {"success": False, "message": "ffmpeg 실패"}
+    except Exception as e:
+        print(f"[CLIP] 오류: {e}")
+        return {"success": False, "message": str(e)}
