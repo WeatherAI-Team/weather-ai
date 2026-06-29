@@ -555,7 +555,7 @@ def _save_hls_clip(stream_url: str, event_id: int) -> str | None:
     import requests as req
     try:
         ai_url = os.getenv("AI_SERVER_URL", "http://127.0.0.1:8000")
-        res = req.post(f"{ai_url}/clip/save", json={"stream_url": stream_url}, timeout=20)
+        res = req.post(f"{ai_url}/api/ai/clip/save", json={"stream_url": stream_url}, timeout=20)
         data = res.json()
         if data.get("success"):
             print(f"[CLIP] AI 서버 클립 저장 완료: {data['clip_path']}")
