@@ -551,27 +551,18 @@ def _pick_representative_vehicle(ai_result: dict) -> str:
 
     return representative
 def _save_hls_clip(stream_url: str, event_id: int) -> str | None:
-    """HLS 스트림에서 3초 클립 저장 후 clip_url 반환"""
+    """AI 서버에 요청해서 HLS 3초 클립 저장"""
+    import requests as req
     try:
-        clips_dir = os.path.join(os.path.dirname(__file__), '..', '..', 'static', 'clips')
-        os.makedirs(clips_dir, exist_ok=True)
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"clip_{timestamp}.mp4"
-        output_path = os.path.join(clips_dir, filename)
-        cmd = [
-            "ffmpeg", "-y",
-            "-i", stream_url,
-            "-t", "3",
-            "-c", "copy",
-            output_path
-        ]
-        result = subprocess.run(cmd, timeout=15, capture_output=True)
-        if result.returncode == 0 and os.path.exists(output_path):
-            print(f"[CLIP] HLS 클립 저장 완료: {filename}")
-            return f"static/clips/{filename}"
+        ai_url = os.getenv("AI_SERVER_URL", "http://127.0.0.1:8000")
+        res = req.post(f"{ai_url}/clip/save", json={"stream_url": stream_url}, timeout=20)
+        data = res.json()
+        if data.get("success"):
+            print(f"[CLIP] AI 서버 클립 저장 완료: {data['clip_path']}")
+            return data["clip_path"]
         else:
-            print(f"[CLIP] ffmpeg 실패: {result.stderr.decode()[:200]}")
+            print(f"[CLIP] AI 서버 클립 저장 실패: {data.get('message')}")
             return None
     except Exception as e:
-        print(f"[CLIP] HLS 클립 저장 오류: {e}")
+        print(f"[CLIP] AI 서버 호출 오류: {e}")
         return None
