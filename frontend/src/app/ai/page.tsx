@@ -535,6 +535,7 @@ export default function AiPage() {
             latitude: cam.coordy,
             longitude: cam.coordx,
             image_url: null,
+            stream_url: cam.cctvurl,
           }),
         });
 

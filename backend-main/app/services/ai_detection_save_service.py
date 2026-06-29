@@ -2,6 +2,7 @@
 
 from datetime import datetime, timezone, timedelta 
 import os
+import subprocess
 from app.services.detection_event_save_service import save_detection_event_result
 from app.services.gemma_service import generate_final_alert
 from app.services.alert_save_service import save_alert_to_db
@@ -427,6 +428,7 @@ def save_ai_detection_result(data: dict) -> dict:
     cctv_source_id = _to_int_or_none(data.get("cctv_source_id"), "cctv_source_id")
     weather_log_id = _to_int_or_none(data.get("weather_log_id"), "weather_log_id")
     image_url = data.get("image_url")
+    stream_url = data.get("stream_url")
 
     location_name = data.get("cctv_name")
     latitude = _to_float_or_none(data.get("latitude"), "latitude")
@@ -464,6 +466,7 @@ def save_ai_detection_result(data: dict) -> dict:
     )
 
     alert_save_result = None
+    clip_url = None
 
     if final_alert.get("alert_required"):
         alert_save_result = save_alert_to_db(
@@ -472,10 +475,24 @@ def save_ai_detection_result(data: dict) -> dict:
             weather_type=weather_type,
             risk_score=risk_result.get("risk_score", 0),
         )
+        if stream_url and save_result.get("event_id"):
+            clip_url = _save_hls_clip(stream_url, save_result["event_id"])
+            if clip_url:
+                from app.models.event_clip import EventClip
+                from app.extensions import db
+                try:
+                    clip = EventClip(event_id=save_result["event_id"], clip_url=clip_url)
+                    db.session.add(clip)
+                    db.session.commit()
+                    print(f"[DB] event_clips 저장 완료: {clip_url}")
+                except Exception as e:
+                    db.session.rollback()
+                    print(f"[DB] event_clips 저장 실패: {e}")
 
     return {
         **save_result,
         "alert_save_result": alert_save_result,
+        "clip_url": clip_url,
     }
             
 def _pick_representative_vehicle(ai_result: dict) -> str:
@@ -533,3 +550,28 @@ def _pick_representative_vehicle(ai_result: dict) -> str:
     )[0]
 
     return representative
+def _save_hls_clip(stream_url: str, event_id: int) -> str | None:
+    """HLS 스트림에서 3초 클립 저장 후 clip_url 반환"""
+    try:
+        clips_dir = os.path.join(os.path.dirname(__file__), '..', '..', 'static', 'clips')
+        os.makedirs(clips_dir, exist_ok=True)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"clip_{timestamp}.mp4"
+        output_path = os.path.join(clips_dir, filename)
+        cmd = [
+            "ffmpeg", "-y",
+            "-i", stream_url,
+            "-t", "3",
+            "-c", "copy",
+            output_path
+        ]
+        result = subprocess.run(cmd, timeout=15, capture_output=True)
+        if result.returncode == 0 and os.path.exists(output_path):
+            print(f"[CLIP] HLS 클립 저장 완료: {filename}")
+            return f"static/clips/{filename}"
+        else:
+            print(f"[CLIP] ffmpeg 실패: {result.stderr.decode()[:200]}")
+            return None
+    except Exception as e:
+        print(f"[CLIP] HLS 클립 저장 오류: {e}")
+        return None
