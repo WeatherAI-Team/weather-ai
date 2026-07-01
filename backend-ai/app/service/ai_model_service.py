@@ -16,6 +16,7 @@ import numpy as np
 import datetime
 from fastapi import UploadFile
 
+import torch
 import keras
 from ultralytics import YOLO
 
@@ -30,6 +31,13 @@ def kst_now():
 
 CLASS_NAMES = ['fog', 'heavy_rain', 'heavy_snow', 'sun']
 DANGER_CLASSES = ['fog', 'heavy_rain', 'heavy_snow']
+
+# backend-ai 루트 디렉터리 (app/service/ai_model_service.py 기준 2단계 위).
+# uvicorn --reload의 재시작 프로세스 등 실행 위치(cwd)가 달라져도
+# 모델 파일을 항상 같은 곳에서 찾도록 절대경로로 고정한다.
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+KERAS_MODEL_PATH = os.path.join(BASE_DIR, 'weather_classifier_model.keras')
+YOLO_MODEL_PATH = os.path.join(BASE_DIR, 'best.pt')
 
 STATIC_DIR = os.getenv('STATIC_DIR', 'static')
 DATABASE_URL = os.getenv('DATABASE_URL')
@@ -47,9 +55,12 @@ class AIModelService:
 
     def __init__(self):
         print("[AI] 모델 로딩 중...")
-        self.keras_model = keras.models.load_model('weather_classifier_model.keras')
-        self.yolo_model = YOLO('best.pt')
-        print("[AI] 모든 모델 로딩 완료!")
+        self.keras_model = keras.models.load_model(KERAS_MODEL_PATH)
+        self.yolo_model = YOLO(YOLO_MODEL_PATH)
+        # GPU가 있는 서버(VM)에서는 cuda, 없는 로컬 개발 환경에서는 cpu로 자동 전환.
+        device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        self.yolo_model.to(device)
+        print(f"[AI] 모든 모델 로딩 완료! (device: {device})")
 
         self.is_analyzing = False
         self.stop_requested = False

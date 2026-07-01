@@ -236,7 +236,7 @@ function NotificationModal({
                   <h3 className={styles.sectionTitle}>📷 CCTV 화면</h3>
                   {detail.clip_url ? (
                     <video
-                      src={`${process.env.NEXT_PUBLIC_API_BASE_URL}/ai-static/${detail.clip_url?.replace('static/', '')}`}
+                      src={`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/ai-static/${detail.clip_url?.replace('static/', '')}`}
                       controls
                       style={{ width: '100%', borderRadius: '8px' }}
                       onError={(e) => {

@@ -18,7 +18,7 @@ export default function Header() {
   const pathname = usePathname();
   const [user, setUser] = useState<User>(null);
   const [mounted, setMounted] = useState(false);
-  const isAdmin = user?.role === "admin";
+  const isAdmin = user?.role === "admin" || user?.role === "manager";
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);

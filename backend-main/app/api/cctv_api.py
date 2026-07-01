@@ -5,6 +5,7 @@ from ..services.cctv_service import (
     fetch_stream_m3u8,
     fetch_segment,
     rewrite_segment_m3u8,
+    is_trusted_stream_url,
 )
 from ..services.ai_service import (
     detect_image,
@@ -13,73 +14,9 @@ from ..services.ai_service import (
 )
 
 from app.services.cctv_gate_service import get_cctv_monitoring_gate
+from app.utils.auth_decorators import admin_required
 import os
-from jose import jwt, JWTError
 cctv_bp = Blueprint("cctv", __name__)
-
-def _get_token_payload():
-    # 헤더에서 먼저 읽고, 없으면 쿠키에서 읽어
-    auth_header = request.headers.get("Authorization", "")
-    if auth_header.startswith("Bearer "):
-        token = auth_header.split(" ", 1)[1]
-    else:
-        token = request.cookies.get("access_token")
-    
-    if not token:
-        return None, (
-            jsonify({
-                "success": False,
-                "message": "인증 토큰이 없습니다.",
-            }),
-            401,
-        )
-    
-    secret_key = os.getenv("SECRET_KEY") or current_app.config.get("SECRET_KEY")
-    algorithm = (
-        current_app.config.get("JWT_ALGORITHM")
-        or os.getenv("JWT_ALGORITHM")
-        or "HS256"
-    )
-    
-    if not secret_key:
-        return None, (
-            jsonify({
-                "success": False,
-                "message": "JWT_SECRET_KEY가 설정되지 않았습니다.",
-            }),
-            500,
-        )
-    
-    try:
-        payload = jwt.decode(token, secret_key, algorithms=[algorithm])
-        return payload, None
-    except JWTError:
-        return None, (
-            jsonify({
-                "success": False,
-                "message": "유효하지 않은 토큰입니다.",
-            }),
-            401,
-        )
-
-def _require_admin():
-    payload, error_response = _get_token_payload()
-
-    if error_response:
-        return None, error_response
-
-    role = payload.get("role")
-
-    if role != "admin":
-        return None, (
-            jsonify({
-                "success": False,
-                "message": "관리자만 CCTV Gate 상태를 조회할 수 있습니다.",
-            }),
-            403,
-        )
-
-    return payload, None
 
 
 # ── CCTV 목록 조회 ───────────────────────────────────────────────
@@ -115,6 +52,13 @@ def stream_proxy():
             "success": False,
             "message": "url 파라미터 없음"
         }), 400
+
+    # SSRF 방지: DB에 등록된 신뢰 가능한 CCTV 호스트가 아니면 거부해.
+    if not is_trusted_stream_url(url):
+        return jsonify({
+            "success": False,
+            "message": "허용되지 않은 CCTV 스트림 주소입니다."
+        }), 403
 
     try:
         # 원본 m3u8을 가져와서 내부 세그먼트 주소를 프록시 주소로 바꿔.
@@ -171,6 +115,13 @@ def ts_proxy():
             "success": False,
             "message": "url 없음"
         }), 400
+
+    # SSRF 방지: DB에 등록된 신뢰 가능한 CCTV 호스트가 아니면 거부해.
+    if not is_trusted_stream_url(url):
+        return jsonify({
+            "success": False,
+            "message": "허용되지 않은 CCTV 스트림 주소입니다."
+        }), 403
 
     try:
         # CCTV 원본 서버에서 영상 조각 또는 m3u8 파일을 가져와.
@@ -259,12 +210,8 @@ def analyze_video():
 
 # ── CCTV Gemma Gate 상태 조회 관리자 전용 ─────────────────────────
 @cctv_bp.route("/cctv/gate", methods=["GET"])
+@admin_required
 def cctv_gate():
-    _payload, error_response = _require_admin()
-
-    if error_response:
-        return error_response
-
     try:
         result = get_cctv_monitoring_gate()
 
