@@ -634,7 +634,7 @@ export default function AiPage() {
                 box.confidence > 1 ? box.confidence / 100 : box.confidence,
             })),
           annotated_url: aiResult.annotated_path
-            ? `${BACKEND_URL}/ai-static/${aiResult.annotated_path.replace('static/', '')}`
+            ? `${BACKEND_URL}/api/ai-static/${aiResult.annotated_path.replace('static/', '')}`
             : undefined,
         });
 

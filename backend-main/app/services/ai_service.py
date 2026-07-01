@@ -1,11 +1,12 @@
 import os
 import requests
 from dotenv import load_dotenv
+from app.services.ai_client_auth import AI_SERVER_HEADERS
 
 load_dotenv()
 
 AI_SERVER_URL = os.getenv("AI_SERVER_URL", "http://127.0.0.1:8000").rstrip("/")
-AI_SERVER_TIMEOUT = int(os.getenv("AI_SERVER_TIMEOUT", "300")) 
+AI_SERVER_TIMEOUT = int(os.getenv("AI_SERVER_TIMEOUT", "300"))
 
  
  
@@ -20,6 +21,7 @@ def detect_image(file_storage) -> dict:
     response = requests.post(
         f"{AI_SERVER_URL}/api/ai/detect",
         files=files,
+        headers=AI_SERVER_HEADERS,
         timeout=30,
     )
     response.raise_for_status()
@@ -42,6 +44,7 @@ def analyze_video(file_storage, original_filename="video.mp4"):
         f"{AI_SERVER_URL}/api/ai/analyze_video",
         files=files,
         data=data,
+        headers=AI_SERVER_HEADERS,
         timeout=AI_SERVER_TIMEOUT,
     )
 
@@ -64,6 +67,7 @@ def analyze_and_save_video(file_storage, user_id: str, original_filename: str) -
         f"{AI_SERVER_URL}/api/ai/analyze_and_save_video",
         files=files,
         data=data,
+        headers=AI_SERVER_HEADERS,
         timeout=60,
     )
     response.raise_for_status()

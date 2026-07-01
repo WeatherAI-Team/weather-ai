@@ -1,11 +1,12 @@
 # app/controller/ai_model_controller.py
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends
 from fastapi.responses import StreamingResponse
 from app.service.ai_model_service import AIModelService
+from app.security import verify_internal_secret
 from pydantic import BaseModel
 import cv2
 
-router = APIRouter(prefix="/api/ai", tags=["AI"])
+router = APIRouter(prefix="/api/ai", tags=["AI"], dependencies=[Depends(verify_internal_secret)])
 ai_model_service = AIModelService()
 class ImagePathRequest(BaseModel):
     image_path: str
