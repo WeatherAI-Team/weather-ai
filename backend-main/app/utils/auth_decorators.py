@@ -5,18 +5,11 @@ from flask import request, jsonify
 # 데코레이터를 만들 때 원래 함수 이름을 유지하기 위해 가져와.
 from functools import wraps
 
-# JWT 토큰을 해석하기 위해 가져와.
-from jose import jwt
-
 # JWT 오류를 구분해서 처리하기 위해 가져와.
 from jose.exceptions import ExpiredSignatureError, JWTError
 
-# 환경변수에서 SECRET_KEY를 가져오기 위해 가져와.
-import os
-
-
-# 로그인할 때 토큰을 만들었던 SECRET_KEY와 같아야 해.
-SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key")
+# 토큰 발급 때와 동일한 SECRET_KEY로 검증해야 하므로, 유일한 source인 auth_utils에서 가져와.
+from app.services.auth_utils import decode_token
 
 # 프론트엔드와 약속한 쿠키 이름을 적어줘. (기본값으로 많이 쓰는 "access_token" 설정)
 COOKIE_NAME = "access_token"
@@ -52,11 +45,7 @@ def login_required(f):
             # [수정] 쿠키 방식을 쓸 때는 보통 "Bearer " 접두사 없이 토큰값만 들어있으므로 split 과정이 필요 없어.
             # JWT 토큰을 해석해.
             # JWT 기본 만료 시간 검증을 그대로 사용해.
-            payload = jwt.decode(
-                auth_token,
-                SECRET_KEY,
-                algorithms=["HS256"]
-            )
+            payload = decode_token(auth_token)
 
             # 토큰 안에 있는 사용자 ID를 request에 저장해.
             # 뒤의 API 함수에서 request.user_id로 사용할 수 있어.
@@ -125,11 +114,7 @@ def admin_required(f):
         try:
             # JWT 토큰을 해석해.
             # 만료된 토큰은 자동으로 차단돼.
-            payload = jwt.decode(
-                auth_token,
-                SECRET_KEY,
-                algorithms=["HS256"]
-            )
+            payload = decode_token(auth_token)
 
             # 토큰 안의 사용자 ID를 저장해.
             user_id = payload.get("sub")

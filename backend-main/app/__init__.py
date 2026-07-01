@@ -1,5 +1,4 @@
 from flask import Flask
-from flask_jwt_extended import JWTManager
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from flask_socketio import SocketIO
@@ -9,7 +8,6 @@ from dotenv import load_dotenv
 from .extensions import mail
 load_dotenv()
 
-jwt = JWTManager()
 db = SQLAlchemy()
 socketio = SocketIO(
     cors_allowed_origins="*",
@@ -39,13 +37,13 @@ def create_app():
 
     app.json.ensure_ascii = False
     app.config["JSON_AS_ASCII"] = False
-    app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "dev-jwt-secret-key")
     app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL")
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "dev-secret-key")  # 추가
+    # JWT 서명에 쓰는 진짜 SECRET_KEY는 app/services/auth_utils.py 에서 관리하며,
+    # 그 값이 없으면 앱 로딩 시점에 그쪽에서 바로 에러를 낸다. 여기서는 Flask 세션용으로만 참조한다.
+    app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
     app.config["SESSION_COOKIE_SAMESITE"] = "Lax"   # 추가
-    app.config["SESSION_COOKIE_SECURE"] = False      # 추가 (localhost라서 False)
-    app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "dev-jwt-secret-key")
+    app.config["SESSION_COOKIE_SECURE"] = os.getenv("SESSION_COOKIE_SECURE", "False") == "True"
     app.config["ITS_API_KEY"] = os.getenv("ITS_API_KEY")
     app.config["AI_SERVER_URL"] = os.getenv("AI_SERVER_URL", "http://127.0.0.1:8000")  # 추가
 
@@ -66,10 +64,19 @@ def create_app():
     # 데이터베이스 확장 초기화
     db.init_app(app)
 
-    jwt.init_app(app)
-
-
     # CORS: 프론트 주소만 허용
+    # 개발 환경에서 쓰던 기본값을 유지하되, .env의 CORS_ALLOWED_ORIGINS(쉼표 구분)로 덮어쓸 수 있게 한다.
+    _default_cors_origins = (
+        "http://localhost:3000,"
+        "http://172.25.181.79:3000,"
+        "http://192.168.0.242:3000,"
+        "http://mbc-sw.iptime.org:3231"
+    )
+    cors_allowed_origins = [
+        origin.strip()
+        for origin in os.getenv("CORS_ALLOWED_ORIGINS", _default_cors_origins).split(",")
+        if origin.strip()
+    ]
     CORS(
         app,
         resources={
@@ -77,12 +84,7 @@ def create_app():
                 "origins": "*",
                 "supports_credentials": False
             },
-            r"/api/*": {"origins": [
-                "http://localhost:3000",
-                "http://172.25.181.79:3000",
-                "http://192.168.0.242:3000",
-                "http://mbc-sw.iptime.org:3231",
-            ]},
+            r"/api/*": {"origins": cors_allowed_origins},
         },
         supports_credentials=True,
         methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],

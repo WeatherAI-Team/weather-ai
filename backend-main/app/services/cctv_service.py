@@ -2,7 +2,7 @@ import os
 import time
 import requests
 from flask import current_app
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlsplit
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 from app import db
@@ -78,6 +78,49 @@ def _load_from_db(limit: int) -> dict:
         current_app.logger.error(f"DB 캐시 조회 실패: {e}")
         return {"response": {"coordtype": 1, "datacount": 0, "data": []}}
 
+_trusted_host_cache: dict = {"hosts": set(), "ts": 0}
+TRUSTED_HOST_TTL = 60
+
+def _get_trusted_hosts() -> set:
+    now = time.time()
+    if _trusted_host_cache["hosts"] and now - _trusted_host_cache["ts"] < TRUSTED_HOST_TTL:
+        return _trusted_host_cache["hosts"]
+    hosts = set()
+    rows = db.session.query(CctvSource.stream_url).filter(CctvSource.stream_url.isnot(None)).all()
+    for (stream_url,) in rows:
+        netloc = urlsplit(stream_url).netloc
+        if netloc:
+            hosts.add(netloc)
+    _trusted_host_cache["hosts"] = hosts
+    _trusted_host_cache["ts"] = now
+    return hosts
+
+# cctv_sources의 원본 URL이 실제 스트리밍 서버로 리다이렉트되는 경우가 있어
+# (예: ITS 원본 URL -> cctvsec.ktict.co.kr), 신뢰된 URL을 통해 실제로 도달한
+# 호스트도 일정 시간 동안 신뢰 목록에 추가해서 세그먼트 프록시가 막히지 않게 한다.
+_resolved_host_cache: dict = {}
+RESOLVED_HOST_TTL = 300
+
+def _remember_resolved_host(url: str):
+    netloc = urlsplit(url).netloc
+    if netloc:
+        _resolved_host_cache[netloc] = time.time() + RESOLVED_HOST_TTL
+
+def is_trusted_stream_url(url: str) -> bool:
+    """
+    SSRF 방지용 검증.
+    cctv_sources 테이블(ITS Open API에서 적재된 신뢰 가능한 CCTV 목록)에
+    등록된 호스트이거나, 그 신뢰된 URL이 리다이렉트되어 실제로 도달한 호스트면 허용한다.
+    """
+    netloc = urlsplit(url).netloc
+    if not netloc:
+        return False
+    if netloc in _get_trusted_hosts():
+        return True
+    expiry = _resolved_host_cache.get(netloc)
+    return bool(expiry and time.time() < expiry)
+
+
 def get_fresh_stream_url(cctv_id: str, params: dict) -> str:
     now = time.time()
     if cctv_id in _url_cache:
@@ -142,6 +185,7 @@ def rewrite_m3u8(text: str, base_url: str) -> str:
             lines.append(line)
             continue
         full_url = urljoin(base_url, stripped)
+        _remember_resolved_host(full_url)
         proxy_url = f"/api/cctv-ts?url={requests.utils.quote(full_url, safe='')}"
         lines.append(proxy_url)
     return "\n".join(lines)

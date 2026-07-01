@@ -230,7 +230,13 @@ sequenceDiagram
 - 아이디 찾기: `/api/member/find-id`
 - 소셜 로그인: Kakao, Naver, Google
 
-`Member.role`은 `admin`, `manager`, `user` 값을 가질 수 있습니다. 관리자용 API는 `/api/admin`, `/api/admin/members`, `/api/admin/alerts` 아래에 분리되어 있습니다.
+`Member.role`은 `admin`, `manager`, `user` 값을 가질 수 있습니다. 관리자용 API는 `/api/admin`, `/api/admin/members`, `/api/admin/alerts` 아래에 분리되어 있습니다. `admin`과 `manager`는 권한상 동일하게 취급되며(`app/utils/auth_decorators.py`의 `admin_required`), 관리자 API 전반에서 이 정책을 일관되게 따릅니다.
+
+JWT 서명/검증은 `python-jose` 기반 커스텀 구현(`app/services/auth_utils.py`)이 전담하며, `SECRET_KEY` 환경변수가 없으면 앱이 기동 시점에 즉시 에러를 냅니다(하드코딩된 기본값 없음).
+
+### 5.1 Main backend ↔ AI backend 내부 인증
+
+backend-ai(FastAPI)의 `/api/ai/*` 엔드포인트는 브라우저가 직접 호출하지 않고 backend-main만 호출하는 구조입니다. 이를 강제하기 위해 두 서버가 `AI_INTERNAL_SECRET` 환경변수(동일한 값)를 공유하고, backend-main은 요청마다 `X-Internal-Secret` 헤더를 실어 보냅니다(`app/services/ai_client_auth.py`). backend-ai는 이 헤더를 검증하는 FastAPI dependency(`app/security.py`)를 모든 `/api/ai/*` 라우터에 적용합니다. 이 값이 없으면 backend-ai도 기동 시점에 에러를 냅니다.
 
 ## 6. 실시간 알림
 
@@ -254,26 +260,24 @@ send_danger_alert(event_data)
 
 CORS 설정:
 
-- Flask main backend: `http://localhost:3000` 허용
+- Flask main backend: `http://localhost:3000` 기본 허용, `CORS_ALLOWED_ORIGINS` 환경변수(쉼표 구분)로 재정의 가능
 - FastAPI AI backend: `http://localhost:3000` 허용
 
 ## 8. 현재 통합 메모
 
-- Frontend `/ai` 페이지는 AI 서버에 직접 요청합니다.
-- Main backend와 AI backend 사이의 서버 간 호출은 아직 명확히 연결되어 있지 않습니다.
+- Frontend는 AI 서버(backend-ai)에 직접 요청하지 않습니다. `/ai` 페이지를 포함한 모든 AI 관련 요청은 backend-main(`/api/ai/*`, `/api/cctv/*`)을 거쳐 backend-ai로 전달됩니다. backend-main → backend-ai 호출에는 5.1절의 내부 인증 헤더가 실립니다.
 - `DetectionEvent` 조회 API는 DB에 이미 적재된 탐지 결과를 조회하는 구조입니다.
-- AI backend의 분석 결과를 `detection_events`에 저장하는 연결 로직은 현재 코드 기준으로는 분리되어 있습니다.
-- `/api/ai/cctv_stream`은 MJPEG `StreamingResponse`를 반환하지만, 현재 frontend의 `handleStream`은 JSON 응답처럼 읽고 있어 스트림 표시 방식 조정이 필요합니다.
+- AI backend의 분석 결과를 `detection_events`에 저장하는 연결은 `app/services/ai_detection_save_service.py`가 담당합니다.
+- CCTV 스트림은 backend-main의 `/api/cctv/stream`(HLS m3u8 프록시), `/api/cctv-ts`(세그먼트 프록시)를 통해 제공됩니다. 두 라우트 모두 `cctv_sources` 테이블에 등록된 신뢰 가능한 CCTV 호스트로만 프록시를 허용합니다(`app/services/cctv_service.py`의 `is_trusted_stream_url`) — 임의 URL을 그대로 프록시하지 않도록 SSRF를 방지합니다.
+- 챗봇(`/api/chatbot/message`)은 키워드 기반 의도 분류로 동작하며, 이와 별개로 위험 이벤트 알림 문구 생성에는 Gemma LLM(HuggingFace router 경유, `app/services/gemma_service.py`)을 사용하는 흐름이 있습니다. 두 흐름은 서로 다른 목적을 가진 별도 컴포넌트입니다.
 
 ## 9. 권장 다음 단계
 
-1. AI 분석 결과 저장 플로우 확정
-   - AI 서버가 직접 DB에 저장할지, Main backend를 통해 저장할지 결정합니다.
-2. Frontend API 클라이언트 정리
+1. Frontend API 클라이언트 정리
    - 공통 fetch 래퍼와 base URL 관리를 분리하면 페이지별 중복을 줄일 수 있습니다.
-3. 관리자 권한 검사 추가
-   - 관리자 API에 role 기반 접근 제어를 명시적으로 적용합니다.
-4. 스트리밍 UI 수정
-   - `/api/ai/cctv_stream` 응답을 `<img src>` 또는 스트림 전용 엔드포인트 흐름으로 표시하도록 바꿉니다.
-5. 모델/결과 파일 경로 환경변수화
+2. 모델/결과 파일 경로 환경변수화
    - `weather_final_model_finetuned.h5`, `static/results`, `static/temp` 경로를 환경변수로 분리합니다.
+3. AI 클라이언트 서비스 정리
+   - `ai_service.py`, `keras_detection_service.py`, `yolo_detection_service.py`가 모두 backend-ai에 대한 HTTP 클라이언트로 역할이 겹칩니다. 파일명이 실제 추론 로직을 담고 있는 것처럼 보이지 않도록 정리가 필요합니다.
+4. API 응답 포맷 통일
+   - 대부분의 backend-main API는 `{"success": bool, "data"/"message": ...}` 형태를 쓰지만 `/api/admin/users`, `/api/admin/stats`는 봉투 없이 원시 값을 반환합니다.

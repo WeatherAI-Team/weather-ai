@@ -553,9 +553,21 @@ def _pick_representative_vehicle(ai_result: dict) -> str:
 def _save_hls_clip(stream_url: str, event_id: int) -> str | None:
     """AI 서버에 요청해서 HLS 3초 클립 저장"""
     import requests as req
+    from app.services.cctv_service import is_trusted_stream_url
+    from app.services.ai_client_auth import AI_SERVER_HEADERS
+
+    if not is_trusted_stream_url(stream_url):
+        print(f"[CLIP] 허용되지 않은 stream_url이라 클립 저장을 건너뜀: {stream_url}")
+        return None
+
     try:
         ai_url = os.getenv("AI_SERVER_URL", "http://127.0.0.1:8000")
-        res = req.post(f"{ai_url}/api/ai/clip/save", json={"stream_url": stream_url}, timeout=20)
+        res = req.post(
+            f"{ai_url}/api/ai/clip/save",
+            json={"stream_url": stream_url},
+            headers=AI_SERVER_HEADERS,
+            timeout=20,
+        )
         data = res.json()
         if data.get("success"):
             print(f"[CLIP] AI 서버 클립 저장 완료: {data['clip_path']}")
